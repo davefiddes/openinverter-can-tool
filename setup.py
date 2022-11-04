@@ -55,17 +55,16 @@ setup(
         "dev": ["check-manifest", "flake8"],
         "test": ["coverage", "pytest"],
     },
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.
-    package_data={  # Optional
-        "sample": ["package_data.dat"],
-    },
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages. See:
-    # http://docs.python.org/distutils/setupscript.html#installing-additional-files
-    #
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    data_files=[("my_data", ["data/data_file"])],  # Optional
+
+    # No data files are expected within the package
+    package_data={},
+
+    # Pull in all our example parameter databases
+    data_files=[("parameter-databases",
+                 ["parameter-databases/c2000-sine.5.14.R.C2000-foc.json",
+                  "parameter-databases/stm32-sine.5.20.R-foc.json",
+                  "parameter-databases/stm32-sine.5.20.R-sine.json"])],
+
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # `pip` to create the appropriate form of executable for the target

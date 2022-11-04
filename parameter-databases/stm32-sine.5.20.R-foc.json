@@ -1,0 +1,898 @@
+{
+    "Motor": [
+        {
+            "name": "curkp",
+            "unit": "",
+            "min": "0",
+            "max": "640000",
+            "def": "1024",
+            "id": "107"
+        },
+        {
+            "name": "curki",
+            "unit": "",
+            "min": "0",
+            "max": "3200000",
+            "def": "640000",
+            "id": "108"
+        },
+        {
+            "name": "fwkp",
+            "unit": "",
+            "min": "0",
+            "max": "32000",
+            "def": "160",
+            "id": "142"
+        },
+        {
+            "name": "fwki",
+            "unit": "",
+            "min": "0",
+            "max": "32000",
+            "def": "9600",
+            "id": "143"
+        },
+        {
+            "name": "fwmargin",
+            "unit": "dig",
+            "min": "0",
+            "max": "320000",
+            "def": "80000",
+            "id": "141"
+        },
+        {
+            "name": "syncofs",
+            "unit": "dig",
+            "min": "0",
+            "max": "2097120",
+            "def": "0",
+            "id": "70"
+        },
+        {
+            "name": "lqminusld",
+            "unit": "mH",
+            "min": "0",
+            "max": "32000",
+            "def": "0",
+            "id": "139"
+        },
+        {
+            "name": "fluxlinkage",
+            "unit": "mWeber",
+            "min": "0",
+            "max": "32000",
+            "def": "2880",
+            "id": "140"
+        },
+        {
+            "name": "syncadv",
+            "unit": "dig/Hz",
+            "min": "0",
+            "max": "2097120",
+            "def": "320",
+            "id": "133"
+        },
+        {
+            "name": "ffwstart",
+            "unit": "Hz",
+            "min": "0",
+            "max": "32000",
+            "def": "6400",
+            "id": "136"
+        },
+        {
+            "name": "polepairs",
+            "unit": "",
+            "min": "32",
+            "max": "512",
+            "def": "64",
+            "id": "32"
+        },
+        {
+            "name": "respolepairs",
+            "unit": "",
+            "min": "32",
+            "max": "512",
+            "def": "32",
+            "id": "93"
+        },
+        {
+            "name": "sincosofs",
+            "unit": "dig",
+            "min": "32",
+            "max": "131072",
+            "def": "65536",
+            "id": "131"
+        },
+        {
+            "name": "encmode",
+            "unit": "0=Single, 1=AB, 2=ABZ, 3=SPI, 4=Resolver, 5=SinCos",
+            "min": "0",
+            "max": "160",
+            "def": "0",
+            "id": "75"
+        },
+        {
+            "name": "fmax",
+            "unit": "Hz",
+            "min": "672",
+            "max": "32000",
+            "def": "6400",
+            "id": "9"
+        },
+        {
+            "name": "numimp",
+            "unit": "ppr",
+            "min": "256",
+            "max": "262144",
+            "def": "1920",
+            "id": "15"
+        },
+        {
+            "name": "dirchrpm",
+            "unit": "rpm",
+            "min": "0",
+            "max": "640000",
+            "def": "3200",
+            "id": "87"
+        },
+        {
+            "name": "dirmode",
+            "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, 4=DefaultForward",
+            "min": "0",
+            "max": "128",
+            "def": "32",
+            "id": "95"
+        },
+        {
+            "name": "snsm",
+            "unit": "12=KTY83-110, 13=KTY84-130, 14=Leaf, 15=KTY81-110, 16=Toyota, 21=OutlanderFront, 22=EpcosB57861-S, 23=ToyotaGen2",
+            "min": "384",
+            "max": "736",
+            "def": "384",
+            "id": "46"
+        }
+    ],
+    "Inverter": [
+        {
+            "name": "pwmfrq",
+            "unit": "0=17.6kHz, 1=8.8kHz, 2=4.4KHz",
+            "min": "0",
+            "max": "64",
+            "def": "32",
+            "id": "13"
+        },
+        {
+            "name": "pwmpol",
+            "unit": "0=ActHigh, 1=ActLow",
+            "min": "0",
+            "max": "32",
+            "def": "0",
+            "id": "52"
+        },
+        {
+            "name": "deadtime",
+            "unit": "dig",
+            "min": "0",
+            "max": "8160",
+            "def": "2016",
+            "id": "14"
+        },
+        {
+            "name": "ocurlim",
+            "unit": "A",
+            "min": "-2097152",
+            "max": "2097152",
+            "def": "3200",
+            "id": "22"
+        },
+        {
+            "name": "il1gain",
+            "unit": "dig/A",
+            "min": "-3200",
+            "max": "3200",
+            "def": "150",
+            "id": "27"
+        },
+        {
+            "name": "il2gain",
+            "unit": "dig/A",
+            "min": "-3200",
+            "max": "3200",
+            "def": "150",
+            "id": "28"
+        },
+        {
+            "name": "udcgain",
+            "unit": "dig/V",
+            "min": "0",
+            "max": "131040",
+            "def": "197",
+            "id": "29"
+        },
+        {
+            "name": "udcofs",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "0",
+            "id": "77"
+        },
+        {
+            "name": "udclim",
+            "unit": "V",
+            "min": "0",
+            "max": "32000",
+            "def": "17280",
+            "id": "48"
+        },
+        {
+            "name": "snshs",
+            "unit": "0=JCurve, 1=Semikron, 2=MBB600, 3=KTY81, 4=PT1000, 5=NTCK45_2k2, 6=Leaf, 7=BMW-i3",
+            "min": "0",
+            "max": "224",
+            "def": "0",
+            "id": "45"
+        },
+        {
+            "name": "pinswap",
+            "unit": "0=None, 1=Currents12, 2=SinCos, 4=PWMOutput13, 8=PWMOutput23",
+            "min": "0",
+            "max": "480",
+            "def": "0",
+            "id": "109"
+        }
+    ],
+    "Throttle": [
+        {
+            "name": "potmin",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "0",
+            "id": "17"
+        },
+        {
+            "name": "potmax",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "131040",
+            "id": "18"
+        },
+        {
+            "name": "pot2min",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "131040",
+            "id": "63"
+        },
+        {
+            "name": "pot2max",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "131040",
+            "id": "64"
+        },
+        {
+            "name": "potmode",
+            "unit": "0=SingleRegen, 1=DualChannel, 2=CAN, 3=CANDual, 4=BiDir, 6=CANBiDir",
+            "min": "0",
+            "max": "192",
+            "def": "0",
+            "id": "82"
+        },
+        {
+            "name": "throtramp",
+            "unit": "%/10ms",
+            "min": "3",
+            "max": "3200",
+            "def": "3200",
+            "id": "81"
+        },
+        {
+            "name": "throtramprpm",
+            "unit": "rpm",
+            "min": "0",
+            "max": "640000",
+            "def": "640000",
+            "id": "85"
+        },
+        {
+            "name": "throtcur",
+            "unit": "A/%",
+            "min": "0",
+            "max": "320",
+            "def": "32",
+            "id": "105"
+        }
+    ],
+    "Regen": [
+        {
+            "name": "brakeregen",
+            "unit": "%",
+            "min": "-3200",
+            "max": "0",
+            "def": "-1600",
+            "id": "38"
+        },
+        {
+            "name": "regenramp",
+            "unit": "%/10ms",
+            "min": "3",
+            "max": "3200",
+            "def": "3200",
+            "id": "68"
+        },
+        {
+            "name": "regentravel",
+            "unit": "%",
+            "min": "0",
+            "max": "3200",
+            "def": "960",
+            "id": "19"
+        },
+        {
+            "name": "offthrotregen",
+            "unit": "%",
+            "min": "-3200",
+            "max": "0",
+            "def": "-960",
+            "id": "49"
+        },
+        {
+            "name": "cruiseregen",
+            "unit": "%",
+            "min": "-3200",
+            "max": "0",
+            "def": "-960",
+            "id": "124"
+        },
+        {
+            "name": "regenrampstr",
+            "unit": "Hz",
+            "min": "0",
+            "max": "12800",
+            "def": "320",
+            "id": "39"
+        },
+        {
+            "name": "brklightout",
+            "unit": "%",
+            "min": "-3200",
+            "max": "-32",
+            "def": "-1600",
+            "id": "67"
+        }
+    ],
+    "Derating": [
+        {
+            "name": "bmslimhigh",
+            "unit": "%",
+            "min": "0",
+            "max": "3200",
+            "def": "1600",
+            "id": "55"
+        },
+        {
+            "name": "bmslimlow",
+            "unit": "%",
+            "min": "-3200",
+            "max": "0",
+            "def": "-32",
+            "id": "56"
+        },
+        {
+            "name": "udcmin",
+            "unit": "V",
+            "min": "0",
+            "max": "32000",
+            "def": "14400",
+            "id": "42"
+        },
+        {
+            "name": "udcmax",
+            "unit": "V",
+            "min": "0",
+            "max": "32000",
+            "def": "16640",
+            "id": "43"
+        },
+        {
+            "name": "idcmax",
+            "unit": "A",
+            "min": "0",
+            "max": "160000",
+            "def": "160000",
+            "id": "96"
+        },
+        {
+            "name": "idcmin",
+            "unit": "A",
+            "min": "-160000",
+            "max": "0",
+            "def": "-160000",
+            "id": "98"
+        },
+        {
+            "name": "idckp",
+            "unit": "dig",
+            "min": "3",
+            "max": "640",
+            "def": "64",
+            "id": "130"
+        },
+        {
+            "name": "idcflt",
+            "unit": "dig",
+            "min": "0",
+            "max": "352",
+            "def": "288",
+            "id": "132"
+        },
+        {
+            "name": "tmphsmax",
+            "unit": "°C",
+            "min": "1600",
+            "max": "4800",
+            "def": "2720",
+            "id": "125"
+        },
+        {
+            "name": "tmpmmax",
+            "unit": "°C",
+            "min": "2240",
+            "max": "9600",
+            "def": "9600",
+            "id": "127"
+        },
+        {
+            "name": "throtmax",
+            "unit": "%",
+            "min": "0",
+            "max": "3200",
+            "def": "3200",
+            "id": "97"
+        },
+        {
+            "name": "throtmin",
+            "unit": "%",
+            "min": "-3200",
+            "max": "0",
+            "def": "-3200",
+            "id": "119"
+        }
+    ],
+    "Charger": [
+        {
+            "name": "chargemode",
+            "unit": "0=Off, 3=Boost, 4=Buck",
+            "min": "0",
+            "max": "128",
+            "def": "0",
+            "id": "74"
+        },
+        {
+            "name": "chargecur",
+            "unit": "A",
+            "min": "0",
+            "max": "1600",
+            "def": "0",
+            "id": "71"
+        },
+        {
+            "name": "chargekp",
+            "unit": "dig",
+            "min": "-3200",
+            "max": "3200",
+            "def": "2560",
+            "id": "72"
+        },
+        {
+            "name": "chargeki",
+            "unit": "dig",
+            "min": "-3200",
+            "max": "3200",
+            "def": "320",
+            "id": "126"
+        },
+        {
+            "name": "chargeflt",
+            "unit": "dig",
+            "min": "0",
+            "max": "320",
+            "def": "256",
+            "id": "73"
+        },
+        {
+            "name": "chargepwmin",
+            "unit": "%",
+            "min": "0",
+            "max": "3168",
+            "def": "0",
+            "id": "128"
+        },
+        {
+            "name": "chargepwmax",
+            "unit": "%",
+            "min": "0",
+            "max": "3168",
+            "def": "2880",
+            "id": "79"
+        }
+    ],
+    "Automation": [
+        {
+            "name": "idlespeed",
+            "unit": "rpm",
+            "min": "-3200",
+            "max": "320000",
+            "def": "-3200",
+            "id": "54"
+        },
+        {
+            "name": "idlethrotlim",
+            "unit": "%",
+            "min": "0",
+            "max": "3200",
+            "def": "1600",
+            "id": "65"
+        },
+        {
+            "name": "idlemode",
+            "unit": "0=Always, 1=NoBrake, 2=Cruise, 3=Off, 4=HillHold",
+            "min": "0",
+            "max": "128",
+            "def": "96",
+            "id": "66"
+        },
+        {
+            "name": "holdkp",
+            "unit": "",
+            "min": "-3200",
+            "max": "0",
+            "def": "-8",
+            "id": "138"
+        },
+        {
+            "name": "speedkp",
+            "unit": "",
+            "min": "0",
+            "max": "3200",
+            "def": "8",
+            "id": "53"
+        },
+        {
+            "name": "speedflt",
+            "unit": "",
+            "min": "0",
+            "max": "512",
+            "def": "160",
+            "id": "57"
+        },
+        {
+            "name": "cruisemode",
+            "unit": "0=Button, 1=Switch, 2=CAN, 3=ThrottlePot",
+            "min": "0",
+            "max": "96",
+            "def": "0",
+            "id": "62"
+        }
+    ],
+    "Contactor Control": [
+        {
+            "name": "udcsw",
+            "unit": "V",
+            "min": "0",
+            "max": "32000",
+            "def": "10560",
+            "id": "20"
+        },
+        {
+            "name": "udcswbuck",
+            "unit": "V",
+            "min": "0",
+            "max": "32000",
+            "def": "17280",
+            "id": "80"
+        },
+        {
+            "name": "tripmode",
+            "unit": "0=AllOff, 1=DcSwOn, 2=PrechargeOn, 3=AutoResume",
+            "min": "0",
+            "max": "96",
+            "def": "0",
+            "id": "86"
+        },
+        {
+            "name": "bootprec",
+            "unit": "0=Off, 1=On, 2=na",
+            "min": "0",
+            "max": "32",
+            "def": "0",
+            "id": "135"
+        }
+    ],
+    "Aux PWM": [
+        {
+            "name": "pwmfunc",
+            "unit": "0=tmpm, 1=tmphs, 2=speed, 3=speedfrq",
+            "min": "0",
+            "max": "96",
+            "def": "0",
+            "id": "58"
+        },
+        {
+            "name": "pwmgain",
+            "unit": "",
+            "min": "-3200000",
+            "max": "3200000",
+            "def": "3200",
+            "id": "40"
+        },
+        {
+            "name": "pwmofs",
+            "unit": "dig",
+            "min": "-2097120",
+            "max": "2097120",
+            "def": "0",
+            "id": "41"
+        }
+    ],
+    "Communication": [
+        {
+            "name": "canspeed",
+            "unit": "0=250k, 1=500k, 2=800k, 3=1M",
+            "min": "0",
+            "max": "96",
+            "def": "32",
+            "id": "83"
+        },
+        {
+            "name": "canperiod",
+            "unit": "0=100ms, 1=10ms",
+            "min": "0",
+            "max": "32",
+            "def": "0",
+            "id": "88"
+        },
+        {
+            "name": "nodeid",
+            "unit": "",
+            "min": "32",
+            "max": "2016",
+            "def": "32",
+            "id": "129"
+        }
+    ],
+    "Testing": [
+        {
+            "name": "manualiq",
+            "unit": "A",
+            "min": "-12800",
+            "max": "12800",
+            "def": "0",
+            "id": "0"
+        },
+        {
+            "name": "manualid",
+            "unit": "A",
+            "min": "-12800",
+            "max": "12800",
+            "def": "0",
+            "id": "0"
+        },
+        {
+            "name": "manualifw",
+            "unit": "A",
+            "min": "-12800",
+            "max": "12800",
+            "def": "0",
+            "id": "0"
+        }
+    ],
+    "Values": [
+        {
+            "name": "version",
+            "unit": "4=5.20.R-foc",
+            "id": "2039"
+        },
+        {
+            "name": "hwver",
+            "unit": "0=Rev1, 1=Rev2, 2=Rev3, 3=Tesla, 4=BluePill, 5=Prius",
+            "id": "2036"
+        },
+        {
+            "name": "opmode",
+            "unit": "0=Off, 1=Run, 2=ManualRun, 3=Boost, 4=Buck, 5=Sine, 6=AcHeat",
+            "id": "2000"
+        },
+        {
+            "name": "lasterr",
+            "unit": "Empty",
+            "id": "2038"
+        },
+        {
+            "name": "status",
+            "unit": "0=None, 1=UdcLow, 2=UdcHigh, 4=UdcBelowUdcSw, 8=UdcLim, 16=EmcyStop, 32=MProt, 64=PotPressed, 128=TmpHs, 256=WaitStart",
+            "id": "2044"
+        },
+        {
+            "name": "udc",
+            "unit": "V",
+            "id": "2001"
+        },
+        {
+            "name": "idc",
+            "unit": "A",
+            "id": "2002"
+        },
+        {
+            "name": "il1",
+            "unit": "A",
+            "id": "2003"
+        },
+        {
+            "name": "il2",
+            "unit": "A",
+            "id": "2004"
+        },
+        {
+            "name": "id",
+            "unit": "A",
+            "id": "2003"
+        },
+        {
+            "name": "iq",
+            "unit": "A",
+            "id": "2004"
+        },
+        {
+            "name": "ifw",
+            "unit": "A",
+            "id": "2048"
+        },
+        {
+            "name": "ud",
+            "unit": "dig",
+            "id": "2046"
+        },
+        {
+            "name": "uq",
+            "unit": "dig",
+            "id": "2047"
+        },
+        {
+            "name": "fstat",
+            "unit": "Hz",
+            "id": "2011"
+        },
+        {
+            "name": "speed",
+            "unit": "rpm",
+            "id": "2012"
+        },
+        {
+            "name": "cruisespeed",
+            "unit": "rpm",
+            "id": "2041"
+        },
+        {
+            "name": "turns",
+            "unit": "",
+            "id": "2037"
+        },
+        {
+            "name": "amp",
+            "unit": "dig",
+            "id": "2013"
+        },
+        {
+            "name": "angle",
+            "unit": "°",
+            "id": "2014"
+        },
+        {
+            "name": "pot",
+            "unit": "dig",
+            "id": "2015"
+        },
+        {
+            "name": "pot2",
+            "unit": "dig",
+            "id": "2016"
+        },
+        {
+            "name": "potnom",
+            "unit": "%",
+            "id": "2017"
+        },
+        {
+            "name": "dir",
+            "unit": "-1=Reverse, 0=Neutral, 1=Forward",
+            "id": "2018"
+        },
+        {
+            "name": "tmphs",
+            "unit": "°C",
+            "id": "2019"
+        },
+        {
+            "name": "tmpm",
+            "unit": "°C",
+            "id": "2020"
+        },
+        {
+            "name": "uaux",
+            "unit": "V",
+            "id": "2021"
+        },
+        {
+            "name": "pwmio",
+            "unit": "",
+            "id": "2045"
+        },
+        {
+            "name": "canio",
+            "unit": "1=Cruise, 2=Start, 4=Brake, 8=Fwd, 16=Rev, 32=Bms",
+            "id": "2022"
+        },
+        {
+            "name": "din_cruise",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2023"
+        },
+        {
+            "name": "din_start",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2024"
+        },
+        {
+            "name": "din_brake",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2025"
+        },
+        {
+            "name": "din_mprot",
+            "unit": "0=Error, 1=Ok, 2=na",
+            "id": "2026"
+        },
+        {
+            "name": "din_forward",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2027"
+        },
+        {
+            "name": "din_reverse",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2028"
+        },
+        {
+            "name": "din_emcystop",
+            "unit": "0=Error, 1=Ok, 2=na",
+            "id": "2029"
+        },
+        {
+            "name": "din_ocur",
+            "unit": "0=Error, 1=Ok, 2=na",
+            "id": "2030"
+        },
+        {
+            "name": "din_desat",
+            "unit": "0=Error, 1=Ok, 2=na",
+            "id": "2031"
+        },
+        {
+            "name": "din_bms",
+            "unit": "0=Off, 1=On, 2=na",
+            "id": "2032"
+        },
+        {
+            "name": "cpuload",
+            "unit": "%",
+            "id": "2035"
+        }
+    ]
+}
