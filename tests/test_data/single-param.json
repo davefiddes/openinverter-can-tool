@@ -1,0 +1,12 @@
+{
+    "Category": [
+        {
+            "name": "param1",
+            "unit": "km / h",
+            "min": "0",
+            "max": "3200",
+            "def": "160",
+            "id": "1"
+        }
+    ]
+}

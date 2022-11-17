@@ -1,0 +1,45 @@
+{
+    "Params": [
+        {
+            "name": "curkp",
+            "unit": "",
+            "min": "0",
+            "max": "640000",
+            "def": "1024",
+            "id": "107"
+        },
+        {
+            "name": "dirmode",
+            "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, 4=DefaultForward",
+            "min": "0",
+            "max": "128",
+            "def": "32",
+            "id": "95"
+        }
+    ],
+    "Throttle": [
+        {
+            "name": "potmin",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "0",
+            "id": "17"
+        },
+        {
+            "name": "potmax",
+            "unit": "dig",
+            "min": "0",
+            "max": "131040",
+            "def": "131040",
+            "id": "18"
+        }
+    ],
+    "Values": [
+        {
+            "name": "cpuload",
+            "unit": "%",
+            "id": "2035"
+        }
+    ]
+}
