@@ -75,6 +75,7 @@ setup(
     entry_points={  # Optional
         "console_scripts": [
             "sample=sample:main",
+            "oic=openinverter_can_tool:main"
         ],
     },
     # List additional URLs that are relevant to your project as a dict.

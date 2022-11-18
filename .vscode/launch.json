@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "List parameters",
+            "type": "python",
+            "request": "launch",
+            "module": "openinverter_can_tool",
+            "justMyCode": true,
+            "args": [
+                "-d",
+                "${workspaceFolder}/parameter-databases/stm32-sine.5.20.R-foc.json"
+            ]
+        }
+    ]
+}
