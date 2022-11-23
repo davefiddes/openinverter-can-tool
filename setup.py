@@ -50,7 +50,7 @@ setup(
     packages=find_packages(where="src"),  # Required
     python_requires=">=3.7, <4",
 
-    install_requires=["canopen"],  # Optional
+    install_requires=["click", "canopen"],  # Optional
     extras_require={  # Optional
         "dev": ["check-manifest", "flake8"],
         "test": ["coverage", "pytest"],
