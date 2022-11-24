@@ -68,7 +68,7 @@ setup(
     # The main command-line tool
     entry_points={
         "console_scripts": [
-            "oic=openinverter_can_tool:main"
+            "oic=openinverter_can_tool:cli.cli"
         ],
     },
     # List additional URLs that are relevant to your project as a dict.
