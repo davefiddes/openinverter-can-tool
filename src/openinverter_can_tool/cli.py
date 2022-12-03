@@ -2,6 +2,7 @@
 openinverter CAN Tools main program
 """
 
+import functools
 import click
 import canopen
 from .paramdb import import_database
@@ -26,6 +27,45 @@ class CliSettings:
 
 
 pass_cli_settings = click.make_pass_decorator(CliSettings)
+
+
+def can_action(func):
+    """Establish a CAN connection and allow the wrapped function to access
+     the configured CAN SDO node
+     """
+    @functools.wraps(func)
+    def wrapper_can_action(*args, **kwargs):
+
+        # Assume that the first argument exists and is a CliSettings
+        cli_settings: CliSettings = args[0]
+
+        try:
+            # Start with creating a network representing one CAN bus
+            network = canopen.Network()
+
+            # Connect to the CAN bus
+            network.connect(
+                bustype=cli_settings.bustype,
+                channel=cli_settings.channel,
+                bitrate=cli_settings.speed)
+
+            network.check()
+
+            node = canopen.BaseNode402(
+                cli_settings.node_number, cli_settings.database)
+            network.add_node(node)
+
+            # Call the command handler function with the CAN SDO node
+            # object
+            return_value = func(node, *args, **kwargs)
+
+        finally:
+            if network:
+                network.disconnect()
+
+        return return_value
+
+    return wrapper_can_action
 
 
 @click.group()
@@ -85,29 +125,11 @@ def listparams(cli_settings: CliSettings):
 
 @cli.command()
 @pass_cli_settings
-def dumpall(cli_settings: CliSettings):
+@can_action
+def dumpall(node: canopen.Node,
+            cli_settings: CliSettings):
     """Dump the values of all available parameters and values"""
 
-    try:
-        # Start with creating a network representing one CAN bus
-        network = canopen.Network()
-
-        # Connect to the CAN bus
-        network.connect(
-            bustype=cli_settings.bustype,
-            channel=cli_settings.channel,
-            bitrate=cli_settings.speed)
-
-        network.check()
-
-        node = canopen.BaseNode402(
-            cli_settings.node_number, cli_settings.database)
-        network.add_node(node)
-
-        for item in cli_settings.database.names.values():
-            click.echo(
-                f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):g}")
-
-    finally:
-        if network:
-            network.disconnect()
+    for item in cli_settings.database.names.values():
+        click.echo(
+            f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):g}")
