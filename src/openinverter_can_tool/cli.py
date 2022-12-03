@@ -3,6 +3,7 @@ openinverter CAN Tools main program
 """
 
 import functools
+from typing import Optional
 import click
 import canopen
 from .paramdb import import_database
@@ -13,8 +14,8 @@ class CliSettings:
     """Simple class to store the common settings used for all commands"""
 
     def __init__(
-        self,
-        database: canopen.ObjectDictionary,
+            self,
+            database: canopen.ObjectDictionary,
             bustype: str,
             channel: str,
             speed: int,
@@ -24,6 +25,8 @@ class CliSettings:
         self.channel = channel
         self.speed = speed
         self.node_number = node_number
+        self.network = Optional[canopen.Network]
+        self.node = Optional[canopen.Node]
 
 
 pass_cli_settings = click.make_pass_decorator(CliSettings)
@@ -55,9 +58,12 @@ def can_action(func):
                 cli_settings.node_number, cli_settings.database)
             network.add_node(node)
 
-            # Call the command handler function with the CAN SDO node
-            # object
-            return_value = func(node, *args, **kwargs)
+            # store the network and node objects in the context
+            cli_settings.network = network
+            cli_settings.node = node
+
+            # Call the command handler function
+            return_value = func(*args, **kwargs)
 
         finally:
             if network:
@@ -126,10 +132,10 @@ def listparams(cli_settings: CliSettings):
 @cli.command()
 @pass_cli_settings
 @can_action
-def dumpall(node: canopen.Node,
-            cli_settings: CliSettings):
+def dumpall(cli_settings: CliSettings):
     """Dump the values of all available parameters and values"""
 
+    node = cli_settings.node
     for item in cli_settings.database.names.values():
         click.echo(
             f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):g}")
