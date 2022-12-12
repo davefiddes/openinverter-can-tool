@@ -7,7 +7,7 @@ from typing import Optional
 import click
 import canopen
 from .paramdb import import_database
-from .fpfloat import fixed_to_float
+from .fpfloat import fixed_to_float, fixed_from_float
 
 
 class CliSettings:
@@ -139,3 +139,45 @@ def dumpall(cli_settings: CliSettings):
     for item in cli_settings.database.names.values():
         click.echo(
             f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):g}")
+
+
+@cli.command()
+@click.argument("param", required=True)
+@pass_cli_settings
+@can_action
+def read(cli_settings: CliSettings, param: str):
+    """Read the value of PARAM from the device"""
+
+    if param in cli_settings.database.names:
+        node = cli_settings.node
+        click.echo(
+            f"{param:20}: {fixed_to_float(node.sdo[param].raw):g}")
+    else:
+        click.echo(f"Unknown parameter: {param}")
+
+
+@cli.command(context_settings=dict(ignore_unknown_options=True))
+@click.argument("param")
+@click.argument("value", type=float)
+@pass_cli_settings
+@can_action
+def write(cli_settings: CliSettings, param: str, value: float):
+    """Write the value to the parameter PARAM on the device"""
+
+    if param in cli_settings.database.names:
+        param_item = cli_settings.database.names[param]
+
+        fixed_value = fixed_from_float(value)
+
+        if fixed_value < param_item.min:
+            click.echo(f"Value {value:g} is smaller than the minimum value "
+                       f"{fixed_to_float(param_item.min):g} allowed for "
+                       f"{param}")
+        elif fixed_value > param_item.max:
+            click.echo(f"Value {value:g} is larger than the maximum value "
+                       f"{fixed_to_float(param_item.max):g} allowed for "
+                       f"{param}")
+        else:
+            cli_settings.node.sdo[param].raw = fixed_value
+    else:
+        click.echo(f"Unknown parameter: {param}")
