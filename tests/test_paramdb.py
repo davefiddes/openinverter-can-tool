@@ -77,18 +77,18 @@ class TestDatabaseImport(unittest.TestCase):
 
         expected_params = [
             {"name": "curkp", "unit": "", "min": 0,
-             "max": 640000, "default": 1024,
+             "max": 20000, "default": 32,
              "index": 0x2100, "subindex": 107},
             {"name": "dirmode",
              "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, "
                      "4=DefaultForward",
-             "min": 0, "max": 128, "default": 32,
+             "min": 0, "max": 4, "default": 1,
              "index": 0x2100, "subindex": 95},
             {"name": "potmin", "unit": "dig",
-             "min": 0, "max": 131040, "default": 0,
+             "min": 0, "max": 4095, "default": 0,
              "index": 0x2100, "subindex": 17},
             {"name": "potmax", "unit": "dig",
-             "min": 0, "max": 131040, "default": 131040,
+             "min": 0, "max": 4095, "default": 4095,
              "index": 0x2100, "subindex": 18},
             {"name": "cpuload", "unit": "%",
              "index": 0x2107, "subindex": 0xF3}
@@ -106,9 +106,10 @@ class TestDatabaseImport(unittest.TestCase):
 
             # optional fields only present for params not values
             if "min" in param:
-                self.assertEqual(item.min, param["min"])
-                self.assertEqual(item.max, param["max"])
-                self.assertEqual(item.default, param["default"])
+                self.assertEqual(item.min, fixed_from_float(param["min"]))
+                self.assertEqual(item.max, fixed_from_float(param["max"]))
+                self.assertEqual(
+                    item.default, fixed_from_float(param["default"]))
 
             self.assertEqual(item.factor, 32)
             self.assertEqual(item.data_type, objectdictionary.INTEGER32)

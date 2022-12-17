@@ -62,8 +62,8 @@ setup(
     # Pull in all our example parameter databases
     data_files=[("parameter-databases",
                  ["parameter-databases/c2000-sine.5.14.R.C2000-foc.json",
-                  "parameter-databases/stm32-sine.5.20.R-foc.json",
-                  "parameter-databases/stm32-sine.5.20.R-sine.json"])],
+                  "parameter-databases/stm32-sine.5.24.R-foc.json",
+                  "parameter-databases/stm32-sine.5.24.R-sine.json"])],
 
     # The main command-line tool
     entry_points={

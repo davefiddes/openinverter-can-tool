@@ -6,6 +6,7 @@ openinverter parameter database functions
 import json
 from typing import Tuple
 from canopen import objectdictionary
+from .fpfloat import fixed_from_float
 
 
 def index_from_id(param_identifier: int) -> Tuple[int, int]:
@@ -46,11 +47,11 @@ def import_database(paramdb) -> objectdictionary.ObjectDictionary:
             if "unit" in param:
                 var.unit = param["unit"]
             if "min" in param:
-                var.min = int(param["min"])
+                var.min = fixed_from_float(float(param["min"]))
             if "max" in param:
-                var.max = int(param["max"])
+                var.max = fixed_from_float(float(param["max"]))
             if "def" in param:
-                var.default = int(param["def"])
+                var.default = fixed_from_float(float(param["def"]))
 
             dictionary.add_object(var)
 

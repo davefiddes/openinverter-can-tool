@@ -8,7 +8,8 @@
             "justMyCode": true,
             "args": [
                 "-d",
-                "${workspaceFolder}/parameter-databases/stm32-sine.5.20.R-foc.json"
+                "${workspaceFolder}/parameter-databases/stm32-sine.5.24.R-foc.json",
+                "listparams"
             ]
         }
     ]
