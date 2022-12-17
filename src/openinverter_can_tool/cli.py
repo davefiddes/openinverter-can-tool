@@ -169,17 +169,22 @@ def write(cli_settings: CliSettings, param: str, value: float):
     if param in cli_settings.database.names:
         param_item = cli_settings.database.names[param]
 
-        fixed_value = fixed_from_float(value)
+        # Check if we are a spot value parameter
+        if param_item.min:
+            fixed_value = fixed_from_float(value)
 
-        if fixed_value < param_item.min:
-            click.echo(f"Value {value:g} is smaller than the minimum value "
-                       f"{fixed_to_float(param_item.min):g} allowed for "
-                       f"{param}")
-        elif fixed_value > param_item.max:
-            click.echo(f"Value {value:g} is larger than the maximum value "
-                       f"{fixed_to_float(param_item.max):g} allowed for "
-                       f"{param}")
+            if fixed_value < param_item.min:
+                click.echo(f"Value {value:g} is smaller than the minimum value "
+                           f"{fixed_to_float(param_item.min):g} allowed for "
+                           f"{param}")
+            elif fixed_value > param_item.max:
+                click.echo(f"Value {value:g} is larger than the maximum value "
+                           f"{fixed_to_float(param_item.max):g} allowed for "
+                           f"{param}")
+            else:
+                cli_settings.node.sdo[param].raw = fixed_value
         else:
-            cli_settings.node.sdo[param].raw = fixed_value
+            click.echo(f"{param} is a spot value parameter. "
+                       "Spot values are read-only.")
     else:
         click.echo(f"Unknown parameter: {param}")
