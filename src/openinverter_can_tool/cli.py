@@ -138,7 +138,8 @@ def dumpall(cli_settings: CliSettings):
     node = cli_settings.node
     for item in cli_settings.database.names.values():
         click.echo(
-            f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):g}")
+            f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):10g} "
+            f"[{item.unit}]")
 
 
 @cli.command()
@@ -151,7 +152,8 @@ def read(cli_settings: CliSettings, param: str):
     if param in cli_settings.database.names:
         node = cli_settings.node
         click.echo(
-            f"{param:20}: {fixed_to_float(node.sdo[param].raw):g}")
+            f"{param}: {fixed_to_float(node.sdo[param].raw):g} "
+            f"[{cli_settings.database.names[param].unit}]")
     else:
         click.echo(f"Unknown parameter: {param}")
 
