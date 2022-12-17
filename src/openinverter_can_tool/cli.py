@@ -122,9 +122,9 @@ def listparams(cli_settings: CliSettings):
 
         if item.min or item.max or item.default:
             print(
-                f" - min: {fixed_to_float(item.min)} "
-                f"max: {fixed_to_float(item.max)} "
-                f"default: {fixed_to_float(item.default)}")
+                f" - min: {fixed_to_float(item.min):g} "
+                f"max: {fixed_to_float(item.max):g} "
+                f"default: {fixed_to_float(item.default):g}")
         else:
             print(" - read-only value")
 
