@@ -174,9 +174,9 @@ def write(cli_settings: CliSettings, param: str, value: float):
             fixed_value = fixed_from_float(value)
 
             if fixed_value < param_item.min:
-                click.echo(f"Value {value:g} is smaller than the minimum value "
-                           f"{fixed_to_float(param_item.min):g} allowed for "
-                           f"{param}")
+                click.echo(f"Value {value:g} is smaller than the minimum "
+                           f"value {fixed_to_float(param_item.min):g} allowed "
+                           f"for {param}")
             elif fixed_value > param_item.max:
                 click.echo(f"Value {value:g} is larger than the maximum value "
                            f"{fixed_to_float(param_item.max):g} allowed for "
