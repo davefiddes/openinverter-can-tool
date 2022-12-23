@@ -31,28 +31,35 @@ def import_database(paramdb) -> objectdictionary.ObjectDictionary:
     with open(paramdb, encoding="utf-8") as file:
         doc = json.load(file)
 
-    for category in doc:
-        for param in doc[category]:
-            (index, subindex) = index_from_id(int(param['id']))
-            var = objectdictionary.Variable(param['name'], index, subindex)
+    for param_name in doc:
+        param = doc[param_name]
+        (index, subindex) = index_from_id(int(param["id"]))
+        var = objectdictionary.Variable(param_name, index, subindex)
 
-            # All openinverter params are 32-bit fixed float values
-            # we will convert to float on presentation as required
-            # but work with them as integers to keep the canopen
-            # library happy
-            var.factor = 32
-            var.data_type = objectdictionary.INTEGER32
+        # All openinverter params are 32-bit fixed float values
+        # we will convert to float on presentation as required
+        # but work with them as integers to keep the canopen
+        # library happy
+        var.factor = 32
+        var.data_type = objectdictionary.INTEGER32
 
-            # These parameter attributes are optional
-            if "unit" in param:
-                var.unit = param["unit"]
-            if "min" in param:
-                var.min = fixed_from_float(float(param["min"]))
-            if "max" in param:
-                var.max = fixed_from_float(float(param["max"]))
-            if "def" in param:
-                var.default = fixed_from_float(float(param["def"]))
+        # Common attributes for parameters and values
+        # "isparam" and "category" are not normal member variables in the
+        # objectdictionary.Variable class. We add them here.
+        var.unit = param["unit"]
+        var.isparam = param["isparam"]
 
-            dictionary.add_object(var)
+        if "category" in param:
+            var.category = param["category"]
+        else:
+            var.category = None
+
+        # Parameters have additional required attributes
+        if var.isparam:
+            var.min = fixed_from_float(float(param["minimum"]))
+            var.max = fixed_from_float(float(param["maximum"]))
+            var.default = fixed_from_float(float(param["default"]))
+
+        dictionary.add_object(var)
 
     return dictionary

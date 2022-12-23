@@ -69,28 +69,34 @@ class TestDatabaseImport(unittest.TestCase):
         self.assertEqual(item.default, fixed_from_float(5))
         self.assertEqual(item.factor, 32)
         self.assertEqual(item.data_type, objectdictionary.INTEGER32)
+        self.assertTrue(item.isparam)
+        self.assertEqual(item.category, "Category")
 
     def test_complex_params(self):
-        """Verify that a more complex database with a varierty of parameters
+        """Verify that a more complex database with a variety of parameters
         and some values loads correctly"""
         database = import_database(TEST_DATA_DIR / "complex.json")
 
         expected_params = [
-            {"name": "curkp", "unit": "", "min": 0,
-             "max": 20000, "default": 32,
+            {"name": "curkp", "isparam": True, "unit": "",
+             "min": 0, "max": 20000, "default": 32,
+             "category": "Params",
              "index": 0x2100, "subindex": 107},
-            {"name": "dirmode",
+            {"name": "dirmode", "isparam": True,
              "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, "
                      "4=DefaultForward",
              "min": 0, "max": 4, "default": 1,
+             "category": "Params",
              "index": 0x2100, "subindex": 95},
-            {"name": "potmin", "unit": "dig",
+            {"name": "potmin", "isparam": True, "unit": "dig",
              "min": 0, "max": 4095, "default": 0,
+             "category": "Throttle",
              "index": 0x2100, "subindex": 17},
-            {"name": "potmax", "unit": "dig",
+            {"name": "potmax", "isparam": True, "unit": "dig",
              "min": 0, "max": 4095, "default": 4095,
+             "category": "Throttle",
              "index": 0x2100, "subindex": 18},
-            {"name": "cpuload", "unit": "%",
+            {"name": "cpuload", "isparam": False, "unit": "%",
              "index": 0x2107, "subindex": 0xF3}
         ]
 
@@ -103,13 +109,20 @@ class TestDatabaseImport(unittest.TestCase):
             self.assertEqual(item.index, param["index"])
             self.assertEqual(item.subindex, param["subindex"])
             self.assertEqual(item.unit, param["unit"])
+            self.assertEqual(item.isparam, param["isparam"])
 
             # optional fields only present for params not values
-            if "min" in param:
+            if item.isparam:
                 self.assertEqual(item.min, fixed_from_float(param["min"]))
                 self.assertEqual(item.max, fixed_from_float(param["max"]))
                 self.assertEqual(
                     item.default, fixed_from_float(param["default"]))
+                self.assertEqual(item.category, param["category"])
+            else:
+                self.assertEqual(item.min, None)
+                self.assertEqual(item.max, None)
+                self.assertEqual(item.default, None)
+                self.assertEqual(item.category, None)
 
             self.assertEqual(item.factor, 32)
             self.assertEqual(item.data_type, objectdictionary.INTEGER32)

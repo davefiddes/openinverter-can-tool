@@ -120,7 +120,7 @@ def listparams(cli_settings: CliSettings):
         print(
             f"{item.name} [{item.unit}]", end='')
 
-        if item.min or item.max or item.default:
+        if item.isparam:
             print(
                 f" - min: {fixed_to_float(item.min):g} "
                 f"max: {fixed_to_float(item.max):g} "
@@ -169,8 +169,8 @@ def write(cli_settings: CliSettings, param: str, value: float):
     if param in cli_settings.database.names:
         param_item = cli_settings.database.names[param]
 
-        # Check if we are a spot value parameter
-        if param_item.min:
+        # Check if we are a modifiable parameter
+        if param_item.isparam:
             fixed_value = fixed_from_float(value)
 
             if fixed_value < param_item.min:
