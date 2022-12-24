@@ -19,7 +19,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="openinverter-can-tool",  # Required
-    version="0.0.1",  # Required
+    version="0.0.2",  # Required
     description="Tool to configure and operate openinverter systems over CAN",
     long_description=long_description,  # Optional
     long_description_content_type="text/markdown",  # Optional
