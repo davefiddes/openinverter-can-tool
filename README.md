@@ -11,6 +11,7 @@ electric vehicles over a CAN connection.
 * Read a specified parameter/value
 * Write a new value to a specified parameter
 * Display the current value of each parameter/value on a given device
+* Save and load all parameters to and from a JSON file
 * Runs on Linux, Windows and MacOS with python 3.7+
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
@@ -33,7 +34,7 @@ To install directly from github:
 
 ### Linux
 
-Linux users may reduce the potential of package conflicts by installing python dependencies from their package manager. This should be done before running `pip`
+Linux users may reduce the potential of package conflicts by installing python dependencies from their package manager. This should be done before running `pip`.
 
 #### Fedora
 
@@ -47,15 +48,41 @@ Linux users may reduce the potential of package conflicts by installing python d
     sudo apt install python3-setuptools python3-pip python3-click python3-can
 ```
 
-## Usage
+## Configuration
 
-So far the tool has only been tested with an [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux. It should work with any interface supported by the [python-can](https://python-can.readthedocs.io/en/stable/installation.html).
+Before the tool can be used the CAN interface adapter needs to be configured. To do this create `~/.canrc` on Linux or `%USERPROFILE%/can.conf` on Windows. Details on interfaces supported and the configuration file format can be found in the [python-can](https://python-can.readthedocs.io/en/stable/installation.html) documentation.
 
-Before the tool can on Linux run the CAN network interface needs to be started:
+An example configuration file for a [SocketCAN](https://python-can.readthedocs.io/en/stable/interfaces/socketcan.html) compatible adapter on Linux would look like:
+
+```text
+[default]
+interface = socketcan
+channel = can0
+bitrate = 500000
+```
+
+Note: Before the tool can on Linux run the SocketCAN network interface needs to be started:
 
 ```text
     sudo ip link set can0 up type can bitrate 500000
 ```
+
+An example configuration file for a [SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html) adapter such as [GVRET](https://github.com/collin80/GVRET) on Windows would look like:
+
+```text
+[default]
+interface = slcan
+channel = COM8
+bitrate = 500000
+```
+
+Tested interfaces:
+
+* [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux.
+
+Let me know if you have used a particular CAN interface successfully and I can expand this list.
+
+## Usage
 
 The parameters and values supported by a given openinverter firmware will often vary from release to release and by firmware type (e.g. Sine to Field Oriented Control(FOC)). The tool comes with a small collection of  parameter databases for recent openinverter releases. These can be found in the parameter-databases directory in the install location.
 
@@ -70,10 +97,7 @@ To get the usage information for the tool run the `oic` command with no paramete
 
     Options:
       -d, --database FILE  openinverter JSON parameter database to use
-      -b, --bustype TEXT   Which python-can bus type to use  [default: socketcan]
-      -c, --channel TEXT   Which python-can bus channel to use  [default: can0]
-      -s, --speed INTEGER  The CAN bus speed. Typically 500kbps for openinverter
-                           boards  [default: 500000]
+      -c, --context TEXT   Which python-can configuration context to use
       -n, --node INTEGER   The CAN SDO node ID to communicate with  [default: 1]
       --version            Show the version and exit.
       --help               Show this message and exit.
@@ -81,7 +105,9 @@ To get the usage information for the tool run the `oic` command with no paramete
     Commands:
       dumpall     Dump the values of all available parameters and values
       listparams  List all available parameters and values
+      load        Load all parameters from json IN_FILE
       read        Read the value of PARAM from the device
+      save        Save all parameters in json to OUT_FILE
       write       Write the value to the parameter PARAM on the device
 ```
 
