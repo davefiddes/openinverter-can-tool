@@ -4,6 +4,7 @@ openinverter CAN Tools main program
 
 import functools
 from typing import Optional
+import json
 import click
 import canopen
 from .paramdb import import_database
@@ -158,13 +159,30 @@ def read(cli_settings: CliSettings, param: str):
         click.echo(f"Unknown parameter: {param}")
 
 
-@cli.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("param")
-@click.argument("value", type=float)
+@cli.command()
+@click.argument('out_file', type=click.File('w'))
 @pass_cli_settings
 @can_action
-def write(cli_settings: CliSettings, param: str, value: float):
-    """Write the value to the parameter PARAM on the device"""
+def save(cli_settings: CliSettings, out_file: click.File):
+    """Save all parameters in json to OUT_FILE"""
+
+    doc = {}
+    count = 0
+    node = cli_settings.node
+    for item in cli_settings.database.names.values():
+        if item.isparam:
+            doc[item.name] = fixed_to_float(node.sdo[item.name].raw)
+            count += 1
+
+    json.dump(doc, out_file, indent=4)
+
+    click.echo(f"Saved {count} parameters")
+
+
+def write_impl(cli_settings: CliSettings, param: str, value: float):
+    """Implementation of the single parameter write command. Separated from
+    the command so the logic can be shared with loading all parameters from
+    json."""
 
     if param in cli_settings.database.names:
         param_item = cli_settings.database.names[param]
@@ -188,3 +206,37 @@ def write(cli_settings: CliSettings, param: str, value: float):
                        "Spot values are read-only.")
     else:
         click.echo(f"Unknown parameter: {param}")
+
+
+@cli.command(context_settings=dict(ignore_unknown_options=True))
+@click.argument("param")
+@click.argument("value", type=float)
+@pass_cli_settings
+@can_action
+def write(cli_settings: CliSettings, param: str, value: float):
+    """Write the value to the parameter PARAM on the device"""
+
+    write_impl(cli_settings, param, value)
+
+
+@cli.command()
+@click.argument('in_file', type=click.File('r'))
+@pass_cli_settings
+@can_action
+def load(cli_settings: CliSettings, in_file: click.File):
+    """Load all parameters from json IN_FILE"""
+
+    doc = json.load(in_file)
+    count = 0
+    for param_name in doc:
+        value = doc[param_name]
+
+        # JSON parameter files from openinverter.org/parameters/ put values in
+        # quotation marks which isn't technically valid but we can work around
+        if isinstance(value, str):
+            value = float(value)
+
+        write_impl(cli_settings, param_name, value)
+        count += 1
+
+    click.echo(f"Loaded {count} parameters")
