@@ -17,14 +17,10 @@ class CliSettings:
     def __init__(
             self,
             database: canopen.ObjectDictionary,
-            bustype: str,
-            channel: str,
-            speed: int,
+            context: str,
             node_number: int) -> None:
         self.database = database
-        self.bustype = bustype
-        self.channel = channel
-        self.speed = speed
+        self.context = context
         self.node_number = node_number
         self.network = Optional[canopen.Network]
         self.node = Optional[canopen.Node]
@@ -48,10 +44,7 @@ def can_action(func):
             network = canopen.Network()
 
             # Connect to the CAN bus
-            network.connect(
-                bustype=cli_settings.bustype,
-                channel=cli_settings.channel,
-                bitrate=cli_settings.speed)
+            network.connect(context=cli_settings.context)
 
             network.check()
 
@@ -79,22 +72,11 @@ def can_action(func):
 @click.option("-d", "--database",
               help="openinverter JSON parameter database to use",
               type=click.Path(exists=True, file_okay=True, dir_okay=False))
-@click.option("-b", "--bustype",
-              default="socketcan",
+@click.option("-c", "--context",
+              default=None,
               show_default=True,
               type=click.STRING,
-              help="Which python-can bus type to use")
-@click.option("-c", "--channel",
-              default="can0",
-              show_default=True,
-              type=click.STRING,
-              help="Which python-can bus channel to use")
-@click.option("-s", "--speed",
-              default=500000,
-              show_default=True,
-              type=click.INT,
-              help="The CAN bus speed. Typically 500kbps for openinverter "
-              "boards")
+              help="Which python-can configuration context to use")
 @click.option("-n", "--node",
               default=1,
               show_default=True,
@@ -102,15 +84,14 @@ def can_action(func):
               help="The CAN SDO node ID to communicate with")
 @click.version_option()
 @click.pass_context
-def cli(ctx, database, bustype, channel, speed, node):
+def cli(ctx, database, context, node):
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
     if not database:
         raise click.BadParameter(
             'Parameter database filename not given', param_hint='-d')
 
-    ctx.obj = CliSettings(import_database(database),
-                          bustype, channel, speed, node)
+    ctx.obj = CliSettings(import_database(database), context, node)
 
 
 @cli.command()
