@@ -1,0 +1,11 @@
+{
+    "param1": {
+        "unit": "°",
+        "minimum": "0",
+        "maximum": "100",
+        "default": "5",
+        "isparam": true,
+        "category": "😬",
+        "id": "1"
+    }
+}

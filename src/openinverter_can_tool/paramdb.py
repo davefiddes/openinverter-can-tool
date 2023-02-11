@@ -5,8 +5,13 @@ openinverter parameter database functions
 
 import json
 from typing import Tuple
-from canopen import objectdictionary
+from canopen import objectdictionary, Network
+from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
+
+# CANopen SDO index that openinverter system will return their parameter
+# database on
+OPENINVERTER_PARAM_DB_INDEX: int = 0x5001
 
 
 def index_from_id(param_identifier: int) -> Tuple[int, int]:
@@ -16,23 +21,26 @@ def index_from_id(param_identifier: int) -> Tuple[int, int]:
     return (index, subindex)
 
 
-def import_database(paramdb) -> objectdictionary.ObjectDictionary:
-    """Import an openinverter parameter database file.
+def import_database_json(
+        paramdb_json: dict) -> objectdictionary.ObjectDictionary:
+    """Import an openinverter parameter database JSON.
 
-    :param paramdb:
-        A path to an openinverter parameter database file
+    :param paramdb_json:
+        A dictionary containing an openinverter parameter database
 
     :returns:
         The Object Dictionary.
     :rtype: canopen.ObjectDictionary
     """
+
     dictionary = objectdictionary.ObjectDictionary()
+    for param_name in paramdb_json:
+        param = paramdb_json[param_name]
 
-    with open(paramdb, encoding="utf-8") as file:
-        doc = json.load(file)
+        # Ignore parameters without unique IDs
+        if "id" not in param:
+            continue
 
-    for param_name in doc:
-        param = doc[param_name]
         (index, subindex) = index_from_id(int(param["id"]))
         var = objectdictionary.Variable(param_name, index, subindex)
 
@@ -61,5 +69,57 @@ def import_database(paramdb) -> objectdictionary.ObjectDictionary:
             var.default = fixed_from_float(float(param["default"]))
 
         dictionary.add_object(var)
+
+    return dictionary
+
+
+def import_database(paramdb: str) -> objectdictionary.ObjectDictionary:
+    """Import an openinverter parameter database file.
+
+    :param paramdb:
+        A path to an openinverter parameter database file
+
+    :returns:
+        The Object Dictionary.
+    :rtype: canopen.ObjectDictionary
+    """
+
+    with open(paramdb, encoding="utf-8") as file:
+        doc = json.load(file)
+
+    return import_database_json(doc)
+
+
+def import_remote_database(
+        network: Network,
+        node_id: int) -> objectdictionary.ObjectDictionary:
+    """Import an openinverter parameter database from a remote node.
+
+    :param network:
+        The configured and started canopen.Network to use to communicate with
+        the node.
+
+    :param node_id:
+        The openinverter node we wish to obtain the parameter database from.
+
+    :returns:
+        The Object Dictionary.
+    :rtype: canopen.ObjectDictionary
+    """
+
+    # Create temporary SDO client and attach to the network
+    sdo_client = SdoClient(0x600 + node_id, 0x580 + node_id,
+                           objectdictionary.ObjectDictionary())
+    sdo_client.network = network
+    network.subscribe(0x580 + node_id, sdo_client.on_response)
+
+    # Create file like object to load the JSON from the remote
+    # openinverter node
+    try:
+        with sdo_client.open(OPENINVERTER_PARAM_DB_INDEX,
+                             0, "rt", encoding="utf-8") as param_db:
+            dictionary = import_database_json(json.load(param_db))
+    finally:
+        network.unsubscribe(0x580 + node_id)
 
     return dictionary

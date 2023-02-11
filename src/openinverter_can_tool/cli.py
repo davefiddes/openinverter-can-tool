@@ -7,7 +7,7 @@ from typing import Optional
 import json
 import click
 import canopen
-from .paramdb import import_database
+from .paramdb import import_database, import_remote_database
 from .fpfloat import fixed_to_float, fixed_from_float
 
 
@@ -70,7 +70,7 @@ def can_action(func):
 
 @click.group()
 @click.option("-d", "--database",
-              help="openinverter JSON parameter database to use",
+              help="Override the openinverter JSON parameter database to use",
               type=click.Path(exists=True, file_okay=True, dir_okay=False))
 @click.option("-c", "--context",
               default=None,
@@ -87,11 +87,23 @@ def can_action(func):
 def cli(ctx, database, context, node):
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
-    if not database:
-        raise click.BadParameter(
-            'Parameter database filename not given', param_hint='-d')
 
-    ctx.obj = CliSettings(import_database(database), context, node)
+    if database:
+        device_db = import_database(database)
+    else:
+        try:
+            # Fire up the CAN network just to grab the node parameter database
+            # from the device
+            network = canopen.Network()
+            network.connect(context=context)
+            network.check()
+
+            device_db = import_remote_database(network, node)
+        finally:
+            if network:
+                network.disconnect()
+
+    ctx.obj = CliSettings(device_db, context, node)
 
 
 @cli.command()
