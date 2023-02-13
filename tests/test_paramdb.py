@@ -13,7 +13,7 @@ from openinverter_can_tool.paramdb import index_from_id
 from openinverter_can_tool.paramdb import import_database
 from openinverter_can_tool.paramdb import import_database_json
 from openinverter_can_tool.paramdb import import_remote_database
-from openinverter_can_tool.paramdb import OPENINVERTER_PARAM_DB_INDEX
+from openinverter_can_tool import constants as oi
 
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
@@ -221,7 +221,7 @@ class TestDatabaseImport(unittest.TestCase):
 
         dictionary = canopen.ObjectDictionary()
         db_var = canopen.objectdictionary.Variable(
-            'database', OPENINVERTER_PARAM_DB_INDEX, 0x0)
+            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
         db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
         dictionary.add_object(db_var)
 

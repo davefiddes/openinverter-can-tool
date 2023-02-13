@@ -9,6 +9,7 @@ import click
 import canopen
 from .paramdb import import_database, import_remote_database
 from .fpfloat import fixed_to_float, fixed_from_float
+from . import constants as oi
 
 
 class CliSettings:
@@ -233,3 +234,24 @@ def load(cli_settings: CliSettings, in_file: click.File):
         count += 1
 
     click.echo(f"Loaded {count} parameters")
+
+
+@cli.command()
+@pass_cli_settings
+@can_action
+def serialno(cli_settings: CliSettings):
+    """Read the device serial number. This is required to load firmware over
+    CAN"""
+
+    # Fetch the serial number in 3 parts reversing from little-endian on the
+    # wire into a reversed array where the LSB is first and MSB is last. This
+    # is odd but mirrors the behaviour of the STM32 terminal "serial" command
+    # for consistency.
+    serialno_data = bytearray()
+    for i in reversed(range(3)):
+        serialno_data.extend(
+            reversed(cli_settings.node.sdo.upload(oi.SERIALNO_INDEX, i)))
+
+    # Print out the serial number array
+    serialno_str = ''.join(format(x, '02x') for x in serialno_data)
+    click.echo(f"Serial Number: {serialno_str}")

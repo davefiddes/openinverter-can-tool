@@ -8,10 +8,7 @@ from typing import Tuple
 from canopen import objectdictionary, Network
 from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
-
-# CANopen SDO index that openinverter system will return their parameter
-# database on
-OPENINVERTER_PARAM_DB_INDEX: int = 0x5001
+from . import constants as oi
 
 
 def index_from_id(param_identifier: int) -> Tuple[int, int]:
@@ -116,8 +113,8 @@ def import_remote_database(
     # Create file like object to load the JSON from the remote
     # openinverter node
     try:
-        with sdo_client.open(OPENINVERTER_PARAM_DB_INDEX,
-                             0, "rt", encoding="utf-8") as param_db:
+        with sdo_client.open(oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX,
+                             "rt", encoding="utf-8") as param_db:
             dictionary = import_database_json(json.load(param_db))
     finally:
         network.unsubscribe(0x580 + node_id)
