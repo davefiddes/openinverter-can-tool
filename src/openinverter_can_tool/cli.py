@@ -17,17 +17,53 @@ class CliSettings:
 
     def __init__(
             self,
-            database: canopen.ObjectDictionary,
+            database_path: str,
             context: str,
             node_number: int) -> None:
-        self.database = database
+        self.database_path = database_path
         self.context = context
         self.node_number = node_number
         self.network = Optional[canopen.Network]
+        self.database = canopen.objectdictionary.ObjectDictionary()
         self.node = Optional[canopen.Node]
 
 
 pass_cli_settings = click.make_pass_decorator(CliSettings)
+
+
+def db_action(func):
+    """Figure out what parameter database we are to use and allow the wrapped
+    function to access it. This decorator should be specified prior to the
+    can_action decorator to allow the SDO node to be created.
+    """
+    @functools.wraps(func)
+    def wrapper_can_action(*args, **kwargs):
+
+        # Assume that the first argument exists and is a CliSettings
+        cli_settings: CliSettings = args[0]
+
+        if cli_settings.database_path:
+            device_db = import_database(cli_settings.database_path)
+        else:
+            try:
+                # Fire up the CAN network just to grab the node parameter
+                # database from the device
+                network = canopen.Network()
+                network.connect(context=cli_settings.context)
+                network.check()
+
+                device_db = import_remote_database(
+                    network, cli_settings.node_number)
+            finally:
+                if network:
+                    network.disconnect()
+
+        cli_settings.database = device_db
+
+        # Call the command handler function
+        return func(*args, **kwargs)
+
+    return wrapper_can_action
 
 
 def can_action(func):
@@ -89,26 +125,12 @@ def cli(ctx, database, context, node):
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
-    if database:
-        device_db = import_database(database)
-    else:
-        try:
-            # Fire up the CAN network just to grab the node parameter database
-            # from the device
-            network = canopen.Network()
-            network.connect(context=context)
-            network.check()
-
-            device_db = import_remote_database(network, node)
-        finally:
-            if network:
-                network.disconnect()
-
-    ctx.obj = CliSettings(device_db, context, node)
+    ctx.obj = CliSettings(database, context, node)
 
 
 @cli.command()
 @pass_cli_settings
+@db_action
 def listparams(cli_settings: CliSettings):
     """List all available parameters and values"""
     for item in cli_settings.database.names.values():
@@ -126,6 +148,7 @@ def listparams(cli_settings: CliSettings):
 
 @cli.command()
 @pass_cli_settings
+@db_action
 @can_action
 def dumpall(cli_settings: CliSettings):
     """Dump the values of all available parameters and values"""
@@ -140,6 +163,7 @@ def dumpall(cli_settings: CliSettings):
 @cli.command()
 @click.argument("param", required=True)
 @pass_cli_settings
+@db_action
 @can_action
 def read(cli_settings: CliSettings, param: str):
     """Read the value of PARAM from the device"""
@@ -156,6 +180,7 @@ def read(cli_settings: CliSettings, param: str):
 @cli.command()
 @click.argument('out_file', type=click.File('w'))
 @pass_cli_settings
+@db_action
 @can_action
 def save(cli_settings: CliSettings, out_file: click.File):
     """Save all parameters in json to OUT_FILE"""
@@ -206,6 +231,7 @@ def write_impl(cli_settings: CliSettings, param: str, value: float):
 @click.argument("param")
 @click.argument("value", type=float)
 @pass_cli_settings
+@db_action
 @can_action
 def write(cli_settings: CliSettings, param: str, value: float):
     """Write the value to the parameter PARAM on the device"""
@@ -216,6 +242,7 @@ def write(cli_settings: CliSettings, param: str, value: float):
 @cli.command()
 @click.argument('in_file', type=click.File('r'))
 @pass_cli_settings
+@db_action
 @can_action
 def load(cli_settings: CliSettings, in_file: click.File):
     """Load all parameters from json IN_FILE"""
