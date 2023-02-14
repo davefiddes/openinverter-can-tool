@@ -135,7 +135,7 @@ def listparams(cli_settings: CliSettings):
     """List all available parameters and values"""
     for item in cli_settings.database.names.values():
         print(
-            f"{item.name} [{item.unit}]", end='')
+            f"{item.name} [{item.unit}]", end="")
 
         if item.isparam:
             print(
@@ -178,7 +178,7 @@ def read(cli_settings: CliSettings, param: str):
 
 
 @cli.command()
-@click.argument('out_file', type=click.File('w'))
+@click.argument("out_file", type=click.File("w"))
 @pass_cli_settings
 @db_action
 @can_action
@@ -240,7 +240,7 @@ def write(cli_settings: CliSettings, param: str, value: float):
 
 
 @cli.command()
-@click.argument('in_file', type=click.File('r'))
+@click.argument("in_file", type=click.File("r"))
 @pass_cli_settings
 @db_action
 @can_action
@@ -280,5 +280,102 @@ def serialno(cli_settings: CliSettings):
             reversed(cli_settings.node.sdo.upload(oi.SERIALNO_INDEX, i)))
 
     # Print out the serial number array
-    serialno_str = ''.join(format(x, '02x') for x in serialno_data)
+    serialno_str = "".join(format(x, "02x") for x in serialno_data)
     click.echo(f"Serial Number: {serialno_str}")
+
+
+@cli.group()
+@pass_cli_settings
+def cmd(cli_settings: CliSettings):
+    """Execute a command on a device"""
+    # We have to have cli_settings to allow the command hierarchy to work but
+    # it is unused here so just pretend to use it
+    _ = cli_settings
+
+
+def send_command(
+        cli_settings: CliSettings,
+        command: int,
+        arg: int = 0) -> None:
+    """Send a command as a faked up SDO download """
+
+    fake_var = canopen.objectdictionary.Variable(
+        "command",
+        oi.COMMAND_INDEX,
+        command)
+    fake_var.data_type = canopen.objectdictionary.UNSIGNED32
+    cli_settings.database.add_object(fake_var)
+    try:
+        cli_settings.node.sdo["command"].raw = arg
+        click.echo("Command sent successfully")
+    except canopen.SdoAbortedError as e:
+        if e.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
+            click.echo("Command not supported")
+        else:
+            click.echo(f"Unexpected error: {e}")
+
+
+@cmd.command("save")
+@pass_cli_settings
+@can_action
+def cmd_save(cli_settings: CliSettings):
+    """Save device parameters and CAN map to flash"""
+    send_command(cli_settings, oi.SAVE_COMMAND_SUBINDEX)
+
+
+@cmd.command("load")
+@pass_cli_settings
+@can_action
+def cmd_load(cli_settings: CliSettings):
+    """Load device parameters and CAN map from flash"""
+    send_command(cli_settings, oi.LOAD_COMMAND_SUBINDEX)
+
+
+@cmd.command("reset")
+@pass_cli_settings
+@can_action
+def cmd_reset(cli_settings: CliSettings):
+    """Reset the device"""
+    send_command(cli_settings, oi.RESET_COMMAND_SUBINDEX)
+
+
+@cmd.command("defaults")
+@pass_cli_settings
+@can_action
+def cmd_defaults(cli_settings: CliSettings):
+    """Reset the device parameters to their built-in defaults"""
+    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX)
+
+
+@cmd.command("stop")
+@pass_cli_settings
+@can_action
+def cmd_stop(cli_settings: CliSettings):
+    """Stop the device from operating"""
+    send_command(cli_settings, oi.STOP_COMMAND_SUBINDEX)
+
+
+@cmd.command("start")
+@click.option("--mode",
+              type=click.Choice(["Normal",
+                                 "Manual",
+                                 "Boost",
+                                 "Buck",
+                                 "ACHeat",
+                                 "Sine"],
+                                case_sensitive=False),
+              default="Normal")
+@pass_cli_settings
+@can_action
+def cmd_start(cli_settings: CliSettings, mode):
+    """Start the device in the specified mode"""
+    Modes = {
+        "Normal": oi.START_MODE_NORMAL,
+        "Manual": oi.START_MODE_MANUAL,
+        "Boost": oi.START_MODE_BOOST,
+        "Buck": oi.START_MODE_BUCK,
+        "Sine": oi.START_MODE_SINE,
+        "ACHeat": oi.START_MODE_ACHEAT
+    }
+
+    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX, Modes[mode])

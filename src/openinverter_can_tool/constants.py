@@ -10,3 +10,24 @@ STRINGS_INDEX = 0x5001
 
 # CANopen SDO subindex for JSON parameter databases. Used with STRINGS_INDEX
 PARAM_DB_SUBINDEX = 0
+
+# Index for sending commands - somewhat abusing the SDO protocol
+COMMAND_INDEX = 0x5002
+
+SAVE_COMMAND_SUBINDEX = 0
+LOAD_COMMAND_SUBINDEX = 1
+RESET_COMMAND_SUBINDEX = 2
+DEFAULTS_COMMAND_SUBINDEX = 3
+START_COMMAND_SUBINDEX = 4
+STOP_COMMAND_SUBINDEX = 5
+
+# Start modes - tracks the _modes enum in stm32-sine
+START_MODE_NORMAL = 1
+START_MODE_MANUAL = 2
+START_MODE_BOOST = 3
+START_MODE_BUCK = 4
+START_MODE_SINE = 5
+START_MODE_ACHEAT = 6
+
+# SDO abort error codes - Not defined by canopen for some reason
+SDO_ABORT_OBJECT_NOT_AVAILABLE = 0x06020000
