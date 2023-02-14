@@ -5,6 +5,9 @@ openinverter CAN Tools main program
 import functools
 from typing import Optional
 import json
+import csv
+import time
+import datetime
 import click
 import canopen
 from .paramdb import import_database, import_remote_database
@@ -175,6 +178,61 @@ def read(cli_settings: CliSettings, param: str):
             f"[{cli_settings.database.names[param].unit}]")
     else:
         click.echo(f"Unknown parameter: {param}")
+
+
+@cli.command()
+@click.argument("param", required=True, nargs=-1)
+@click.argument("out_file", type=click.File("w"))
+@click.option("-s", "--step",
+              default=1,
+              show_default=True,
+              type=click.IntRange(1, 3600),
+              help="Time to wait before querying for new data in seconds")
+@click.option("--timestamp/--no-timestamp",
+              show_default=True,
+              default=True,
+              help="Include a timestamp on each row of the log")
+@pass_cli_settings
+@db_action
+@can_action
+def log(cli_settings: CliSettings,
+        param: tuple,
+        out_file: click.File,
+        step: int,
+        timestamp: bool):
+    """Log the value of PARAM from the device periodically in CSV
+    format. Multiple parameters may be specified separated by a space.
+    OUT_FILE may be a filename or - to output to stdout."""
+
+    # Validate the list of supplied parameters
+    query_list = []
+    for p in param:
+        if p in cli_settings.database.names:
+            query_list.append(p)
+        else:
+            click.echo(f"Unknown parameter: {p}")
+
+    # create a CSV writer to control the output in a format that LibreOffice
+    # can open and graph easily
+    if timestamp:
+        header_list = ["timestamp"] + query_list
+    else:
+        header_list = query_list
+    writer = csv.DictWriter(
+        out_file, fieldnames=header_list, quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+
+    # Loop forever logging
+    node = cli_settings.node
+    while True:
+        row = {}
+        if timestamp:
+            row["timestamp"] = str(datetime.datetime.now())
+        for p in query_list:
+            row[p] = f"{fixed_to_float(node.sdo[p].raw):g}"
+        writer.writerow(row)
+
+        time.sleep(step)
 
 
 @cli.command()
