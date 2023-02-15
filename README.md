@@ -24,6 +24,7 @@ electric vehicles over a CAN connection.
 * Runs on Linux, Windows and MacOS with python 3.7+
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
+* Automatic parameter database download requires stm32-sine 5.25.R or later
 
 ## Installation
 
