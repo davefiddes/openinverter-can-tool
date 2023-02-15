@@ -181,7 +181,7 @@ def read(cli_settings: CliSettings, param: str):
 
 
 @cli.command()
-@click.argument("param", required=True, nargs=-1)
+@click.argument("params", required=True, nargs=-1)
 @click.argument("out_file", type=click.File("w"))
 @click.option("-s", "--step",
               default=1,
@@ -196,21 +196,21 @@ def read(cli_settings: CliSettings, param: str):
 @db_action
 @can_action
 def log(cli_settings: CliSettings,
-        param: tuple,
+        params: tuple,
         out_file: click.File,
         step: int,
         timestamp: bool):
-    """Log the value of PARAM from the device periodically in CSV
+    """Log the value of PARAMS from the device periodically in CSV
     format. Multiple parameters may be specified separated by a space.
     OUT_FILE may be a filename or - to output to stdout."""
 
     # Validate the list of supplied parameters
     query_list = []
-    for p in param:
-        if p in cli_settings.database.names:
-            query_list.append(p)
+    for param in params:
+        if param in cli_settings.database.names:
+            query_list.append(param)
         else:
-            click.echo(f"Unknown parameter: {p}")
+            click.echo(f"Unknown parameter: {param}")
 
     # create a CSV writer to control the output in a format that LibreOffice
     # can open and graph easily
@@ -228,8 +228,8 @@ def log(cli_settings: CliSettings,
         row = {}
         if timestamp:
             row["timestamp"] = str(datetime.datetime.now())
-        for p in query_list:
-            row[p] = f"{fixed_to_float(node.sdo[p].raw):g}"
+        for param in query_list:
+            row[param] = f"{fixed_to_float(node.sdo[param].raw):g}"
         writer.writerow(row)
 
         time.sleep(step)
@@ -366,11 +366,11 @@ def send_command(
     try:
         cli_settings.node.sdo["command"].raw = arg
         click.echo("Command sent successfully")
-    except canopen.SdoAbortedError as e:
-        if e.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
+    except canopen.SdoAbortedError as exception:
+        if exception.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
             click.echo("Command not supported")
         else:
-            click.echo(f"Unexpected error: {e}")
+            click.echo(f"Unexpected error: {exception}")
 
 
 @cmd.command("save")
@@ -427,7 +427,7 @@ def cmd_stop(cli_settings: CliSettings):
 @can_action
 def cmd_start(cli_settings: CliSettings, mode):
     """Start the device in the specified mode"""
-    Modes = {
+    mode_list = {
         "Normal": oi.START_MODE_NORMAL,
         "Manual": oi.START_MODE_MANUAL,
         "Boost": oi.START_MODE_BOOST,
@@ -436,4 +436,4 @@ def cmd_start(cli_settings: CliSettings, mode):
         "ACHeat": oi.START_MODE_ACHEAT
     }
 
-    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX, Modes[mode])
+    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX, mode_list[mode])
