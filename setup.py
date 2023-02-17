@@ -29,7 +29,7 @@ setup(
     author_email="D.J@fiddes.net",
 
     # For a list of valid classifiers, see https://pypi.org/classifiers/
-    classifiers=[  # Optional
+    classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
         "Intended Audience :: End Users/Desktop",
