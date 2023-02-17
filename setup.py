@@ -18,20 +18,16 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 # Strip the build status as this only makes sense on github
 long_description = re.sub(r'\[!\[Build status.*\)\n\n', '', long_description)
 
-# Arguments marked as "Required" below must be included for upload to PyPI.
-# Fields marked as "Optional" may be commented out.
-
 setup(
-    name="openinverter-can-tool",  # Required
-    version="0.0.4",  # Required
+    name="openinverter-can-tool",
+    version="0.0.4",
     description="Tool to configure and operate openinverter systems over CAN",
-    long_description=long_description,  # Optional
-    long_description_content_type="text/markdown",  # Optional
-    url="https://github.com/davefiddes/openinverter-can-tool",  # Optional
-    author="David J. Fiddes",  # Optional
-    author_email="D.J@fiddes.net",  # Optional
-    # Classifiers help users find your project by categorizing it.
-    #
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/davefiddes/openinverter-can-tool",
+    author="David J. Fiddes",
+    author_email="D.J@fiddes.net",
+
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[  # Optional
         "Development Status :: 3 - Alpha",
@@ -48,14 +44,14 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
     ],
 
-    keywords="openinverter, canopen",  # Optional
+    keywords="openinverter, canopen",
 
-    package_dir={"": "src"},  # Optional
-    packages=find_packages(where="src"),  # Required
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     python_requires=">=3.7, <4",
 
-    install_requires=["click", "canopen"],  # Optional
-    extras_require={  # Optional
+    install_requires=["click", "canopen"],
+    extras_require={
         "dev": ["check-manifest", "flake8"],
         "test": ["coverage", "pytest"],
     },
@@ -76,16 +72,8 @@ setup(
             "oic=openinverter_can_tool.__main__:cli"
         ],
     },
-    # List additional URLs that are relevant to your project as a dict.
-    #
-    # This field corresponds to the "Project-URL" metadata fields:
-    # https://packaging.python.org/specifications/core-metadata/#project-url-multiple-use
-    #
-    # Examples listed include a pattern for specifying where the package tracks
-    # issues, where the source is hosted, where to say thanks to the package
-    # maintainers, and where to support the project financially. The key is
-    # what's used to render the link text on PyPI.
-    project_urls={  # Optional
+
+    project_urls={
         "Bug Reports":
             "https://github.com/davefiddes/openinverter-can-tool/issues",
         "Source":
