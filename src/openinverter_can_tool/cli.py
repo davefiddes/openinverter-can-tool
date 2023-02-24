@@ -459,3 +459,30 @@ def cmd_start(cli_settings: CliSettings, mode):
     }
 
     send_command(cli_settings, oi.START_COMMAND_SUBINDEX, mode_list[mode])
+
+
+@cli.command()
+@pass_cli_settings
+@can_action
+def scan(cli_settings: CliSettings):
+    """Scan the CAN bus for available nodes"""
+
+    # Maximum number of devices we are going to scan for
+    limit = 20
+
+    # Actively scan the bus for SDO nodes which might indicate something we
+    # can talk to
+    click.echo("Scanning for devices. Please wait...\n")
+    cli_settings.network.scanner.search(limit)
+
+    time.sleep(5)
+
+    # filter out weird canopen internal node IDs that show up here and
+    # nowhere else
+    node_list = [id for id in cli_settings.network.scanner.nodes if id < limit]
+
+    if node_list:
+        for node_id in node_list:
+            click.echo(f"Found possible openinverter node: {node_id}")
+    else:
+        click.echo("No nodes found")
