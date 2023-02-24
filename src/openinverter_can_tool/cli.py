@@ -23,13 +23,15 @@ class CliSettings:
             self,
             database_path: str,
             context: str,
-            node_number: int) -> None:
+            node_number: int,
+            timeout: float) -> None:
         self.database_path = database_path
         self.context = context
         self.node_number = node_number
         self.network = Optional[canopen.Network]
         self.database = canopen.objectdictionary.ObjectDictionary()
         self.node = Optional[canopen.Node]
+        self.timeout = timeout
 
 
 pass_cli_settings = click.make_pass_decorator(CliSettings)
@@ -94,6 +96,7 @@ def can_action(func):
 
             node = canopen.BaseNode402(
                 cli_settings.node_number, cli_settings.database)
+            node.sdo.RESPONSE_TIMEOUT = cli_settings.timeout
             network.add_node(node)
 
             # store the network and node objects in the context
@@ -141,13 +144,18 @@ def can_action(func):
               show_default=True,
               type=click.INT,
               help="The CAN SDO node ID to communicate with")
+@click.option("-t", "--timeout",
+              default=1.0,
+              show_default=True,
+              type=click.FLOAT,
+              help="Response timeout in seconds")
 @click.version_option()
 @click.pass_context
-def cli(ctx, database, context, node):
+def cli(ctx, database, context, node, timeout):
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
-    ctx.obj = CliSettings(database, context, node)
+    ctx.obj = CliSettings(database, context, node, timeout)
 
 
 @cli.command()
