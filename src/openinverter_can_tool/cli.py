@@ -435,7 +435,8 @@ def cmd_stop(cli_settings: CliSettings):
                                  "ACHeat",
                                  "Sine"],
                                 case_sensitive=False),
-              default="Normal")
+              default="Normal",
+              show_default=True)
 @pass_cli_settings
 @can_action
 def cmd_start(cli_settings: CliSettings, mode):
@@ -449,4 +450,4 @@ def cmd_start(cli_settings: CliSettings, mode):
         "ACHeat": oi.START_MODE_ACHEAT
     }
 
-    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX, mode_list[mode])
+    send_command(cli_settings, oi.START_COMMAND_SUBINDEX, mode_list[mode])
