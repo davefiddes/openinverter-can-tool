@@ -21,6 +21,7 @@ electric vehicles over a CAN connection.
   * Save parameters to flash
   * Revert parameters to their default values
   * Reset
+* Scan a CAN bus for possible nodes
 * Runs on Linux, Windows and MacOS with python 3.7+
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
@@ -110,6 +111,7 @@ To get the usage information for the tool run the `oic` command with no paramete
                            use
       -c, --context TEXT   Which python-can configuration context to use
       -n, --node INTEGER   The CAN SDO node ID to communicate with  [default: 1]
+      -t, --timeout FLOAT  Response timeout in seconds  [default: 1.0]
       --version            Show the version and exit.
       --help               Show this message and exit.
 
@@ -118,9 +120,10 @@ To get the usage information for the tool run the `oic` command with no paramete
       dumpall     Dump the values of all available parameters and values
       listparams  List all available parameters and values
       load        Load all parameters from json IN_FILE
-      log         Log the value of PARAM from the device periodically in CSV...
+      log         Log the value of PARAMS from the device periodically in CSV...
       read        Read the value of PARAM from the device
       save        Save all parameters in json to OUT_FILE
+      scan        Scan the CAN bus for available nodes
       serialno    Read the device serial number.
       write       Write the value to the parameter PARAM on the device
 ```
