@@ -84,7 +84,7 @@
 	"version" : {"unit":"4=5.24.R.C2000-foc","isparam":false,"id":"2039"},
 	"hwver" : {"unit":"0=Rev1, 1=Rev2, 2=Rev3, 3=Tesla, 4=BluePill, 5=Prius","isparam":false,"id":"2036"},
 	"opmode" : {"unit":"0=Off, 1=Run, 2=ManualRun, 3=Boost, 4=Buck, 5=Sine, 6=AcHeat","isparam":false,"id":"2000"},
-	"lasterr" : {"unit":"Empty","isparam":false,"id":"2038"},
+	"lasterr" : {"unit":"0=NONE, 1=OVERCURRENT, 2=THROTTLE1, 3=THROTTLE2, 4=CANTIMEOUT, 5=EMCYSTOP, 6=MPROT, 7=DESAT, 8=OVERVOLTAGE, 9=ENCODER, 10=PRECHARGE, 11=TMPHSMAX, 12=CURRENTLIMIT, 13=PWMSTUCK, 14=HICUROFS1, 15=HICUROFS2, 16=HIRESOFS, 17=LORESAMP, 18=TMPMMAX, 19=GATEDRIVEINITFAIL, 20=GATEDRIVEFAULT, 21=PMICINITFAIL, 22=PMICRUNSTATEFAIL, 23=PMICSTROBEFAULT,","isparam":false,"id":"2038"},
 	"status" : {"unit":"0=None, 1=UdcLow, 2=UdcHigh, 4=UdcBelowUdcSw, 8=UdcLim, 16=EmcyStop, 32=MProt, 64=PotPressed, 128=TmpHs, 256=WaitStart","isparam":false,"id":"2044"},
 	"udc" : {"unit":"V","isparam":false,"id":"2001"},
 	"idc" : {"unit":"A","isparam":false,"id":"2002"},
