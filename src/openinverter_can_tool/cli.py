@@ -258,6 +258,7 @@ def log(cli_settings: CliSettings,
         for param in query_list:
             row[param] = f"{fixed_to_float(node.sdo[param].raw):g}"
         writer.writerow(row)
+        out_file.flush()
 
         time.sleep(step)
 
