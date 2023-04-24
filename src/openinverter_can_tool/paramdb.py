@@ -19,8 +19,8 @@ def index_from_id(param_identifier: int) -> Tuple[int, int]:
 
 
 def is_power_of_two(num):
-    """Use some clever anding and arithemetic to determine wether a number is
-    a power of two"""
+    """Use some clever bitwise anding and arithmetic to determine wether a
+    number is a power of two"""
     return (num != 0) and (num & (num - 1) == 0)
 
 
@@ -28,19 +28,14 @@ def is_bitfield(values: Dict[int, str]) -> bool:
     """Try to figure out if the dictionary of values is a bitfield or an
     enumeration"""
 
-    max_value = 0
-
     for value in values:
-        if value > max_value:
-            max_value = value
-
         # Ignore zero
         if (value != 0) and (not is_power_of_two(value)):
             return False
 
     # When we only have two non-zero values we assume it's an enum not a
     # bitfield
-    if max_value <= 2:
+    if len(values) <= 3:
         return False
     else:
         return True

@@ -319,6 +319,7 @@ class TestDatabaseImport(unittest.TestCase):
                         "17=LORESAMP, 18=TMPMMAX,",
                         "isparam": False, "id": "2038"},
 
+            "version": {"unit": "4=5.24.R-foc", "isparam": False, "id": "2039"}
         }
 
         database = import_database_json(raw_json)
@@ -341,7 +342,10 @@ class TestDatabaseImport(unittest.TestCase):
                        6: "MPROT", 7: "DESAT", 8: "OVERVOLTAGE", 9: "ENCODER",
                        10: "PRECHARGE", 11: "TMPHSMAX", 12: "CURRENTLIMIT",
                        13: "PWMSTUCK", 14: "HICUROFS1", 15: "HICUROFS2",
-                       16: "HIRESOFS", 17: "LORESAMP", 18: "TMPMMAX"}}]
+                       16: "HIRESOFS", 17: "LORESAMP", 18: "TMPMMAX"}},
+            {"name": "version",
+             "enums": {4: "5.24.R-foc"}},
+        ]
 
         # Basic size check
         self.assertEqual(len(database.names), len(expected_params))
