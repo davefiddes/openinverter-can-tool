@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "List parameters",
             "type": "python",
@@ -12,6 +13,47 @@
                 "${workspaceFolder}/parameter-databases/stm32-sine.5.24.R-foc.json",
                 "listparams"
             ]
+        },
+        {
+            "name": "Remote db read param",
+            "type": "python",
+            "request": "launch",
+            "module": "openinverter_can_tool",
+            "justMyCode": true,
+            "args": [
+                "-c",
+                "openinverter",
+                "read",
+                "brakeregen"
+            ]
+        },
+        {
+            "name": "Remote serialno",
+            "type": "python",
+            "request": "launch",
+            "module": "openinverter_can_tool",
+            "justMyCode": true,
+            "args": [
+                "-c",
+                "openinverter",
+                "serialno"
+            ]
+        },
+        {
+            "name": "Log",
+            "type": "python",
+            "request": "launch",
+            "module": "openinverter_can_tool",
+            "justMyCode": true,
+            "args": [
+                "-c",
+                "openinverter",
+                "log",
+                "pot",
+                "udc",
+                "out.csv"
+            ]
         }
+
     ]
 }
