@@ -4,7 +4,7 @@ openinverter parameter database functions
 
 
 import json
-from typing import Tuple
+from typing import Tuple, Dict
 from canopen import objectdictionary, Network
 from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
@@ -16,6 +16,34 @@ def index_from_id(param_identifier: int) -> Tuple[int, int]:
     index = 0x2100 | (param_identifier >> 8)
     subindex = param_identifier & 0xFF
     return (index, subindex)
+
+
+def is_power_of_two(num):
+    """Use some clever anding and arithemetic to determine wether a number is
+    a power of two"""
+    return (num != 0) and (num & (num - 1) == 0)
+
+
+def is_bitfield(values: Dict[int, str]) -> bool:
+    """Try to figure out if the dictionary of values is a bitfield or an
+    enumeration"""
+
+    max_value = 0
+
+    for value in values:
+        if value > max_value:
+            max_value = value
+
+        # Ignore zero
+        if (value != 0) and (not is_power_of_two(value)):
+            return False
+
+    # When we only have two non-zero values we assume it's an enum not a
+    # bitfield
+    if max_value <= 2:
+        return False
+    else:
+        return True
 
 
 def import_database_json(
@@ -58,6 +86,26 @@ def import_database_json(
             var.category = param["category"]
         else:
             var.category = None
+
+        # parse units containing enumerations or bitfields
+        unit = param["unit"]
+        if '=' in unit:
+            # Some parameters like "lasterr" have trailing commas
+            unit = unit.rstrip(",")
+
+            values = {int(value): description for value, description in [
+                item.split('=') for item in unit.split(',')]}
+
+            # Ignore the expected type of the bit_definitions member and
+            # shove our dictionary in there if it is a bitfield otherwise treat
+            # as a list of value descriptions
+            if is_bitfield(values):
+                var.bit_definitions = values
+            else:
+                var.value_descriptions = values
+
+        # Store the unit text for all types of parameters
+        var.unit = unit
 
         # Parameters have additional required attributes
         if var.isparam:

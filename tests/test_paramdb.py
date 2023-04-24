@@ -185,7 +185,7 @@ class TestDatabaseImport(unittest.TestCase):
         # Basic size check
         self.assertEqual(len(database.names), len(expected_params))
 
-        # verify each of the exepected params exist
+        # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
             self.assertEqual(item.index, param["index"])
@@ -264,7 +264,7 @@ class TestDatabaseImport(unittest.TestCase):
         # Basic size check
         self.assertEqual(len(database.names), len(expected_params))
 
-        # verify each of the exepected params exist
+        # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
             self.assertEqual(item.index, param["index"])
@@ -288,6 +288,119 @@ class TestDatabaseImport(unittest.TestCase):
             self.assertEqual(item.factor, 32)
             self.assertEqual(
                 item.data_type, canopen.objectdictionary.INTEGER32)
+
+    def test_enum_dict(self):
+        """Provide a dictionary with a variety of enumeration parameters.
+        Verify that these are correctly parsed.
+        """
+
+        raw_json = {
+            "dirmode": {"unit": "0=Button, 1=Switch, 2=ButtonReversed, "
+                        "3=SwitchReversed, 4=DefaultForward", "id": 95,
+                        "value": 1.00, "isparam": True, "minimum": 0.00,
+                        "maximum": 4.00, "default": 1.00,
+                        "category": "Motor", "i": 15},
+            "snsm": {"unit": "12=KTY83-110, 13=KTY84-130, 14=Leaf, "
+                     "15=KTY81-110, 16=Toyota, 21=OutlanderFront, "
+                     "22=EpcosB57861-S, 23=ToyotaGen2", "minimum": "12",
+                     "maximum": "23", "default": "12", "isparam": True,
+                     "category": "Motor", "id": "46"},
+            "dir": {"unit": "-1=Reverse, 0=Neutral, 1=Forward",
+                    "isparam": False, "id": "2018"},
+            "din_mprot": {"unit": "0=Error, 1=Ok, 2=na", "isparam": False,
+                          "id": "2026"},
+
+            # Note trailing comma
+            "lasterr": {"unit": "0=NONE, 1=OVERCURRENT, 2=THROTTLE1, "
+                        "3=THROTTLE2, 4=CANTIMEOUT, 5=EMCYSTOP, 6=MPROT, "
+                        "7=DESAT, 8=OVERVOLTAGE, 9=ENCODER, 10=PRECHARGE, "
+                        "11=TMPHSMAX, 12=CURRENTLIMIT, 13=PWMSTUCK, "
+                        "14=HICUROFS1, 15=HICUROFS2, 16=HIRESOFS, "
+                        "17=LORESAMP, 18=TMPMMAX,",
+                        "isparam": False, "id": "2038"},
+
+        }
+
+        database = import_database_json(raw_json)
+
+        expected_params = [
+            {"name": "dirmode",
+             "enums": {0: "Button", 1: "Switch", 2: "ButtonReversed",
+                       3: "SwitchReversed", 4: "DefaultForward"}},
+            {"name": "snsm",
+             "enums": {12: "KTY83-110", 13: "KTY84-130", 14: "Leaf",
+                       15: "KTY81-110", 16: "Toyota", 21: "OutlanderFront",
+                       22: "EpcosB57861-S", 23: "ToyotaGen2"}},
+            {"name": "dir",
+             "enums": {-1: "Reverse", 0: "Neutral", 1: "Forward"}},
+            {"name": "din_mprot",
+             "enums": {0: "Error", 1: "Ok", 2: "na"}},
+            {"name": "lasterr",
+             "enums": {0: "NONE", 1: "OVERCURRENT", 2: "THROTTLE1",
+                       3: "THROTTLE2", 4: "CANTIMEOUT", 5: "EMCYSTOP",
+                       6: "MPROT", 7: "DESAT", 8: "OVERVOLTAGE", 9: "ENCODER",
+                       10: "PRECHARGE", 11: "TMPHSMAX", 12: "CURRENTLIMIT",
+                       13: "PWMSTUCK", 14: "HICUROFS1", 15: "HICUROFS2",
+                       16: "HIRESOFS", 17: "LORESAMP", 18: "TMPMMAX"}}]
+
+        # Basic size check
+        self.assertEqual(len(database.names), len(expected_params))
+
+        # verify each of the expected params exist
+        for param in expected_params:
+            item = database[param["name"]]
+            self.assertFalse(item.bit_definitions)
+
+            expected_enums = param["enums"]
+
+            self.assertEqual(len(item.value_descriptions), len(expected_enums))
+            for value, description in expected_enums.items():
+                self.assertEqual(
+                    item.value_descriptions[value], description)
+
+    def test_bitfield_dict(self):
+        """Provide a dictionary with a variety of bitfield parameters.
+        Verify that these are correctly parsed.
+        """
+
+        raw_json = {
+            "canio": {"unit": "1=Cruise, 2=Start, 4=Brake, 8=Fwd, 16=Rev, "
+                      "32=Bms",
+                      "isparam": False, "id": "2022"},
+            "status": {"unit": "0=None, 1=UdcLow, 2=UdcHigh, 4=UdcBelowUdcSw, "
+                       "8=UdcLim, 16=EmcyStop, 32=MProt, 64=PotPressed, "
+                       "128=TmpHs, 256=WaitStart", "isparam": False,
+                       "id": "2044"}
+        }
+
+        database = import_database_json(raw_json)
+
+        expected_params = [
+            {"name": "canio",
+             "bitfield": {1: "Cruise", 2: "Start", 4: "Brake", 8: "Fwd",
+                          16: "Rev", 32: "Bms"}},
+            {"name": "status",
+             "bitfield": {0: "None", 1: "UdcLow", 2: "UdcHigh",
+                          4: "UdcBelowUdcSw", 8: "UdcLim", 16: "EmcyStop",
+                          32: "MProt", 64: "PotPressed", 128: "TmpHs",
+                          256: "WaitStart"}},
+        ]
+
+        # Basic size check
+        self.assertEqual(len(database.names), len(expected_params))
+
+        # verify each of the expected params exist
+        for param in expected_params:
+            item = database[param["name"]]
+            self.assertFalse(item.value_descriptions)
+
+            expected_bitfield = param["bitfield"]
+
+            self.assertEqual(len(item.bit_definitions),
+                             len(expected_bitfield))
+            for value, description in expected_bitfield.items():
+                self.assertEqual(
+                    item.bit_definitions[value], description)
 
 
 if __name__ == '__main__':
