@@ -176,6 +176,36 @@ def listparams(cli_settings: CliSettings):
             print(" - read-only value")
 
 
+def print_param(
+        variable: canopen.objectdictionary.Variable,
+        value: float) -> str:
+    """Print out the value of a parameter or outputs the enumeration value or
+    bits in a bitfield"""
+
+    click.echo(f"{variable.name:20}: ", nl=False)
+
+    if variable.value_descriptions:
+        if value in variable.value_descriptions:
+            click.echo(f"{variable.value_descriptions[value]}")
+        else:
+            click.echo(f"{value:g} (Unknown value)")
+    elif variable.bit_definitions:
+        value = int(value)
+        bit_str = ""
+        for bit, description in variable.bit_definitions.items():
+            if bit & value:
+                bit_str = bit_str + description + ", "
+        bit_str = bit_str.removesuffix(", ")
+
+        if len(bit_str) == 0:
+            bit_str = "0"
+
+        click.echo(f"{bit_str}")
+    else:
+        click.echo(
+            f"{value:g} [{variable.unit}]")
+
+
 @cli.command()
 @pass_cli_settings
 @db_action
@@ -185,9 +215,7 @@ def dumpall(cli_settings: CliSettings):
 
     node = cli_settings.node
     for item in cli_settings.database.names.values():
-        click.echo(
-            f"{item.name:20}: {fixed_to_float(node.sdo[item.name].raw):10g} "
-            f"[{item.unit}]")
+        print_param(item, fixed_to_float(node.sdo[item.name].raw))
 
 
 @cli.command()
@@ -200,9 +228,9 @@ def read(cli_settings: CliSettings, param: str):
 
     if param in cli_settings.database.names:
         node = cli_settings.node
-        click.echo(
-            f"{param}: {fixed_to_float(node.sdo[param].raw):g} "
-            f"[{cli_settings.database.names[param].unit}]")
+        print_param(
+            cli_settings.database.names[param],
+            fixed_to_float(node.sdo[param].raw))
     else:
         click.echo(f"Unknown parameter: {param}")
 
