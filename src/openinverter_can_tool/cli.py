@@ -3,7 +3,7 @@ openinverter CAN Tools main program
 """
 
 import functools
-from typing import Optional
+from typing import Optional, Union
 import json
 import csv
 import time
@@ -312,7 +312,66 @@ def save(cli_settings: CliSettings, out_file: click.File):
     click.echo(f"Saved {count} parameters")
 
 
-def write_impl(cli_settings: CliSettings, param: str, value: float):
+def set_enum_value(
+        node: canopen.Node,
+        param: canopen.objectdictionary.Variable,
+        value: str) -> None:
+    """Set a enumeration parameter over SDO by looking up its symbolic value"""
+
+    result = None
+    for key, description in param.value_descriptions.items():
+        if description.lower() == value.lower():
+            result = key
+
+    if result is not None:
+        node.sdo[param.name].raw = fixed_from_float(result)
+    else:
+        click.echo(f"Unable to find value: '{value}' for parameter: "
+                   f"{param.name}. Valid values are "
+                   f"{param.value_descriptions}")
+
+
+def set_bitfield_value(
+        node: canopen.Node,
+        param: canopen.objectdictionary.Variable,
+        value: str) -> None:
+    """Set a bitfield parameter over SDO by looking up its symbolic values. The
+      value should be a comma separated list"""
+
+    result = 0
+    for bit_name in value.split(','):
+        bit_name = bit_name.strip()
+        for key, description in param.bit_definitions.items():
+            if description.lower() == bit_name.lower():
+                result |= key
+
+    node.sdo[param.name].raw = fixed_from_float(result)
+
+
+def set_float_value(
+        node: canopen.Node,
+        param: canopen.objectdictionary.Variable,
+        value: float) -> None:
+    """Set a parameter with a floating point value over SDO"""
+
+    fixed_value = fixed_from_float(value)
+
+    if fixed_value < param.min:
+        click.echo(f"Value {value:g} is smaller than the minimum "
+                   f"value {fixed_to_float(param.min):g} allowed "
+                   f"for {param.name}")
+    elif fixed_value > param.max:
+        click.echo(f"Value {value:g} is larger than the maximum value "
+                   f"{fixed_to_float(param.max):g} allowed for "
+                   f"{param.name}")
+    else:
+        node.sdo[param.name].raw = fixed_value
+
+
+def write_impl(
+        cli_settings: CliSettings,
+        param: str,
+        value: Union[float, str]):
     """Implementation of the single parameter write command. Separated from
     the command so the logic can be shared with loading all parameters from
     json."""
@@ -322,18 +381,24 @@ def write_impl(cli_settings: CliSettings, param: str, value: float):
 
         # Check if we are a modifiable parameter
         if param_item.isparam:
-            fixed_value = fixed_from_float(value)
-
-            if fixed_value < param_item.min:
-                click.echo(f"Value {value:g} is smaller than the minimum "
-                           f"value {fixed_to_float(param_item.min):g} allowed "
-                           f"for {param}")
-            elif fixed_value > param_item.max:
-                click.echo(f"Value {value:g} is larger than the maximum value "
-                           f"{fixed_to_float(param_item.max):g} allowed for "
-                           f"{param}")
+            if isinstance(value, float):
+                set_float_value(cli_settings.node, param_item, value)
             else:
-                cli_settings.node.sdo[param].raw = fixed_value
+                # Assume the value is a float to start with
+                try:
+                    set_float_value(
+                        cli_settings.node,
+                        param_item,
+                        float(value))
+                except ValueError:
+                    if param_item.value_descriptions:
+                        set_enum_value(cli_settings.node, param_item, value)
+                    elif param_item.bit_definitions:
+                        set_bitfield_value(
+                            cli_settings.node, param_item, value)
+                    else:
+                        click.echo(f"Invalid value: '{value}' for parameter: "
+                                   f"{param}")
         else:
             click.echo(f"{param} is a spot value parameter. "
                        "Spot values are read-only.")
@@ -343,11 +408,11 @@ def write_impl(cli_settings: CliSettings, param: str, value: float):
 
 @cli.command(context_settings=dict(ignore_unknown_options=True))
 @click.argument("param")
-@click.argument("value", type=float)
+@click.argument("value")
 @pass_cli_settings
 @db_action
 @can_action
-def write(cli_settings: CliSettings, param: str, value: float):
+def write(cli_settings: CliSettings, param: str, value: str):
     """Write the value to the parameter PARAM on the device"""
 
     write_impl(cli_settings, param, value)
