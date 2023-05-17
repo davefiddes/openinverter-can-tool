@@ -11,7 +11,8 @@ import datetime
 import click
 import can
 import canopen
-from .paramdb import import_database, import_remote_database
+import appdirs
+from .paramdb import import_database, import_cached_database
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
 
@@ -58,8 +59,10 @@ def db_action(func):
                 network.connect(context=cli_settings.context)
                 network.check()
 
-                device_db = import_remote_database(
-                    network, cli_settings.node_number)
+                device_db = import_cached_database(
+                    network,
+                    cli_settings.node_number,
+                    appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR))
             finally:
                 if network:
                     network.disconnect()

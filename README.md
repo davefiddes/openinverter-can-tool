@@ -50,13 +50,13 @@ Linux users may reduce the potential of package conflicts by installing python d
 #### Fedora
 
 ```text
-    sudo dnf install python3-setuptools python3-pip python3-click python3-can
+    sudo dnf install python3-setuptools python3-pip python3-click python3-can python3-appdirs
 ```
 
 #### Ubuntu/Debian
 
 ```text
-    sudo apt install python3-setuptools python3-pip python3-click python3-can
+    sudo apt install python3-setuptools python3-pip python3-click python3-can python3-appsdirs
 ```
 
 ## Configuration

@@ -5,6 +5,9 @@
 # Index for unique serial numbers
 SERIALNO_INDEX = 0x5000
 
+# Parameter database checksum
+PARAM_DB_CHECKSUM_SUBINDEX = 3
+
 # Index for long segmented strings
 STRINGS_INDEX = 0x5001
 
@@ -31,3 +34,7 @@ START_MODE_ACHEAT = 6
 
 # SDO abort error codes - Not defined by canopen for some reason
 SDO_ABORT_OBJECT_NOT_AVAILABLE = 0x06020000
+
+# Names for common directories
+APPNAME = "openinverter_can_tool"
+APPAUTHOR = "openinverter"

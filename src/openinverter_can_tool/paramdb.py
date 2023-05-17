@@ -5,7 +5,8 @@ openinverter parameter database functions
 
 import json
 from typing import Tuple, Dict
-from canopen import objectdictionary, Network
+import os.path
+import canopen
 from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
 from . import constants as oi
@@ -42,7 +43,7 @@ def is_bitfield(values: Dict[int, str]) -> bool:
 
 
 def import_database_json(
-        paramdb_json: dict) -> objectdictionary.ObjectDictionary:
+        paramdb_json: dict) -> canopen.objectdictionary.ObjectDictionary:
     """Import an openinverter parameter database JSON.
 
     :param paramdb_json:
@@ -53,7 +54,7 @@ def import_database_json(
     :rtype: canopen.ObjectDictionary
     """
 
-    dictionary = objectdictionary.ObjectDictionary()
+    dictionary = canopen.objectdictionary.ObjectDictionary()
     for param_name in paramdb_json:
         param = paramdb_json[param_name]
 
@@ -62,14 +63,14 @@ def import_database_json(
             continue
 
         (index, subindex) = index_from_id(int(param["id"]))
-        var = objectdictionary.Variable(param_name, index, subindex)
+        var = canopen.objectdictionary.Variable(param_name, index, subindex)
 
         # All openinverter params are 32-bit fixed float values
         # we will convert to float on presentation as required
         # but work with them as integers to keep the canopen
         # library happy
         var.factor = 32
-        var.data_type = objectdictionary.INTEGER32
+        var.data_type = canopen.objectdictionary.INTEGER32
 
         # Common attributes for parameters and values
         # "isparam" and "category" are not normal member variables in the
@@ -113,7 +114,7 @@ def import_database_json(
     return dictionary
 
 
-def import_database(paramdb: str) -> objectdictionary.ObjectDictionary:
+def import_database(paramdb: str) -> canopen.objectdictionary.ObjectDictionary:
     """Import an openinverter parameter database file.
 
     :param paramdb:
@@ -131,8 +132,8 @@ def import_database(paramdb: str) -> objectdictionary.ObjectDictionary:
 
 
 def import_remote_database(
-        network: Network,
-        node_id: int) -> objectdictionary.ObjectDictionary:
+        network: canopen.Network,
+        node_id: int) -> canopen.objectdictionary.ObjectDictionary:
     """Import an openinverter parameter database from a remote node.
 
     :param network:
@@ -148,8 +149,9 @@ def import_remote_database(
     """
 
     # Create temporary SDO client and attach to the network
-    sdo_client = SdoClient(0x600 + node_id, 0x580 + node_id,
-                           objectdictionary.ObjectDictionary())
+    sdo_client = SdoClient(0x600 + node_id,
+                           0x580 + node_id,
+                           canopen.objectdictionary.ObjectDictionary())
     sdo_client.network = network
     network.subscribe(0x580 + node_id, sdo_client.on_response)
 
@@ -159,6 +161,73 @@ def import_remote_database(
         with sdo_client.open(oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX,
                              "rt", encoding="utf-8") as param_db:
             dictionary = import_database_json(json.load(param_db))
+    finally:
+        network.unsubscribe(0x580 + node_id)
+
+    return dictionary
+
+
+def import_cached_database(
+        network: canopen.Network,
+        node_id: int,
+        cache_location: str
+) -> canopen.objectdictionary.ObjectDictionary:
+    """Import an openinverter parameter database from a remote node and cache
+    it for quicker access in future.
+
+    :param network:
+        The configured and started canopen.Network to use to communicate with
+        the node.
+
+    :param node_id:
+        The openinverter node we wish to obtain the parameter database from.
+
+    :param cache_location:
+        A directory containing the parameter database cache.
+
+    :returns:
+        The Object Dictionary.
+
+    :rtype: canopen.ObjectDictionary
+    """
+
+    # Create temporary SDO client and attach to the network
+    temp_dictionary = canopen.objectdictionary.ObjectDictionary()
+    sdo_client = SdoClient(0x600 + node_id, 0x580 + node_id, temp_dictionary)
+    sdo_client.network = network
+    network.subscribe(0x580 + node_id, sdo_client.on_response)
+
+    try:
+        checksum_var = canopen.objectdictionary.Variable(
+            "checksum",
+            oi.SERIALNO_INDEX,
+            oi.PARAM_DB_CHECKSUM_SUBINDEX)
+        checksum_var.data_type = canopen.objectdictionary.UNSIGNED32
+        temp_dictionary.add_object(checksum_var)
+        checksum = sdo_client["checksum"].raw
+
+        if not os.path.exists(cache_location):
+            os.mkdir(cache_location)
+
+        cache_file = os.path.join(
+            cache_location, f"{node_id}-{checksum}.json")
+
+        if os.path.exists(cache_file):
+            dictionary = import_database(cache_file)
+        else:
+            # Create file like object to load the JSON from the remote
+            # openinverter node
+            with sdo_client.open(oi.STRINGS_INDEX,
+                                 oi.PARAM_DB_SUBINDEX,
+                                 "rt", encoding="utf-8") as param_db:
+                param_db_str = param_db.read()
+
+            dictionary = import_database_json(json.loads(param_db_str))
+
+            # Only save the database in the cache when we have successfully
+            # imported it
+            with open(cache_file, "wt", encoding="utf-8") as param_db_file:
+                param_db_file.write(param_db_str)
     finally:
         network.unsubscribe(0x580 + node_id)
 
