@@ -8,6 +8,8 @@ import json
 import csv
 import time
 import datetime
+import glob
+import os
 import click
 import can
 import canopen
@@ -583,3 +585,27 @@ def scan(cli_settings: CliSettings):
             click.echo(f"Found possible openinverter node: {node_id}")
     else:
         click.echo("No nodes found")
+
+
+@cli.group()
+@pass_cli_settings
+def cache(cli_settings: CliSettings):
+    """Parameter database cache management commands"""
+    # We have to have cli_settings to allow the command hierarchy to work but
+    # it is unused here so just pretend to use it
+    _ = cli_settings
+
+
+@cache.command("clean")
+@pass_cli_settings
+def cmd_clean(cli_settings: CliSettings):
+    """Remove all entries from the parameter database cache"""
+
+    # cli_settings is unused
+    _ = cli_settings
+
+    for file in glob.glob(
+            os.path.join(
+                appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR), "*.json")):
+        click.echo(f"Removing {file}")
+        os.remove(file)
