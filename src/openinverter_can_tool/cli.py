@@ -158,7 +158,11 @@ def can_action(func):
               help="Response timeout in seconds")
 @click.version_option()
 @click.pass_context
-def cli(ctx, database, context, node, timeout) -> None:
+def cli(ctx: click.Context,
+        database: str,
+        context: str,
+        node: int,
+        timeout: float) -> None:
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
@@ -548,7 +552,7 @@ def cmd_stop(cli_settings: CliSettings) -> None:
               show_default=True)
 @pass_cli_settings
 @can_action
-def cmd_start(cli_settings: CliSettings, mode) -> None:
+def cmd_start(cli_settings: CliSettings, mode: str) -> None:
     """Start the device in the specified mode"""
     mode_list = {
         "Normal": oi.START_MODE_NORMAL,
