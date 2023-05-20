@@ -19,7 +19,7 @@ def index_from_id(param_identifier: int) -> Tuple[int, int]:
     return (index, subindex)
 
 
-def is_power_of_two(num):
+def is_power_of_two(num: int) -> bool:
     """Use some clever bitwise anding and arithmetic to determine wether a
     number is a power of two"""
     return (num != 0) and (num & (num - 1) == 0)

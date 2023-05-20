@@ -31,9 +31,9 @@ class CliSettings:
         self.database_path = database_path
         self.context = context
         self.node_number = node_number
-        self.network = Optional[canopen.Network]
+        self.network: Optional[canopen.Network] = None
         self.database = canopen.objectdictionary.ObjectDictionary()
-        self.node = Optional[canopen.Node]
+        self.node: Optional[canopen.Node] = None
         self.timeout = timeout
 
 
@@ -54,6 +54,7 @@ def db_action(func):
         if cli_settings.database_path:
             device_db = import_database(cli_settings.database_path)
         else:
+            network = None
             try:
                 # Fire up the CAN network just to grab the node parameter
                 # database from the device
@@ -90,6 +91,7 @@ def can_action(func):
         # Ensure we always have something to return
         return_value = None
 
+        network = None
         try:
             # Start with creating a network representing one CAN bus
             network = canopen.Network()
@@ -156,7 +158,7 @@ def can_action(func):
               help="Response timeout in seconds")
 @click.version_option()
 @click.pass_context
-def cli(ctx, database, context, node, timeout):
+def cli(ctx, database, context, node, timeout) -> None:
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
@@ -166,7 +168,7 @@ def cli(ctx, database, context, node, timeout):
 @cli.command()
 @pass_cli_settings
 @db_action
-def listparams(cli_settings: CliSettings):
+def listparams(cli_settings: CliSettings) -> None:
     """List all available parameters and values"""
     for item in cli_settings.database.names.values():
         print(
@@ -183,7 +185,7 @@ def listparams(cli_settings: CliSettings):
 
 def print_param(
         variable: canopen.objectdictionary.Variable,
-        value: float) -> str:
+        value: float) -> None:
     """Print out the value of a parameter or outputs the enumeration value or
     bits in a bitfield"""
 
@@ -215,7 +217,7 @@ def print_param(
 @pass_cli_settings
 @db_action
 @can_action
-def dumpall(cli_settings: CliSettings):
+def dumpall(cli_settings: CliSettings) -> None:
     """Dump the values of all available parameters and values"""
 
     node = cli_settings.node
@@ -228,7 +230,7 @@ def dumpall(cli_settings: CliSettings):
 @pass_cli_settings
 @db_action
 @can_action
-def read(cli_settings: CliSettings, param: str):
+def read(cli_settings: CliSettings, param: str) -> None:
     """Read the value of PARAM from the device"""
 
     if param in cli_settings.database.names:
@@ -259,7 +261,7 @@ def log(cli_settings: CliSettings,
         params: tuple,
         out_file: click.File,
         step: int,
-        timestamp: bool):
+        timestamp: bool) -> None:
     """Log the value of PARAMS from the device periodically in CSV
     format. Multiple parameters may be specified separated by a space.
     OUT_FILE may be a filename or - to output to stdout."""
@@ -301,7 +303,7 @@ def log(cli_settings: CliSettings,
 @pass_cli_settings
 @db_action
 @can_action
-def save(cli_settings: CliSettings, out_file: click.File):
+def save(cli_settings: CliSettings, out_file: click.File) -> None:
     """Save all parameters in json to OUT_FILE"""
 
     doc = {}
@@ -376,7 +378,7 @@ def set_float_value(
 def write_impl(
         cli_settings: CliSettings,
         param: str,
-        value: Union[float, str]):
+        value: Union[float, str]) -> None:
     """Implementation of the single parameter write command. Separated from
     the command so the logic can be shared with loading all parameters from
     json."""
@@ -417,7 +419,7 @@ def write_impl(
 @pass_cli_settings
 @db_action
 @can_action
-def write(cli_settings: CliSettings, param: str, value: str):
+def write(cli_settings: CliSettings, param: str, value: str) -> None:
     """Write the value to the parameter PARAM on the device"""
 
     write_impl(cli_settings, param, value)
@@ -428,7 +430,7 @@ def write(cli_settings: CliSettings, param: str, value: str):
 @pass_cli_settings
 @db_action
 @can_action
-def load(cli_settings: CliSettings, in_file: click.File):
+def load(cli_settings: CliSettings, in_file: click.File) -> None:
     """Load all parameters from json IN_FILE"""
 
     doc = json.load(in_file)
@@ -450,7 +452,7 @@ def load(cli_settings: CliSettings, in_file: click.File):
 @cli.command()
 @pass_cli_settings
 @can_action
-def serialno(cli_settings: CliSettings):
+def serialno(cli_settings: CliSettings) -> None:
     """Read the device serial number. This is required to load firmware over
     CAN"""
 
@@ -470,7 +472,7 @@ def serialno(cli_settings: CliSettings):
 
 @cli.group()
 @pass_cli_settings
-def cmd(cli_settings: CliSettings):
+def cmd(cli_settings: CliSettings) -> None:
     """Execute a command on a device"""
     # We have to have cli_settings to allow the command hierarchy to work but
     # it is unused here so just pretend to use it
@@ -496,7 +498,7 @@ def send_command(
 @cmd.command("save")
 @pass_cli_settings
 @can_action
-def cmd_save(cli_settings: CliSettings):
+def cmd_save(cli_settings: CliSettings) -> None:
     """Save device parameters and CAN map to flash"""
     send_command(cli_settings, oi.SAVE_COMMAND_SUBINDEX)
 
@@ -504,7 +506,7 @@ def cmd_save(cli_settings: CliSettings):
 @cmd.command("load")
 @pass_cli_settings
 @can_action
-def cmd_load(cli_settings: CliSettings):
+def cmd_load(cli_settings: CliSettings) -> None:
     """Load device parameters and CAN map from flash"""
     send_command(cli_settings, oi.LOAD_COMMAND_SUBINDEX)
 
@@ -512,7 +514,7 @@ def cmd_load(cli_settings: CliSettings):
 @cmd.command("reset")
 @pass_cli_settings
 @can_action
-def cmd_reset(cli_settings: CliSettings):
+def cmd_reset(cli_settings: CliSettings) -> None:
     """Reset the device"""
     send_command(cli_settings, oi.RESET_COMMAND_SUBINDEX)
 
@@ -520,7 +522,7 @@ def cmd_reset(cli_settings: CliSettings):
 @cmd.command("defaults")
 @pass_cli_settings
 @can_action
-def cmd_defaults(cli_settings: CliSettings):
+def cmd_defaults(cli_settings: CliSettings) -> None:
     """Reset the device parameters to their built-in defaults"""
     send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX)
 
@@ -528,7 +530,7 @@ def cmd_defaults(cli_settings: CliSettings):
 @cmd.command("stop")
 @pass_cli_settings
 @can_action
-def cmd_stop(cli_settings: CliSettings):
+def cmd_stop(cli_settings: CliSettings) -> None:
     """Stop the device from operating"""
     send_command(cli_settings, oi.STOP_COMMAND_SUBINDEX)
 
@@ -546,7 +548,7 @@ def cmd_stop(cli_settings: CliSettings):
               show_default=True)
 @pass_cli_settings
 @can_action
-def cmd_start(cli_settings: CliSettings, mode):
+def cmd_start(cli_settings: CliSettings, mode) -> None:
     """Start the device in the specified mode"""
     mode_list = {
         "Normal": oi.START_MODE_NORMAL,
@@ -563,7 +565,7 @@ def cmd_start(cli_settings: CliSettings, mode):
 @cli.command()
 @pass_cli_settings
 @can_action
-def scan(cli_settings: CliSettings):
+def scan(cli_settings: CliSettings) -> None:
     """Scan the CAN bus for available nodes"""
 
     # Maximum number of devices we are going to scan for
@@ -589,7 +591,7 @@ def scan(cli_settings: CliSettings):
 
 @cli.group()
 @pass_cli_settings
-def cache(cli_settings: CliSettings):
+def cache(cli_settings: CliSettings) -> None:
     """Parameter database cache management commands"""
     # We have to have cli_settings to allow the command hierarchy to work but
     # it is unused here so just pretend to use it
@@ -598,7 +600,7 @@ def cache(cli_settings: CliSettings):
 
 @cache.command("clean")
 @pass_cli_settings
-def cmd_clean(cli_settings: CliSettings):
+def cmd_clean(cli_settings: CliSettings) -> None:
     """Remove all entries from the parameter database cache"""
 
     # cli_settings is unused
