@@ -25,7 +25,7 @@ electric vehicles over a CAN connection.
 * Runs on Linux, Windows and MacOS with python 3.7+
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
-* Automatic parameter database download requires stm32-sine 5.25.R or later
+* Automatic parameter database download and caching (requires stm32-sine development branch - likely 5.27.R or later)
 
 ## Installation
 
@@ -116,6 +116,7 @@ To get the usage information for the tool run the `oic` command with no paramete
       --help               Show this message and exit.
 
     Commands:
+      cache       Parameter database cache management commands
       cmd         Execute a command on a device
       dumpall     Dump the values of all available parameters and values
       listparams  List all available parameters and values
@@ -135,11 +136,20 @@ To read a specific parameter from 5.24.R firmware:
     brakeregen: -13 [%]
 ```
 
-To write a new value to a parameter with 5.25.R or later firmware with automatic database download:
+To write a new value to a parameter with 5.27.R or later firmware with automatic database download:
 
 ```text
     oic write brakeregen -30.5
 ```
+
+Values may be changed using symbolic names:
+
+```text
+    oic write potmode DualChannel
+    oic write pinswap PWMOutput13,PWMOutput23
+```
+
+The list of allowed values for a given parameter can be found using the `listparams` command.
 
 ## Development
 
