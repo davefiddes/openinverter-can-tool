@@ -312,8 +312,9 @@ class TestDatabaseImport(unittest.TestCase):
         servernode = canopen.LocalNode(13, dictionary)
         network1.add_node(servernode)
 
-        with open(TEST_DATA_DIR / "complex-with-added-zero-bytes.json", mode="br"
-                  ) as file:
+        with open(
+                TEST_DATA_DIR / "complex-with-added-zero-bytes.json",
+                mode="br") as file:
             servernode.sdo['database'].raw = file.read()
 
         # Put together a network that is connected to the server for the code
