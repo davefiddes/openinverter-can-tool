@@ -42,6 +42,15 @@ def is_bitfield(values: Dict[int, str]) -> bool:
         return True
 
 
+def filter_zero_bytes(database_bytes: bytes) -> str:
+    """Remove any zero bytes before decoding as utf-8. This can be used to
+    deal with erroneous data that can be sent by heavily loaded openinverter
+    firmware."""
+    database_bytes = database_bytes.replace(b"\x00", b"")
+    database_str = database_bytes.decode(encoding="utf-8", errors="ignore")
+    return database_str
+
+
 def import_database_json(
         paramdb_json: dict) -> canopen.objectdictionary.ObjectDictionary:
     """Import an openinverter parameter database JSON.
@@ -158,9 +167,11 @@ def import_remote_database(
     # Create file like object to load the JSON from the remote
     # openinverter node
     try:
-        with sdo_client.open(oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX,
-                             "rt", encoding="utf-8") as param_db:
-            dictionary = import_database_json(json.load(param_db))
+        with sdo_client.open(oi.STRINGS_INDEX,
+                             oi.PARAM_DB_SUBINDEX,
+                             "rb") as param_db:
+            dictionary = import_database_json(
+                json.loads(filter_zero_bytes(param_db.read())))
     finally:
         network.unsubscribe(0x580 + node_id)
 
@@ -219,8 +230,8 @@ def import_cached_database(
             # openinverter node
             with sdo_client.open(oi.STRINGS_INDEX,
                                  oi.PARAM_DB_SUBINDEX,
-                                 "rt", encoding="utf-8") as param_db:
-                param_db_str = param_db.read()
+                                 "rb", encoding="utf-8") as param_db:
+                param_db_str = filter_zero_bytes(param_db.read())
 
             dictionary = import_database_json(json.loads(param_db_str))
 

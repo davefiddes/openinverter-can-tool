@@ -238,6 +238,9 @@ class TestDatabaseImport(unittest.TestCase):
 
         database = import_remote_database(network2, 13)
 
+        network1.disconnect()
+        network2.disconnect()
+
         expected_params = [
             {"name": "curkp", "isparam": True, "unit": "",
              "min": 0, "max": 20000, "default": 32,
@@ -288,6 +291,138 @@ class TestDatabaseImport(unittest.TestCase):
             self.assertEqual(item.factor, 32)
             self.assertEqual(
                 item.data_type, canopen.objectdictionary.INTEGER32)
+
+    def test_remote_db_with_zero_bytes(self):
+        """Due to a race condition in openinverter firmware the database can
+        contain additional 0x00 bytes interspersed with the expected byte
+        stream. Verify that these databases can be loaded correctly from a
+        remote node."""
+
+        # Put together an SDO server that pretends to be a remote openinverter
+        # node
+        network1 = canopen.Network()
+        network1.connect("test", bustype="virtual")
+
+        dictionary = canopen.ObjectDictionary()
+        db_var = canopen.objectdictionary.Variable(
+            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
+        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
+        dictionary.add_object(db_var)
+
+        servernode = canopen.LocalNode(13, dictionary)
+        network1.add_node(servernode)
+
+        with open(TEST_DATA_DIR / "complex-with-added-zero-bytes.json", mode="br"
+                  ) as file:
+            servernode.sdo['database'].raw = file.read()
+
+        # Put together a network that is connected to the server for the code
+        # under test
+        network2 = canopen.Network()
+        network2.connect("test", bustype="virtual")
+
+        database = import_remote_database(network2, 13)
+
+        network1.disconnect()
+        network2.disconnect()
+
+        expected_params = [
+            {"name": "curkp", "isparam": True, "unit": "",
+             "min": 0, "max": 20000, "default": 32,
+             "category": "Params",
+             "index": 0x2100, "subindex": 107},
+            {"name": "dirmode", "isparam": True,
+             "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, "
+                     "4=DefaultForward",
+             "min": 0, "max": 4, "default": 1,
+             "category": "Params",
+             "index": 0x2100, "subindex": 95},
+            {"name": "potmin", "isparam": True, "unit": "dig",
+             "min": 0, "max": 4095, "default": 0,
+             "category": "Throttle",
+             "index": 0x2100, "subindex": 17},
+            {"name": "potmax", "isparam": True, "unit": "dig",
+             "min": 0, "max": 4095, "default": 4095,
+             "category": "Throttle",
+             "index": 0x2100, "subindex": 18},
+            {"name": "cpuload", "isparam": False, "unit": "%",
+             "index": 0x2107, "subindex": 0xF3}
+        ]
+
+        # Basic size check
+        self.assertEqual(len(database.names), len(expected_params))
+
+        # verify each of the expected params exist
+        for param in expected_params:
+            item = database[param["name"]]
+            self.assertEqual(item.index, param["index"])
+            self.assertEqual(item.subindex, param["subindex"])
+            self.assertEqual(item.unit, param["unit"])
+            self.assertEqual(item.isparam, param["isparam"])
+
+            # optional fields only present for params not values
+            if item.isparam:
+                self.assertEqual(item.min, fixed_from_float(param["min"]))
+                self.assertEqual(item.max, fixed_from_float(param["max"]))
+                self.assertEqual(
+                    item.default, fixed_from_float(param["default"]))
+                self.assertEqual(item.category, param["category"])
+            else:
+                self.assertEqual(item.min, None)
+                self.assertEqual(item.max, None)
+                self.assertEqual(item.default, None)
+                self.assertEqual(item.category, None)
+
+            self.assertEqual(item.factor, 32)
+            self.assertEqual(
+                item.data_type, canopen.objectdictionary.INTEGER32)
+
+    def test_remote_unicode_db_with_zero_bytes(self):
+        """Due to a race condition in openinverter firmware the database can
+        contain additional NUL or 0x00 bytes. Verify that a databases with
+        unicode utf-8 sequences with extra zero bytes can be loaded correctly
+        from a remote node."""
+
+        # Put together an SDO server that pretends to be a remote openinverter
+        # node
+        network1 = canopen.Network()
+        network1.connect("test", bustype="virtual")
+
+        dictionary = canopen.ObjectDictionary()
+        db_var = canopen.objectdictionary.Variable(
+            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
+        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
+        dictionary.add_object(db_var)
+
+        servernode = canopen.LocalNode(13, dictionary)
+        network1.add_node(servernode)
+
+        with open(TEST_DATA_DIR / "unicode-with-added-zero-bytes.json",
+                  mode="br") as file:
+            servernode.sdo['database'].raw = file.read()
+
+        # Put together a network that is connected to the server for the code
+        # under test
+        network2 = canopen.Network()
+        network2.connect("test", bustype="virtual")
+
+        database = import_remote_database(network2, 13)
+
+        network1.disconnect()
+        network2.disconnect()
+
+        assert database["param1"]
+        item = database["param1"]
+        self.assertEqual(item.index, 0x2100)
+        self.assertEqual(item.subindex, 1)
+        self.assertEqual(item.unit, "°")
+        self.assertEqual(item.min, fixed_from_float(0))
+        self.assertEqual(item.max, fixed_from_float(100))
+        self.assertEqual(item.default, fixed_from_float(5))
+        self.assertEqual(item.factor, 32)
+        self.assertEqual(item.data_type, canopen.objectdictionary.INTEGER32)
+        self.assertTrue(item.isparam)
+        self.assertEqual(item.category, "😬")
 
     def test_enum_dict(self):
         """Provide a dictionary with a variety of enumeration parameters.
