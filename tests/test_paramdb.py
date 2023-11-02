@@ -7,6 +7,7 @@ import json
 import pytest
 
 import canopen
+import canopen.objectdictionary
 
 from openinverter_can_tool.fpfloat import fixed_from_float
 from openinverter_can_tool.paramdb import index_from_id
@@ -18,7 +19,7 @@ from openinverter_can_tool import constants as oi
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
 
-class TestIndexFromId(unittest.TestCase):
+class IndexFromId(unittest.TestCase):
     """
     Unit test the index_from_id function used to convert openinverter parameter
     IDs into CANopen SDO index and sub-index tuples
@@ -39,7 +40,7 @@ class TestIndexFromId(unittest.TestCase):
         self.assertTupleEqual(index_from_id(2015), (0x2107, 0xdf))
 
 
-class TestDatabaseImport(unittest.TestCase):
+class DatabaseImport(unittest.TestCase):
     """
     Unit test the JSON parameter database import functionality
     """
@@ -47,7 +48,7 @@ class TestDatabaseImport(unittest.TestCase):
     def test_invalid_db_filename(self):
         """Verify that a garbage filename fails with an exception"""
         with pytest.raises(FileNotFoundError):
-            import_database("not_a_real_file.json")
+            import_database(Path("not_a_real_file.json"))
 
     def test_zero_byte_db_file(self):
         """Verify that a zero length file raises a JSON parse exception"""

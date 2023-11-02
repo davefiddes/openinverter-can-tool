@@ -5,8 +5,10 @@ openinverter parameter database functions
 
 import json
 from typing import Tuple, Dict
+from pathlib import Path
 import os.path
 import canopen
+import canopen.objectdictionary
 from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
 from . import constants as oi
@@ -52,7 +54,7 @@ def filter_zero_bytes(database_bytes: bytes) -> str:
 
 
 def import_database_json(
-        paramdb_json: dict) -> canopen.objectdictionary.ObjectDictionary:
+        paramdb_json: dict) -> canopen.ObjectDictionary:
     """Import an openinverter parameter database JSON.
 
     :param paramdb_json:
@@ -63,7 +65,7 @@ def import_database_json(
     :rtype: canopen.ObjectDictionary
     """
 
-    dictionary = canopen.objectdictionary.ObjectDictionary()
+    dictionary = canopen.ObjectDictionary()
     for param_name in paramdb_json:
         param = paramdb_json[param_name]
 
@@ -123,7 +125,7 @@ def import_database_json(
     return dictionary
 
 
-def import_database(paramdb: str) -> canopen.objectdictionary.ObjectDictionary:
+def import_database(paramdb: Path) -> canopen.ObjectDictionary:
     """Import an openinverter parameter database file.
 
     :param paramdb:
@@ -142,7 +144,7 @@ def import_database(paramdb: str) -> canopen.objectdictionary.ObjectDictionary:
 
 def import_remote_database(
         network: canopen.Network,
-        node_id: int) -> canopen.objectdictionary.ObjectDictionary:
+        node_id: int) -> canopen.ObjectDictionary:
     """Import an openinverter parameter database from a remote node.
 
     :param network:
@@ -160,7 +162,7 @@ def import_remote_database(
     # Create temporary SDO client and attach to the network
     sdo_client = SdoClient(0x600 + node_id,
                            0x580 + node_id,
-                           canopen.objectdictionary.ObjectDictionary())
+                           canopen.ObjectDictionary())
     sdo_client.network = network
     network.subscribe(0x580 + node_id, sdo_client.on_response)
 
@@ -181,8 +183,8 @@ def import_remote_database(
 def import_cached_database(
         network: canopen.Network,
         node_id: int,
-        cache_location: str
-) -> canopen.objectdictionary.ObjectDictionary:
+        cache_location: Path
+) -> canopen.ObjectDictionary:
     """Import an openinverter parameter database from a remote node and cache
     it for quicker access in future.
 
@@ -203,7 +205,7 @@ def import_cached_database(
     """
 
     # Create temporary SDO client and attach to the network
-    temp_dictionary = canopen.objectdictionary.ObjectDictionary()
+    temp_dictionary = canopen.ObjectDictionary()
     sdo_client = SdoClient(0x600 + node_id, 0x580 + node_id, temp_dictionary)
     sdo_client.network = network
     network.subscribe(0x580 + node_id, sdo_client.on_response)
@@ -220,8 +222,7 @@ def import_cached_database(
         if not os.path.exists(cache_location):
             os.mkdir(cache_location)
 
-        cache_file = os.path.join(
-            cache_location, f"{node_id}-{checksum}.json")
+        cache_file = cache_location / Path(f"{node_id}-{checksum}.json")
 
         if os.path.exists(cache_file):
             dictionary = import_database(cache_file)
