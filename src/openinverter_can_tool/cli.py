@@ -19,8 +19,6 @@ from .paramdb import import_database, import_cached_database, index_from_id
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
 
-SDO_DEBUG = False
-
 class CliSettings:
     """Simple class to store the common settings used for all commands"""
 
@@ -592,9 +590,6 @@ def cmd_can_list(
 
     mappings = []
 
-    if SDO_DEBUG:
-        click.echo("Listing TX mappings")
-
     while True:
         # Request COB ID
         fake_var = canopen.objectdictionary.Variable(
@@ -603,20 +598,12 @@ def cmd_can_list(
         cli_settings.database.add_object(fake_var)
         try:
             can_id = cli_settings.node.sdo["command"].raw  # SDO read
-            if SDO_DEBUG:
-                click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                        ": can_id="+hex(can_id))
             sdo_subindex += 1
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                if SDO_DEBUG:
-                    click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                            ": not found")
                 if rx == False:
                     rx = True
                     sdo_index = oi.CAN_MAP_LIST_RX_INDEX
-                    if SDO_DEBUG:
-                        click.echo("Listing RX mappings")
                     continue
                 else:
                     break
@@ -631,14 +618,8 @@ def cmd_can_list(
             cli_settings.database.add_object(fake_var)
             try:
                 dataposlen = cli_settings.node.sdo["command"].raw  # SDO read
-                if SDO_DEBUG:
-                    click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                            ": dataposlen="+hex(dataposlen))
             except canopen.SdoAbortedError as err:
                 if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                    if SDO_DEBUG:
-                        click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                                ": not found")
                     sdo_index += 1
                     sdo_subindex = 0
                     break
@@ -653,14 +634,8 @@ def cmd_can_list(
             cli_settings.database.add_object(fake_var)
             try:
                 gainofs = cli_settings.node.sdo["command"].raw  # SDO read
-                if SDO_DEBUG:
-                    click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                            ": gainofs="+hex(gainofs))
             except canopen.SdoAbortedError as err:
                 if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                    if SDO_DEBUG:
-                        click.echo("SDO "+hex(sdo_index)+"."+str(sdo_subindex)+
-                                ": not found")
                     break
                 else:
                     raise err
@@ -682,9 +657,6 @@ def cmd_can_list(
             mapping = CanMapping(sdo_index, sdo_subindex,
                     rx, can_id, param_id, param_name, position, length, gain, offset)
 
-            if SDO_DEBUG:
-                print("-> Decoded mapping: "+str(mapping))
-
             mappings.append(mapping)
 
             sdo_subindex += 1
@@ -697,9 +669,6 @@ def cmd_can_list(
             if printed_can_id != mapping.can_id:
                 printed_can_id = mapping.can_id
                 click.echo(hex(printed_can_id)+":")
-            if SDO_DEBUG:
-                click.echo("* SDO "+hex(mapping.sdo_index)+"."+
-                        str(mapping.sdo_subindex)+" ", nl=False)
             click.echo(
                 " "
                 +("rx" if mapping.rx else "tx")
@@ -846,9 +815,6 @@ def cmd_can_remove(
 
     sdo_index = mapping_index + (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else oi.CAN_MAP_LIST_TX_INDEX)
     sdo_subindex = (mapping_subindex + 1) * 2
-
-    if SDO_DEBUG:
-        click.echo("Removing mapping at SDO "+hex(sdo_index)+"."+str(sdo_subindex))
 
     try:
         # Send COB id (CAN frame id)
