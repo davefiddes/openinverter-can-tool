@@ -690,7 +690,7 @@ def cmd_can_list(
 @click.argument("param", required=True)
 @click.argument("position", required=True, type=click.IntRange(0, 64))
 @click.argument("length", required=True, type=click.IntRange(1, 64))
-@click.argument("gain", type=click.FloatRange(0.001, 16777.215), default=1.0)
+@click.argument("gain", type=click.FloatRange(0.0, 16777.215), default=1.0)
 @click.argument("offset", type=int, default=0)
 @pass_cli_settings
 @db_action
