@@ -4,6 +4,7 @@ openinverter CAN Tools main program
 
 import functools
 from typing import Optional, Union
+from ast import literal_eval
 import json
 import csv
 import time
@@ -14,7 +15,6 @@ import click
 import can
 import canopen
 import appdirs
-from ast import literal_eval
 from .paramdb import import_database, import_cached_database, index_from_id
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
@@ -550,7 +550,20 @@ def can(cli_settings: CliSettings) -> None:
 
 
 class CanMapping:
-    def __init__(self, sdo_index, sdo_subindex, rx, can_id, param_id, param_name, position, length, gain, offset):
+    """Encapsulate a CAN parameter mapping"""
+    def __init__(
+            self,
+            sdo_index,
+            sdo_subindex,
+            rx,
+            can_id,
+            param_id,
+            param_name,
+            position,
+            length,
+            gain,
+            offset):
+
         self.sdo_index = sdo_index
         self.sdo_subindex = sdo_subindex
         self.rx = rx
@@ -603,7 +616,7 @@ def cmd_can_list(
             sdo_subindex += 1
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                if rx == False:
+                if not rx:
                     rx = True
                     sdo_index = oi.CAN_MAP_LIST_RX_INDEX
                     continue
@@ -656,8 +669,17 @@ def cmd_can_list(
                 if item.index == index and item.subindex == subindex:
                     param_name = item.name
 
-            mapping = CanMapping(sdo_index, sdo_subindex,
-                                 rx, can_id, param_id, param_name, position, length, gain, offset)
+            mapping = CanMapping(
+                sdo_index,
+                sdo_subindex,
+                rx,
+                can_id,
+                param_id,
+                param_name,
+                position,
+                length,
+                gain,
+                offset)
 
             mappings.append(mapping)
 
@@ -674,8 +696,9 @@ def cmd_can_list(
             click.echo(
                 " " +
                 ("rx" if mapping.rx else "tx") +
-                "." + str(mapping.sdo_index - (oi.CAN_MAP_LIST_RX_INDEX if mapping.rx
-                                               else oi.CAN_MAP_LIST_TX_INDEX)) +
+                "." +
+                str(mapping.sdo_index - (oi.CAN_MAP_LIST_RX_INDEX if mapping.rx
+                                         else oi.CAN_MAP_LIST_TX_INDEX)) +
                 "." + str(mapping.sdo_subindex // 2 - 1) +
                 (" param=" + repr(mapping.param_name) if mapping.param_name
                     else " param_id=" + str(mapping.param_id)) +
@@ -725,7 +748,7 @@ def cmd_can_add(
                 # Decode parameter id from index and subindex (see
                 # index_from_id() in paramdb.py)
                 param_id = ((item.index & ~0x2100) << 8) + item.subindex
-        if param_id == None:
+        if param_id is None:
             click.echo("Parameter " + repr(param) + " not found in database")
             return
         click.echo("(Parameter id for " + repr(param) +
@@ -817,7 +840,8 @@ def cmd_can_remove(
     mapping_subindex = int(mapping_subindex)
 
     sdo_index = mapping_index + \
-        (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else oi.CAN_MAP_LIST_TX_INDEX)
+        (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else
+         oi.CAN_MAP_LIST_TX_INDEX)
     sdo_subindex = (mapping_subindex + 1) * 2
 
     try:
