@@ -19,6 +19,7 @@ from .paramdb import import_database, import_cached_database, index_from_id
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
 
+
 class CliSettings:
     """Simple class to store the common settings used for all commands"""
 
@@ -563,17 +564,18 @@ class CanMapping:
 
     def __str__(self):
         return (
-            ("rx" if self.rx else "tx")
-            +" sdo_index="+str(self.sdo_index)
-            +" sdo_subindex="+str(self.sdo_subindex)
-            +" can_id="+hex(self.can_id)
-            +(" param="+repr(self.param_name) if self.param_name
-                else " param_id="+str(self.param_id))
-            +" pos="+str(self.position)
-            +" len="+str(self.length)
-            +" gain="+str(self.gain)
-            +" offset="+str(self.offset)
+            ("rx" if self.rx else "tx") +
+            " sdo_index=" + str(self.sdo_index) +
+            " sdo_subindex=" + str(self.sdo_subindex) +
+            " can_id=" + hex(self.can_id) +
+            (" param=" + repr(self.param_name) if self.param_name
+                else " param_id=" + str(self.param_id)) +
+            " pos=" + str(self.position) +
+            " len=" + str(self.length) +
+            " gain=" + str(self.gain) +
+            " offset=" + str(self.offset)
         )
+
 
 @can.command("list")
 @pass_cli_settings
@@ -593,7 +595,7 @@ def cmd_can_list(
     while True:
         # Request COB ID
         fake_var = canopen.objectdictionary.Variable(
-                "command", sdo_index, 0)
+            "command", sdo_index, 0)
         fake_var.data_type = canopen.objectdictionary.UNSIGNED32
         cli_settings.database.add_object(fake_var)
         try:
@@ -613,7 +615,7 @@ def cmd_can_list(
         while True:
             # Request Parameter id, position and length
             fake_var = canopen.objectdictionary.Variable(
-                    "command", sdo_index, sdo_subindex)
+                "command", sdo_index, sdo_subindex)
             fake_var.data_type = canopen.objectdictionary.UNSIGNED32
             cli_settings.database.add_object(fake_var)
             try:
@@ -629,7 +631,7 @@ def cmd_can_list(
             # Request Gain and offset
             sdo_subindex += 1
             fake_var = canopen.objectdictionary.Variable(
-                    "command", sdo_index, sdo_subindex)
+                "command", sdo_index, sdo_subindex)
             fake_var.data_type = canopen.objectdictionary.UNSIGNED32
             cli_settings.database.add_object(fake_var)
             try:
@@ -655,7 +657,7 @@ def cmd_can_list(
                     param_name = item.name
 
             mapping = CanMapping(sdo_index, sdo_subindex,
-                    rx, can_id, param_id, param_name, position, length, gain, offset)
+                                 rx, can_id, param_id, param_name, position, length, gain, offset)
 
             mappings.append(mapping)
 
@@ -668,19 +670,19 @@ def cmd_can_list(
         for mapping in mappings:
             if printed_can_id != mapping.can_id:
                 printed_can_id = mapping.can_id
-                click.echo(hex(printed_can_id)+":")
+                click.echo(hex(printed_can_id) + ":")
             click.echo(
-                " "
-                +("rx" if mapping.rx else "tx")
-                +"."+str(mapping.sdo_index - (oi.CAN_MAP_LIST_RX_INDEX if mapping.rx
-                    else oi.CAN_MAP_LIST_TX_INDEX))
-                +"."+str(mapping.sdo_subindex // 2 - 1)
-                +(" param="+repr(mapping.param_name) if mapping.param_name
-                    else " param_id="+str(mapping.param_id))
-                +" pos="+str(mapping.position)
-                +" len="+str(mapping.length)
-                +" gain="+str(mapping.gain)
-                +" offset="+str(mapping.offset)
+                " " +
+                ("rx" if mapping.rx else "tx") +
+                "." + str(mapping.sdo_index - (oi.CAN_MAP_LIST_RX_INDEX if mapping.rx
+                                               else oi.CAN_MAP_LIST_TX_INDEX)) +
+                "." + str(mapping.sdo_subindex // 2 - 1) +
+                (" param=" + repr(mapping.param_name) if mapping.param_name
+                    else " param_id=" + str(mapping.param_id)) +
+                " pos=" + str(mapping.position) +
+                " len=" + str(mapping.length) +
+                " gain=" + str(mapping.gain) +
+                " offset=" + str(mapping.offset)
             )
 
 
@@ -724,9 +726,10 @@ def cmd_can_add(
                 # index_from_id() in paramdb.py)
                 param_id = ((item.index & ~0x2100) << 8) + item.subindex
         if param_id == None:
-            click.echo("Parameter "+repr(param)+" not found in database")
+            click.echo("Parameter " + repr(param) + " not found in database")
             return
-        click.echo("(Parameter id for "+repr(param)+" is "+str(param_id)+")")
+        click.echo("(Parameter id for " + repr(param) +
+                   " is " + str(param_id) + ")")
 
     # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
     can_id = literal_eval(can_id)
@@ -734,38 +737,38 @@ def cmd_can_add(
         click.echo("can_id out of range")
         return
 
-    click.echo("Adding CAN mapping with "+
-            "can_id="+hex(can_id)+
-            " param_id="+str(param_id)+
-            " position="+str(position)+
-            " length="+str(length)+
-            " gain="+str(gain)+
-            " offset="+str(offset))
+    click.echo("Adding CAN mapping with " +
+               "can_id=" + hex(can_id) +
+               " param_id=" + str(param_id) +
+               " position=" + str(position) +
+               " length=" + str(length) +
+               " gain=" + str(gain) +
+               " offset=" + str(offset))
 
     sdo_index = oi.CAN_MAP_TX_INDEX if txrx == "tx" else oi.CAN_MAP_RX_INDEX
 
     # Send COB id (CAN frame id)
     fake_var = canopen.objectdictionary.Variable(
-            "command", sdo_index, 0x00)
+        "command", sdo_index, 0x00)
     fake_var.data_type = canopen.objectdictionary.UNSIGNED32
     cli_settings.database.add_object(fake_var)
     cli_settings.node.sdo["command"].raw = can_id
 
     # Send Parameter id, position and length
     fake_var = canopen.objectdictionary.Variable(
-            "command", sdo_index, 0x01)
+        "command", sdo_index, 0x01)
     fake_var.data_type = canopen.objectdictionary.UNSIGNED32
     cli_settings.database.add_object(fake_var)
     cli_settings.node.sdo["command"].raw = (
-            param_id | (position << 16) | (length << 24))
+        param_id | (position << 16) | (length << 24))
 
     # Send Gain and offset
     fake_var = canopen.objectdictionary.Variable(
-            "command", sdo_index, 0x02)
+        "command", sdo_index, 0x02)
     fake_var.data_type = canopen.objectdictionary.UNSIGNED32
     cli_settings.database.add_object(fake_var)
     cli_settings.node.sdo["command"].raw = (
-            int(gain * 1000) | (offset << 24))
+        int(gain * 1000) | (offset << 24))
 
     click.echo("CAN mapping added succesfully.")
 
@@ -813,13 +816,14 @@ def cmd_can_remove(
     mapping_index = int(mapping_index)
     mapping_subindex = int(mapping_subindex)
 
-    sdo_index = mapping_index + (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else oi.CAN_MAP_LIST_TX_INDEX)
+    sdo_index = mapping_index + \
+        (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else oi.CAN_MAP_LIST_TX_INDEX)
     sdo_subindex = (mapping_subindex + 1) * 2
 
     try:
         # Send COB id (CAN frame id)
         fake_var = canopen.objectdictionary.Variable(
-                "command", sdo_index, sdo_subindex)
+            "command", sdo_index, sdo_subindex)
         fake_var.data_type = canopen.objectdictionary.UNSIGNED32
         cli_settings.database.add_object(fake_var)
         cli_settings.node.sdo["command"].raw = 0
