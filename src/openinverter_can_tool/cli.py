@@ -540,10 +540,10 @@ def cmd_stop(cli_settings: CliSettings) -> None:
     send_command(cli_settings, oi.STOP_COMMAND_SUBINDEX)
 
 
-@cli.group()
+@cli.group("map")
 @pass_cli_settings
-def can(cli_settings: CliSettings) -> None:
-    """List and edit CAN mappings on a device"""
+def can_map(cli_settings: CliSettings) -> None:
+    """Manage parameter to CAN message mappings on a device"""
     # We have to have cli_settings to allow the command hierarchy to work but
     # it is unused here so just pretend to use it
     _ = cli_settings
@@ -590,14 +590,14 @@ class CanMapping:
         )
 
 
-@can.command("list")
+@can_map.command("list")
 @pass_cli_settings
 @db_action
 @can_action
 def cmd_can_list(
     cli_settings: CliSettings,
 ) -> None:
-    """List CAN mappings"""
+    """List parameter to CAN message mappings"""
 
     sdo_index = oi.CAN_MAP_LIST_TX_INDEX
     sdo_subindex = 0
@@ -709,7 +709,7 @@ def cmd_can_list(
             )
 
 
-@can.command("add")
+@can_map.command("add")
 @click.argument("txrx", required=True, type=click.Choice(["tx", "rx"]))
 @click.argument("can_id", required=True)
 @click.argument("param", required=True)
@@ -730,7 +730,7 @@ def cmd_can_add(
     gain: float,
     offset: int,
 ) -> None:
-    """Add a CAN mapping
+    """Add a CAN message mapping for a specific parameter
 
     \b
     Example:
@@ -796,7 +796,7 @@ def cmd_can_add(
     click.echo("CAN mapping added succesfully.")
 
 
-@can.command("remove")
+@can_map.command("remove")
 @click.argument("listing_id", required=True, type=str)
 @pass_cli_settings
 @can_action
@@ -805,23 +805,23 @@ def cmd_can_remove(
     listing_id: str,
 ) -> None:
     """
-    Remove a CAN mapping
+    Remove a parameter to CAN message mapping
 
     Mapping is referred to by an id in the format [tx/rx].<n>.<n>.
 
     \b
     Example:
-    $ oic can list
+    $ oic map list
     0x202:
      rx.0.0 param='soc' pos=16 len=8 gain=1.0 offset=0
     0x203:
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
      rx.1.2 param='maxcur' pos=16 len=16 gain=1.0 offset=0
-    $ oic can remove rx.1.2
+    $ oic map remove rx.1.2
     CAN mapping removed succesfully.
-    $ oic can remove rx.0.0
+    $ oic map remove rx.0.0
     CAN mapping removed succesfully.
-    $ oic can list
+    $ oic map list
     0x203:
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
     """
