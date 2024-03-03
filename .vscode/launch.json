@@ -1,10 +1,9 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "List parameters",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "openinverter_can_tool",
             "justMyCode": true,
@@ -16,7 +15,7 @@
         },
         {
             "name": "Remote db read param",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "openinverter_can_tool",
             "justMyCode": true,
@@ -29,7 +28,7 @@
         },
         {
             "name": "Remote serialno",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "openinverter_can_tool",
             "justMyCode": true,
@@ -41,7 +40,7 @@
         },
         {
             "name": "Log",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "openinverter_can_tool",
             "justMyCode": true,
@@ -53,7 +52,20 @@
                 "udc",
                 "out.csv"
             ]
+        },
+        {
+            "name": "Map Remove",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "openinverter_can_tool",
+            "justMyCode": true,
+            "args": [
+                "-c",
+                "openinverter",
+                "map",
+                "remove",
+                "tx.0.0"
+            ]
         }
-
     ]
 }
