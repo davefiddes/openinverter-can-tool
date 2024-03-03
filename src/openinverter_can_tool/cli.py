@@ -781,7 +781,7 @@ def cmd_can_add(
     cli_settings.node.sdo["command"].raw = (
         int(gain * 1000) | (offset << 24))
 
-    click.echo("CAN mapping added succesfully.")
+    click.echo("CAN mapping added successfully.")
 
 
 @can_map.command("remove")
@@ -806,9 +806,9 @@ def cmd_can_remove(
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
      rx.1.2 param='maxcur' pos=16 len=16 gain=1.0 offset=0
     $ oic map remove rx.1.2
-    CAN mapping removed succesfully.
+    CAN mapping removed successfully.
     $ oic map remove rx.0.0
-    CAN mapping removed succesfully.
+    CAN mapping removed successfully.
     $ oic map list
     0x203:
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
@@ -842,7 +842,7 @@ def cmd_can_remove(
     except canopen.SdoCommunicationError as err:
         if str(err) == "Unexpected response 0x23":
             # This is normal
-            click.echo("CAN mapping removed succesfully.")
+            click.echo("CAN mapping removed successfully.")
         else:
             raise err
 
