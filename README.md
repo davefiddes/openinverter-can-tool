@@ -1,6 +1,8 @@
 # openinverter CAN tool
 
 [![Build status](../../actions/workflows/test.yml/badge.svg)](../../actions/workflows/test.yml)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/openinverter-can-tool)
+![PyPI - License](https://img.shields.io/pypi/l/openinverter-can-tool)
 
 A tool to allow configuration and operating of openinverter systems for
 electric vehicles over a CAN connection.
@@ -162,6 +164,7 @@ it in development mode:
     virtualenv venv
     . venv/bin/activate
     pip install -e .[dev,test]
+    pre-commit install
 ```
 
 To exit the virtualenv environment use use the system installed `oic` run `dectivate`. To resume development operation the virtualenv can be restarted by running:
@@ -173,3 +176,5 @@ To exit the virtualenv environment use use the system installed `oic` run `decti
 Unit tests and python code linting can be run on all supported python versions using the `tox` test framework.
 
 Code is written to conform to PEP8 conventions and enforced by `pylint` and `flake8` linting.
+
+Contributions are most welcome. Before raising a pull request please install and use the pre-commit git hooks provided to ensure code conforms to the project style. Thanks!

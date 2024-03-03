@@ -53,7 +53,7 @@ setup(
 
     install_requires=["click", "canopen", "appdirs"],
     extras_require={
-        "dev": ["check-manifest", "flake8"],
+        "dev": ["check-manifest", "flake8", "pre-commit"],
         "test": ["coverage", "pytest"],
     },
 
