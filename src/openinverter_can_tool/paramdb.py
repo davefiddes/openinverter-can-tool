@@ -21,6 +21,12 @@ def index_from_id(param_identifier: int) -> Tuple[int, int]:
     return (index, subindex)
 
 
+def id_from_variable(item: canopen.objectdictionary.Variable) -> int:
+    """Generate openinverter parameter id given a CAN SDO index and subindex.
+    TODO: This should be a method on a custom Variable class"""
+    return ((item.index & ~0x2100) << 8) + item.subindex
+
+
 def is_power_of_two(num: int) -> bool:
     """Use some clever bitwise anding and arithmetic to determine wether a
     number is a power of two"""

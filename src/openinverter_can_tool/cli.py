@@ -16,6 +16,7 @@ import can
 import canopen
 import appdirs
 from .paramdb import import_database, import_cached_database, index_from_id
+from .paramdb import id_from_variable
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
 
@@ -551,6 +552,7 @@ def can_map(cli_settings: CliSettings) -> None:
 
 class CanMapping:
     """Encapsulate a CAN parameter mapping"""
+
     def __init__(
             self,
             sdo_index,
@@ -703,7 +705,7 @@ def cmd_can_list(
                 (" param=" + repr(mapping.param_name) if mapping.param_name
                     else " param_id=" + str(mapping.param_id)) +
                 " pos=" + str(mapping.position) +
-                " len=" + str(mapping.length) +
+                " length=" + str(mapping.length) +
                 " gain=" + str(mapping.gain) +
                 " offset=" + str(mapping.offset)
             )
@@ -734,25 +736,15 @@ def cmd_can_add(
 
     \b
     Example:
-    $ oic -n22 can add tx 0x101 temp3 32 8
+    $ oic -n22 map add tx 0x101 temp3 32 8
     """
 
-    if param[0:2] == '0x' or param.isnumeric():
-        # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
-        param_id = literal_eval(param)
+    # Get the parameter id by name from the cached database
+    if param in cli_settings.database.names:
+        param_id = id_from_variable(cli_settings.database.names[param])
     else:
-        # Get the parameter id by name from the cached database
-        param_id = None
-        for item in cli_settings.database.names.values():
-            if item.name == param:
-                # Decode parameter id from index and subindex (see
-                # index_from_id() in paramdb.py)
-                param_id = ((item.index & ~0x2100) << 8) + item.subindex
-        if param_id is None:
-            click.echo("Parameter " + repr(param) + " not found in database")
-            return
-        click.echo("(Parameter id for " + repr(param) +
-                   " is " + str(param_id) + ")")
+        click.echo(f"Parameter {param} not found in database")
+        return
 
     # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
     can_id = literal_eval(can_id)
@@ -761,12 +753,8 @@ def cmd_can_add(
         return
 
     click.echo("Adding CAN mapping with " +
-               "can_id=" + hex(can_id) +
-               " param_id=" + str(param_id) +
-               " position=" + str(position) +
-               " length=" + str(length) +
-               " gain=" + str(gain) +
-               " offset=" + str(offset))
+               f"can_id={can_id:#x} param='{param}' position={position} " +
+               f" length={length} gain={gain} offset={offset}")
 
     sdo_index = oi.CAN_MAP_TX_INDEX if txrx == "tx" else oi.CAN_MAP_RX_INDEX
 
