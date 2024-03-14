@@ -4,7 +4,7 @@ openinverter parameter database functions
 
 
 import json
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from pathlib import Path
 import os.path
 import canopen
@@ -12,19 +12,6 @@ import canopen.objectdictionary
 from canopen.sdo import SdoClient
 from .fpfloat import fixed_from_float
 from . import constants as oi
-
-
-def index_from_id(param_identifier: int) -> Tuple[int, int]:
-    """Generate an index, subindex tuple from an openinverter parameter id"""
-    index = 0x2100 | (param_identifier >> 8)
-    subindex = param_identifier & 0xFF
-    return (index, subindex)
-
-
-def id_from_variable(item: canopen.objectdictionary.Variable) -> int:
-    """Generate openinverter parameter id given a CAN SDO index and subindex.
-    TODO: This should be a method on a custom Variable class"""
-    return ((item.index & ~0x2100) << 8) + item.subindex
 
 
 def is_power_of_two(num: int) -> bool:
@@ -59,6 +46,42 @@ def filter_zero_bytes(database_bytes: bytes) -> str:
     return database_str
 
 
+class OIVariable(canopen.objectdictionary.Variable):
+    """An openinverter parameter variable has several differences from a
+    standard CANopen variable. This class wraps up those differences allowing
+    parameters to be specified in an object database."""
+
+    def __init__(self, name: str, id: int):
+        # assign dummy values to the index to allow creation of the parent
+        # variable class
+        super().__init__(name, 0, 0)
+
+        # Assign the id to set the index and subindex
+        self.id = id
+
+        # All openinverter params are 32-bit fixed float values
+        # we will convert to float on presentation as required
+        # but work with them as integers to keep the canopen
+        # library happy
+        self.factor = 32
+        self.data_type = canopen.objectdictionary.INTEGER32
+
+        self.isparam: bool = False
+        self.category: Optional[str] = None
+
+        # This replaces the parent's bit_definitions member
+        self.bit_definitions: Dict[int, str] = {}
+
+    @property
+    def id(self) -> int:
+        return ((self.index & ~0x2100) << 8) + self.subindex
+
+    @id.setter
+    def id(self, value: int):
+        self.index = 0x2100 | (value >> 8)
+        self.subindex = value & 0xFF
+
+
 def import_database_json(
         paramdb_json: dict) -> canopen.ObjectDictionary:
     """Import an openinverter parameter database JSON.
@@ -79,26 +102,14 @@ def import_database_json(
         if "id" not in param:
             continue
 
-        (index, subindex) = index_from_id(int(param["id"]))
-        var = canopen.objectdictionary.Variable(param_name, index, subindex)
-
-        # All openinverter params are 32-bit fixed float values
-        # we will convert to float on presentation as required
-        # but work with them as integers to keep the canopen
-        # library happy
-        var.factor = 32
-        var.data_type = canopen.objectdictionary.INTEGER32
+        var = OIVariable(param_name, int(param["id"]))
 
         # Common attributes for parameters and values
-        # "isparam" and "category" are not normal member variables in the
-        # objectdictionary.Variable class. We add them here.
         var.unit = param["unit"]
         var.isparam = param["isparam"]
 
         if "category" in param:
             var.category = param["category"]
-        else:
-            var.category = None
 
         # parse units containing enumerations or bitfields
         unit = param["unit"]
@@ -109,9 +120,8 @@ def import_database_json(
             values = {int(value): description for value, description in [
                 item.split('=') for item in unit.split(',')]}
 
-            # Ignore the expected type of the bit_definitions member and
-            # shove our dictionary in there if it is a bitfield otherwise treat
-            # as a list of value descriptions
+            # Infer if this a bitfield or an enumeration and store the
+            # description in the appropriate dictionary
             if is_bitfield(values):
                 var.bit_definitions = values
             else:

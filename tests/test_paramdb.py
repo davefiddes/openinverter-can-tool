@@ -5,12 +5,13 @@ import unittest
 from pathlib import Path
 import json
 import pytest
+from typing import cast
 
 import canopen
 import canopen.objectdictionary
 
 from openinverter_can_tool.fpfloat import fixed_from_float
-from openinverter_can_tool.paramdb import index_from_id
+from openinverter_can_tool.paramdb import OIVariable
 from openinverter_can_tool.paramdb import import_database
 from openinverter_can_tool.paramdb import import_database_json
 from openinverter_can_tool.paramdb import import_remote_database
@@ -19,25 +20,55 @@ from openinverter_can_tool import constants as oi
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
 
-class IndexFromId(unittest.TestCase):
+class OpeninverterVariable(unittest.TestCase):
     """
-    Unit test the index_from_id function used to convert openinverter parameter
-    IDs into CANopen SDO index and sub-index tuples
+    Unit test the OIVariable class used to represent the not quite CANopen
+    variable representation method used by openinverter
     """
 
     def test_zero_id(self):
         """ openinverter parameters all start with an index of 0x2100"""
-        self.assertTupleEqual(index_from_id(0), (0x2100, 0))
+        var = OIVariable("zero_id",  0)
+        self.assertEqual(var.index, 0x2100)
+        self.assertEqual(var.subindex, 0)
 
     def test_small_id(self):
         """ Check that ids < 0xff only affect the subindex byte"""
-        self.assertTupleEqual(index_from_id(1), (0x2100, 1))
-        self.assertTupleEqual(index_from_id(42), (0x2100, 42))
-        self.assertTupleEqual(index_from_id(0xff), (0x2100, 0xff))
+        var = OIVariable("id",  1)
+        self.assertEqual(var.index, 0x2100)
+        self.assertEqual(var.subindex, 1)
+
+        var = OIVariable("id",  42)
+        self.assertEqual(var.index, 0x2100)
+        self.assertEqual(var.subindex, 42)
+
+        var = OIVariable("id",  0xff)
+        self.assertEqual(var.index, 0x2100)
+        self.assertEqual(var.subindex, 0xff)
 
     def test_large_id(self):
         """ Check that larger IDs are split into the correct index/subindex"""
-        self.assertTupleEqual(index_from_id(2015), (0x2107, 0xdf))
+        var = OIVariable("large_id", 2015)
+        self.assertEqual(var.index, 0x2107)
+        self.assertEqual(var.subindex, 0xdf)
+
+    def test_return_id(self):
+        """ Check that the openinverter ID is stored as well as the CANopen
+        index and sub-index. """
+        var = OIVariable("id",  2015)
+        self.assertEqual(var.id, 2015)
+        self.assertEqual(var.index, 0x2107)
+        self.assertEqual(var.subindex, 0xdf)
+
+    def test_modify_index(self):
+        """ Check that it is possible to modify the sub-index and have this
+        reflected in the id returned """
+        var = OIVariable("id",  2015)
+        var.index = 0x2100
+        var.subindex = 0xff
+        self.assertEqual(var.id, 0xff)
+        self.assertEqual(var.index, 0x2100)
+        self.assertEqual(var.subindex, 0xff)
 
 
 class DatabaseImport(unittest.TestCase):
@@ -65,7 +96,7 @@ class DatabaseImport(unittest.TestCase):
         loads correctly"""
         database = import_database(TEST_DATA_DIR / "single-param.json")
         assert database["param1"]
-        item = database["param1"]
+        item = cast(OIVariable, database["param1"])
         self.assertEqual(item.index, 0x2100)
         self.assertEqual(item.subindex, 1)
         self.assertEqual(item.unit, "km / h")
@@ -110,7 +141,7 @@ class DatabaseImport(unittest.TestCase):
 
         # verify each of the exepected params exist
         for param in expected_params:
-            item = database[param["name"]]
+            item = cast(OIVariable, database[param["name"]])
             self.assertEqual(item.index, param["index"])
             self.assertEqual(item.subindex, param["subindex"])
             self.assertEqual(item.unit, param["unit"])
@@ -138,7 +169,7 @@ class DatabaseImport(unittest.TestCase):
         symbols at least but emojis are just as fun."""
         database = import_database(TEST_DATA_DIR / "unicode.json")
         assert database["param1"]
-        item = database["param1"]
+        item = cast(OIVariable, database["param1"])
         self.assertEqual(item.index, 0x2100)
         self.assertEqual(item.subindex, 1)
         self.assertEqual(item.unit, "°")
@@ -188,7 +219,7 @@ class DatabaseImport(unittest.TestCase):
 
         # verify each of the expected params exist
         for param in expected_params:
-            item = database[param["name"]]
+            item = cast(OIVariable, database[param["name"]])
             self.assertEqual(item.index, param["index"])
             self.assertEqual(item.subindex, param["subindex"])
             self.assertEqual(item.unit, param["unit"])
@@ -270,7 +301,7 @@ class DatabaseImport(unittest.TestCase):
 
         # verify each of the expected params exist
         for param in expected_params:
-            item = database[param["name"]]
+            item = cast(OIVariable, database[param["name"]])
             self.assertEqual(item.index, param["index"])
             self.assertEqual(item.subindex, param["subindex"])
             self.assertEqual(item.unit, param["unit"])
@@ -356,7 +387,7 @@ class DatabaseImport(unittest.TestCase):
 
         # verify each of the expected params exist
         for param in expected_params:
-            item = database[param["name"]]
+            item = cast(OIVariable, database[param["name"]])
             self.assertEqual(item.index, param["index"])
             self.assertEqual(item.subindex, param["subindex"])
             self.assertEqual(item.unit, param["unit"])
@@ -414,7 +445,7 @@ class DatabaseImport(unittest.TestCase):
         network2.disconnect()
 
         assert database["param1"]
-        item = database["param1"]
+        item = cast(OIVariable, database["param1"])
         self.assertEqual(item.index, 0x2100)
         self.assertEqual(item.subindex, 1)
         self.assertEqual(item.unit, "°")

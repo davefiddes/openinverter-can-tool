@@ -3,7 +3,7 @@ openinverter CAN Tools main program
 """
 
 import functools
-from typing import Optional, Union
+from typing import Optional, Union, cast
 from ast import literal_eval
 import json
 import csv
@@ -15,8 +15,7 @@ import click
 import can
 import canopen
 import appdirs
-from .paramdb import import_database, import_cached_database, index_from_id
-from .paramdb import id_from_variable
+from .paramdb import import_database, import_cached_database, OIVariable
 from .fpfloat import fixed_to_float, fixed_from_float
 from . import constants as oi
 
@@ -666,9 +665,8 @@ def cmd_can_list(
 
             # Get the parameter name by id from the cached database
             param_name = None
-            (index, subindex) = index_from_id(param_id)
             for item in cli_settings.database.names.values():
-                if item.index == index and item.subindex == subindex:
+                if isinstance(item, OIVariable) and item.id == param_id:
                     param_name = item.name
 
             mapping = CanMapping(
@@ -741,7 +739,7 @@ def cmd_can_add(
 
     # Get the parameter id by name from the cached database
     if param in cli_settings.database.names:
-        param_id = id_from_variable(cli_settings.database.names[param])
+        param_id = cast(OIVariable, cli_settings.database.names[param]).id
     else:
         click.echo(f"Parameter {param} not found in database")
         return
