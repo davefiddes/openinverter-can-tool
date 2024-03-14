@@ -4,7 +4,7 @@ openinverter parameter database functions
 
 
 import json
-from typing import Tuple, Dict, Optional, List
+from typing import Dict, Optional
 from pathlib import Path
 import os.path
 import canopen
