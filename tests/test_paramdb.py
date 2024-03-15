@@ -15,6 +15,7 @@ from openinverter_can_tool.paramdb import OIVariable
 from openinverter_can_tool.paramdb import import_database
 from openinverter_can_tool.paramdb import import_database_json
 from openinverter_can_tool.paramdb import import_remote_database
+from openinverter_can_tool.paramdb import import_cached_database
 from openinverter_can_tool import constants as oi
 
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
@@ -573,6 +574,68 @@ class DatabaseImport(unittest.TestCase):
             for value, description in expected_bitfield.items():
                 self.assertEqual(
                     item.bit_definitions[value], description)
+
+
+class TestCachedDatabases:
+    """
+    Unit test caching of JSON parameter databases
+    """
+
+    def test_empty_cache_location_new_database(self, tmp_path: Path):
+        # Put together an SDO server that pretends to be a remote openinverter
+        # node
+        network1 = canopen.Network()
+        network1.connect("test", bustype="virtual")
+
+        dictionary = canopen.ObjectDictionary()
+        db_checksum = canopen.objectdictionary.Variable(
+            "checksum",
+            oi.SERIALNO_INDEX,
+            oi.PARAM_DB_CHECKSUM_SUBINDEX)
+        db_checksum.data_type = canopen.objectdictionary.UNSIGNED32
+        dictionary.add_object(db_checksum)
+        db_var = canopen.objectdictionary.Variable(
+            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
+        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
+        dictionary.add_object(db_var)
+
+        servernode = canopen.LocalNode(42, dictionary)
+        network1.add_node(servernode)
+
+        servernode.sdo["checksum"].raw = 12345678
+        with open(TEST_DATA_DIR / "single-param.json",
+                  mode="br") as file:
+            servernode.sdo['database'].raw = file.read()
+
+        # Put together a network that is connected to the server for the code
+        # under test
+        network2 = canopen.Network()
+        network2.connect("test", bustype="virtual")
+
+        cache = tmp_path / "empty-but-exists"
+        cache.mkdir()
+
+        assert len(list(cache.iterdir())) == 0
+
+        database = import_cached_database(network2, 42, cache)
+
+        assert database["param1"]
+        item = cast(OIVariable, database["param1"])
+        assert item.index == 0x2100
+        assert item.subindex == 1
+        assert item.unit == "km / h"
+        assert item.min == fixed_from_float(0)
+        assert item.max == fixed_from_float(100)
+        assert item.default == fixed_from_float(5)
+        assert item.factor == 32
+        assert item.data_type == canopen.objectdictionary.INTEGER32
+        assert item.isparam
+        assert item.category == "Category"
+
+        cached_file = next(cache.iterdir(), None)
+        assert cached_file
+        assert cached_file.is_file()
+        assert cached_file.stat().st_size > 0
 
 
 if __name__ == '__main__':
