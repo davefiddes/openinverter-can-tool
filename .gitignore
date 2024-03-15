@@ -7,7 +7,7 @@ dist/
 __pycache__/
 *.so
 *~
-.venv
+venv
 
 # due to using tox and pytest
 .tox
