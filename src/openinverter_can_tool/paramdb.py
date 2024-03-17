@@ -6,7 +6,6 @@ openinverter parameter database functions
 import json
 from typing import Dict, Optional
 from pathlib import Path
-import os.path
 import canopen
 import canopen.objectdictionary
 from canopen.sdo import SdoClient
@@ -235,12 +234,12 @@ def import_cached_database(
         temp_dictionary.add_object(checksum_var)
         checksum = sdo_client["checksum"].raw
 
-        if not os.path.exists(cache_location):
-            os.mkdir(cache_location)
+        if not cache_location.exists():
+            cache_location.mkdir()
 
-        cache_file = cache_location / Path(f"{node_id}-{checksum}.json")
+        cache_file = cache_location / f"{node_id}-{checksum}.json"
 
-        if os.path.exists(cache_file):
+        if cache_file.exists():
             dictionary = import_database(cache_file)
         else:
             # Create file like object to load the JSON from the remote
