@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 import pytest
 from typing import cast
+import filecmp
 
 import canopen.objectdictionary
 
@@ -514,7 +515,26 @@ class TestCachedDatabases:
     Unit test caching of JSON parameter databases
     """
 
-    def test_empty_cache_location_new_database(self, tmp_path: Path):
+    def test_new_empty_cache_location(self, tmp_path: Path):
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        cache = tmp_path / "empty-but-non-existent"
+        assert not cache.is_dir()
+
+        database = import_cached_database(simulator.network, 42, cache)
+
+        assert cache.is_dir()
+
+        assert database["param1"]
+
+        cached_file = next(cache.iterdir(), None)
+        assert cached_file
+        assert cached_file.is_file()
+        assert cached_file.stat().st_size > 0
+
+    def test_empty_but_present_cache_location(self, tmp_path: Path):
         simulator = OISimulatedNode(42)
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
@@ -543,6 +563,116 @@ class TestCachedDatabases:
         assert cached_file
         assert cached_file.is_file()
         assert cached_file.stat().st_size > 0
+
+    def test_database_is_cached(self, tmp_path: Path):
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        cache = tmp_path
+
+        # prime the cache
+        database = import_cached_database(simulator.network, 42, cache)
+
+        assert database["param1"]
+
+        # Load a completely different database but don't update the checksum
+        simulator.LoadDatabase(TEST_DATA_DIR / "complex.json")
+
+        # Load the database again which should load from the cache
+        database = import_cached_database(simulator.network, 42, cache)
+
+        # verify we still have the single parameter
+        assert database["param1"]
+        item = cast(OIVariable, database["param1"])
+        assert item.index == 0x2100
+        assert item.subindex == 1
+        assert item.unit == "km / h"
+        assert item.min == fixed_from_float(0)
+        assert item.max == fixed_from_float(100)
+        assert item.default == fixed_from_float(5)
+        assert item.factor == 32
+        assert item.data_type == canopen.objectdictionary.INTEGER32
+        assert item.isparam
+        assert item.category == "Category"
+
+        # There should just be a single file in the cache
+        cached_file = next(cache.iterdir(), None)
+        assert cached_file
+        assert cached_file.is_file()
+        assert cached_file.stat().st_size > 0
+
+        # verify that a parameters from the file we loaded to the remote node
+        # is not present
+        assert "curkp" not in database
+        assert "dirmode" not in database
+        assert "potmin" not in database
+        assert "potmax" not in database
+        assert "cpuload" not in database
+
+    def test_cached_database_is_updated(self, tmp_path: Path):
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        cache = tmp_path
+
+        # prime the cache
+        database = import_cached_database(simulator.network, 42, cache)
+
+        assert database["param1"]
+
+        # Load a completely different database and update the checksum on the
+        # remote node
+        simulator.LoadDatabase(TEST_DATA_DIR / "complex.json")
+        simulator.checksum = 4567890
+
+        # Load the database again which should update from the remote node
+        database = import_cached_database(simulator.network, 42, cache)
+
+        # verify we have parameters from the new database
+        assert database["curkp"]
+        assert database["dirmode"]
+        assert database["potmin"]
+        assert database["potmax"]
+        assert database["cpuload"]
+
+        # verify that nothing remains of the old parameters
+        assert "param1" not in database
+
+        # There should two cached files for each version of the database
+        assert len(list(cache.iterdir())) == 2
+
+    def test_multiple_nodes_generate_multiple_cached_databases(
+            self,
+            tmp_path: Path):
+        cache = tmp_path
+
+        # Set up up the first node
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        # Load the database from the first node
+        database = import_cached_database(simulator.network, 42, cache)
+
+        assert database["param1"]
+
+        # Set up a second node with the same database
+        simulator = OISimulatedNode(99)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        # Load the database from the second node
+        database = import_cached_database(simulator.network, 99, cache)
+
+        assert database["param1"]
+
+        # There should two cached files for each node and they should be
+        # identical
+        cache_files = list(cache.iterdir())
+        assert len(cache_files) == 2
+        assert filecmp.cmp(cache_files[0], cache_files[1], shallow=False)
 
 
 if __name__ == '__main__':
