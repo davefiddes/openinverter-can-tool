@@ -43,6 +43,13 @@ class OISimulatedNode:
         self.network = canopen.Network()
         self.network.connect("test", bustype="virtual")
 
+    def __del__(self):
+        """Always ensure we disconnect from the two networks. Failing to do
+        this results in communications failures when mulitple instances of the
+        class are used in succession."""
+        self.network.disconnect()
+        self.server_network.disconnect()
+
     def LoadDatabase(self, db: Path) -> None:
         """Load a given database file onto the simulated node"""
 

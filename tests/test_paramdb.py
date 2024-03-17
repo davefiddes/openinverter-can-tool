@@ -7,7 +7,6 @@ import json
 import pytest
 from typing import cast
 
-import canopen
 import canopen.objectdictionary
 
 from openinverter_can_tool.fpfloat import fixed_from_float
@@ -16,7 +15,6 @@ from openinverter_can_tool.paramdb import import_database
 from openinverter_can_tool.paramdb import import_database_json
 from openinverter_can_tool.paramdb import import_remote_database
 from openinverter_can_tool.paramdb import import_cached_database
-from openinverter_can_tool import constants as oi
 
 from .oi_sim import OISimulatedNode
 
@@ -249,32 +247,10 @@ class DatabaseImport(unittest.TestCase):
         """Verify that it is possible to load a database located on a remote
         CAN bus node."""
 
-        # Put together an SDO server that pretends to be a remote openinverter
-        # node
-        network1 = canopen.Network()
-        network1.connect("test", bustype="virtual")
+        simulator = OISimulatedNode(13)
+        simulator.LoadDatabase(TEST_DATA_DIR / "complex.json")
 
-        dictionary = canopen.ObjectDictionary()
-        db_var = canopen.objectdictionary.Variable(
-            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
-        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
-        dictionary.add_object(db_var)
-
-        servernode = canopen.LocalNode(13, dictionary)
-        network1.add_node(servernode)
-
-        with open(TEST_DATA_DIR / "complex.json", encoding="utf-8") as file:
-            servernode.sdo['database'].raw = file.read()
-
-        # Put together a network that is connected to the server for the code
-        # under test
-        network2 = canopen.Network()
-        network2.connect("test", bustype="virtual")
-
-        database = import_remote_database(network2, 13)
-
-        network1.disconnect()
-        network2.disconnect()
+        database = import_remote_database(simulator.network, 13)
 
         expected_params = [
             {"name": "curkp", "isparam": True, "unit": "",
@@ -333,34 +309,11 @@ class DatabaseImport(unittest.TestCase):
         stream. Verify that these databases can be loaded correctly from a
         remote node."""
 
-        # Put together an SDO server that pretends to be a remote openinverter
-        # node
-        network1 = canopen.Network()
-        network1.connect("test", bustype="virtual")
+        simulator = OISimulatedNode(13)
+        simulator.LoadDatabase(
+            TEST_DATA_DIR / "complex-with-added-zero-bytes.json")
 
-        dictionary = canopen.ObjectDictionary()
-        db_var = canopen.objectdictionary.Variable(
-            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
-        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
-        dictionary.add_object(db_var)
-
-        servernode = canopen.LocalNode(13, dictionary)
-        network1.add_node(servernode)
-
-        with open(
-                TEST_DATA_DIR / "complex-with-added-zero-bytes.json",
-                mode="br") as file:
-            servernode.sdo['database'].raw = file.read()
-
-        # Put together a network that is connected to the server for the code
-        # under test
-        network2 = canopen.Network()
-        network2.connect("test", bustype="virtual")
-
-        database = import_remote_database(network2, 13)
-
-        network1.disconnect()
-        network2.disconnect()
+        database = import_remote_database(simulator.network, 13)
 
         expected_params = [
             {"name": "curkp", "isparam": True, "unit": "",
@@ -419,33 +372,11 @@ class DatabaseImport(unittest.TestCase):
         unicode utf-8 sequences with extra zero bytes can be loaded correctly
         from a remote node."""
 
-        # Put together an SDO server that pretends to be a remote openinverter
-        # node
-        network1 = canopen.Network()
-        network1.connect("test", bustype="virtual")
+        simulator = OISimulatedNode(13)
+        simulator.LoadDatabase(
+            TEST_DATA_DIR / "unicode-with-added-zero-bytes.json")
 
-        dictionary = canopen.ObjectDictionary()
-        db_var = canopen.objectdictionary.Variable(
-            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
-        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
-        dictionary.add_object(db_var)
-
-        servernode = canopen.LocalNode(13, dictionary)
-        network1.add_node(servernode)
-
-        with open(TEST_DATA_DIR / "unicode-with-added-zero-bytes.json",
-                  mode="br") as file:
-            servernode.sdo['database'].raw = file.read()
-
-        # Put together a network that is connected to the server for the code
-        # under test
-        network2 = canopen.Network()
-        network2.connect("test", bustype="virtual")
-
-        database = import_remote_database(network2, 13)
-
-        network1.disconnect()
-        network2.disconnect()
+        database = import_remote_database(simulator.network, 13)
 
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
