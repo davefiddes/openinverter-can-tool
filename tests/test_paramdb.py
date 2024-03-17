@@ -18,6 +18,8 @@ from openinverter_can_tool.paramdb import import_remote_database
 from openinverter_can_tool.paramdb import import_cached_database
 from openinverter_can_tool import constants as oi
 
+from .oi_sim import OISimulatedNode
+
 TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
 
@@ -582,42 +584,16 @@ class TestCachedDatabases:
     """
 
     def test_empty_cache_location_new_database(self, tmp_path: Path):
-        # Put together an SDO server that pretends to be a remote openinverter
-        # node
-        network1 = canopen.Network()
-        network1.connect("test", bustype="virtual")
-
-        dictionary = canopen.ObjectDictionary()
-        db_checksum = canopen.objectdictionary.Variable(
-            "checksum",
-            oi.SERIALNO_INDEX,
-            oi.PARAM_DB_CHECKSUM_SUBINDEX)
-        db_checksum.data_type = canopen.objectdictionary.UNSIGNED32
-        dictionary.add_object(db_checksum)
-        db_var = canopen.objectdictionary.Variable(
-            'database', oi.STRINGS_INDEX, oi.PARAM_DB_SUBINDEX)
-        db_var.data_type = canopen.objectdictionary.VISIBLE_STRING
-        dictionary.add_object(db_var)
-
-        servernode = canopen.LocalNode(42, dictionary)
-        network1.add_node(servernode)
-
-        servernode.sdo["checksum"].raw = 12345678
-        with open(TEST_DATA_DIR / "single-param.json",
-                  mode="br") as file:
-            servernode.sdo['database'].raw = file.read()
-
-        # Put together a network that is connected to the server for the code
-        # under test
-        network2 = canopen.Network()
-        network2.connect("test", bustype="virtual")
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         cache = tmp_path / "empty-but-exists"
         cache.mkdir()
 
         assert len(list(cache.iterdir())) == 0
 
-        database = import_cached_database(network2, 42, cache)
+        database = import_cached_database(simulator.network, 42, cache)
 
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
