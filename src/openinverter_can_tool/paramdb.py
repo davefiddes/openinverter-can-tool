@@ -235,7 +235,7 @@ def import_cached_database(
         checksum = sdo_client["checksum"].raw
 
         if not cache_location.exists():
-            cache_location.mkdir()
+            cache_location.mkdir(parents=True)
 
         cache_file = cache_location / f"{node_id}-{checksum}.json"
 

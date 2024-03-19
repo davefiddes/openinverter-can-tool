@@ -11,6 +11,7 @@ import time
 import datetime
 import glob
 import os
+from pathlib import Path
 import click
 import can
 import canopen
@@ -53,7 +54,7 @@ def db_action(func):
         cli_settings: CliSettings = args[0]
 
         if cli_settings.database_path:
-            device_db = import_database(cli_settings.database_path)
+            device_db = import_database(Path(cli_settings.database_path))
         else:
             network = None
             try:
@@ -66,7 +67,7 @@ def db_action(func):
                 device_db = import_cached_database(
                     network,
                     cli_settings.node_number,
-                    appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR))
+                    Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
             finally:
                 if network:
                     network.disconnect()

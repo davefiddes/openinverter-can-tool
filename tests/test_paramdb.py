@@ -534,6 +534,20 @@ class TestCachedDatabases:
         assert cached_file.is_file()
         assert cached_file.stat().st_size > 0
 
+    def test_long_new_cache_path(self, tmp_path: Path):
+        simulator = OISimulatedNode(42)
+        simulator.checksum = 12345678
+        simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
+
+        cache = tmp_path / "a" / "deep" / "new" / "path"
+        assert not cache.is_dir()
+
+        database = import_cached_database(simulator.network, 42, cache)
+
+        assert cache.is_dir()
+
+        assert database["param1"]
+
     def test_empty_but_present_cache_location(self, tmp_path: Path):
         simulator = OISimulatedNode(42)
         simulator.checksum = 12345678
