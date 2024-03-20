@@ -4,13 +4,14 @@ openinverter parameter database functions
 
 
 import json
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
+
 import canopen
 import canopen.objectdictionary
-from canopen.sdo import SdoClient
+
 from .fpfloat import fixed_from_float
-from . import constants as oi
+from .oi_node import OpenInverterNode
 
 
 def is_power_of_two(num: int) -> bool:
@@ -173,26 +174,10 @@ def import_remote_database(
         The Object Dictionary.
     :rtype: canopen.ObjectDictionary
     """
+    node = OpenInverterNode(network, node_id)
 
-    # Create temporary SDO client and attach to the network
-    sdo_client = SdoClient(0x600 + node_id,
-                           0x580 + node_id,
-                           canopen.ObjectDictionary())
-    sdo_client.network = network
-    network.subscribe(0x580 + node_id, sdo_client.on_response)
-
-    # Create file like object to load the JSON from the remote
-    # openinverter node
-    try:
-        with sdo_client.open(oi.STRINGS_INDEX,
-                             oi.PARAM_DB_SUBINDEX,
-                             "rb") as param_db:
-            dictionary = import_database_json(
-                json.loads(filter_zero_bytes(param_db.read())))
-    finally:
-        network.unsubscribe(0x580 + node_id)
-
-    return dictionary
+    return import_database_json(
+        json.loads(filter_zero_bytes(node.ParamDb())))
 
 
 def import_cached_database(
@@ -219,43 +204,25 @@ def import_cached_database(
     :rtype: canopen.ObjectDictionary
     """
 
-    # Create temporary SDO client and attach to the network
-    temp_dictionary = canopen.ObjectDictionary()
-    sdo_client = SdoClient(0x600 + node_id, 0x580 + node_id, temp_dictionary)
-    sdo_client.network = network
-    network.subscribe(0x580 + node_id, sdo_client.on_response)
+    if not cache_location.exists():
+        cache_location.mkdir(parents=True)
 
-    try:
-        checksum_var = canopen.objectdictionary.Variable(
-            "checksum",
-            oi.SERIALNO_INDEX,
-            oi.PARAM_DB_CHECKSUM_SUBINDEX)
-        checksum_var.data_type = canopen.objectdictionary.UNSIGNED32
-        temp_dictionary.add_object(checksum_var)
-        checksum = sdo_client["checksum"].raw
+    node = OpenInverterNode(network, node_id)
 
-        if not cache_location.exists():
-            cache_location.mkdir(parents=True)
+    checksum = node.ParamDbChecksum()
 
-        cache_file = cache_location / f"{node_id}-{checksum}.json"
+    cache_file = cache_location / f"{node_id}-{checksum}.json"
 
-        if cache_file.exists():
-            dictionary = import_database(cache_file)
-        else:
-            # Create file like object to load the JSON from the remote
-            # openinverter node
-            with sdo_client.open(oi.STRINGS_INDEX,
-                                 oi.PARAM_DB_SUBINDEX,
-                                 "rb", encoding="utf-8") as param_db:
-                param_db_str = filter_zero_bytes(param_db.read())
+    if cache_file.exists():
+        dictionary = import_database(cache_file)
+    else:
+        param_db_str = filter_zero_bytes(node.ParamDb())
 
-            dictionary = import_database_json(json.loads(param_db_str))
+        dictionary = import_database_json(json.loads(param_db_str))
 
-            # Only save the database in the cache when we have successfully
-            # imported it
-            with open(cache_file, "wt", encoding="utf-8") as param_db_file:
-                param_db_file.write(param_db_str)
-    finally:
-        network.unsubscribe(0x580 + node_id)
+        # Only save the database in the cache when we have successfully
+        # imported it
+        with open(cache_file, "wt", encoding="utf-8") as param_db_file:
+            param_db_file.write(param_db_str)
 
     return dictionary
