@@ -2,23 +2,26 @@
 openinverter CAN Tools main program
 """
 
-import functools
-from typing import Optional, Union, cast
-from ast import literal_eval
-import json
 import csv
-import time
 import datetime
+import functools
 import glob
+import json
 import os
+import time
+from ast import literal_eval
 from pathlib import Path
-import click
+from typing import Optional, Union, cast
+
+import appdirs
 import can
 import canopen
-import appdirs
-from .paramdb import import_database, import_cached_database, OIVariable
-from .fpfloat import fixed_to_float, fixed_from_float
+import canopen.objectdictionary
+import click
+
 from . import constants as oi
+from .fpfloat import fixed_from_float, fixed_to_float
+from .paramdb import OIVariable, import_cached_database, import_database
 
 
 class CliSettings:
