@@ -192,9 +192,7 @@ def listparams(cli_settings: CliSettings) -> None:
             print(" - read-only value")
 
 
-def print_param(
-        variable: canopen.objectdictionary.Variable,
-        value: float) -> None:
+def print_param(variable: OIVariable, value: float) -> None:
     """Print out the value of a parameter or outputs the enumeration value or
     bits in a bitfield"""
 
@@ -330,7 +328,7 @@ def save(cli_settings: CliSettings, out_file: click.File) -> None:
 
 def set_enum_value(
         node: canopen.Node,
-        param: canopen.objectdictionary.Variable,
+        param: OIVariable,
         value: str) -> None:
     """Set a enumeration parameter over SDO by looking up its symbolic value"""
 
@@ -349,7 +347,7 @@ def set_enum_value(
 
 def set_bitfield_value(
         node: canopen.Node,
-        param: canopen.objectdictionary.Variable,
+        param: OIVariable,
         value: str) -> None:
     """Set a bitfield parameter over SDO by looking up its symbolic values. The
       value should be a comma separated list"""
@@ -366,9 +364,14 @@ def set_bitfield_value(
 
 def set_float_value(
         node: canopen.Node,
-        param: canopen.objectdictionary.Variable,
+        param: OIVariable,
         value: float) -> None:
     """Set a parameter with a floating point value over SDO"""
+
+    # pre-conditions that should always be
+    assert param.isparam
+    assert param.min is not None
+    assert param.max is not None
 
     fixed_value = fixed_from_float(value)
 
