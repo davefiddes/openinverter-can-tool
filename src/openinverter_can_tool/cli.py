@@ -539,6 +539,33 @@ def cmd_defaults(cli_settings: CliSettings) -> None:
     send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX)
 
 
+@cmd.command("start")
+@click.option("--mode",
+              type=click.Choice(["Normal",
+                                 "Manual",
+                                 "Boost",
+                                 "Buck",
+                                 "ACHeat",
+                                 "Sine"],
+                                case_sensitive=False),
+              default="Normal",
+              show_default=True)
+@pass_cli_settings
+@can_action
+def cmd_start(cli_settings: CliSettings, mode: str) -> None:
+    """Start the device in the specified mode"""
+    mode_list = {
+        "Normal": oi.START_MODE_NORMAL,
+        "Manual": oi.START_MODE_MANUAL,
+        "Boost": oi.START_MODE_BOOST,
+        "Buck": oi.START_MODE_BUCK,
+        "Sine": oi.START_MODE_SINE,
+        "ACHeat": oi.START_MODE_ACHEAT
+    }
+
+    send_command(cli_settings, oi.START_COMMAND_SUBINDEX, mode_list[mode])
+
+
 @cmd.command("stop")
 @pass_cli_settings
 @can_action
@@ -850,33 +877,6 @@ def cmd_can_remove(
             click.echo("CAN mapping removed successfully.")
         else:
             raise err
-
-
-@cmd.command("start")
-@click.option("--mode",
-              type=click.Choice(["Normal",
-                                 "Manual",
-                                 "Boost",
-                                 "Buck",
-                                 "ACHeat",
-                                 "Sine"],
-                                case_sensitive=False),
-              default="Normal",
-              show_default=True)
-@pass_cli_settings
-@can_action
-def cmd_start(cli_settings: CliSettings, mode: str) -> None:
-    """Start the device in the specified mode"""
-    mode_list = {
-        "Normal": oi.START_MODE_NORMAL,
-        "Manual": oi.START_MODE_MANUAL,
-        "Boost": oi.START_MODE_BOOST,
-        "Buck": oi.START_MODE_BUCK,
-        "Sine": oi.START_MODE_SINE,
-        "ACHeat": oi.START_MODE_ACHEAT
-    }
-
-    send_command(cli_settings, oi.START_COMMAND_SUBINDEX, mode_list[mode])
 
 
 @cli.command()
