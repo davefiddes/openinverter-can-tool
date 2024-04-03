@@ -106,7 +106,7 @@ def can_action(func):
 
             network.check()
 
-            node = canopen.BaseNode402(
+            node = canopen.RemoteNode(
                 cli_settings.node_number, cli_settings.database)
             node.sdo.RESPONSE_TIMEOUT = cli_settings.timeout
             network.add_node(node)
