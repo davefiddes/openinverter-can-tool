@@ -41,14 +41,6 @@ class TestOpenInverterNode(unittest.TestCase):
         # consumed by _send_message()
         assert len(self.data) == 0
 
-    def test_paramdb_checksum(self):
-        self.data = [
-            (TX, b'\x40\x00\x50\x03\x00\x00\x00\x00'),
-            (RX, b'\x43\x00\x50\x03\x12\x70\x01\x00')
-        ]
-        checksum = self.node.ParamDbChecksum()
-        assert checksum == 94226
-
     def test_serialno(self):
         self.data = [
             (TX, b'\x40\x00\x50\x02\x00\x00\x00\x00'),

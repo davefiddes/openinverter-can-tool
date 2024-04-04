@@ -81,27 +81,6 @@ class OpenInverterNode:
     def __del__(self) -> None:
         self.network.unsubscribe(0x580 + self.node_id)
 
-    def ParamDbChecksum(self) -> int:
-        """
-        Read the parameter database checksum. If this is equal to a
-        previously read value the bytes read from ParamDb() can be
-        considered equal. A different value implies that any data read
-        from the ParamDb() method should be discarded.
-        """
-        value, = UNSIGNED32.unpack(
-            self.sdo_client.upload(
-                oi.SERIALNO_INDEX,
-                oi.PARAM_DB_CHECKSUM_SUBINDEX))
-
-        return value
-
-    def ParamDb(self) -> bytes:
-        """Read the remote parameter database"""
-        with self.sdo_client.open(oi.STRINGS_INDEX,
-                                  oi.PARAM_DB_SUBINDEX,
-                                  "rb") as param_db:
-            return param_db.read()  # type: ignore
-
     def SerialNo(self) -> bytes:
         """Device unique serial number"""
 

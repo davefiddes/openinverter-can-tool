@@ -11,7 +11,7 @@ import canopen
 import canopen.objectdictionary
 
 from .fpfloat import fixed_from_float
-from .oi_node import OpenInverterNode
+from .remote_db import RemoteDatabaseNode
 
 
 def is_power_of_two(num: int) -> bool:
@@ -51,13 +51,13 @@ class OIVariable(canopen.objectdictionary.Variable):
     standard CANopen variable. This class wraps up those differences allowing
     parameters to be specified in an object database."""
 
-    def __init__(self, name: str, id: int):
+    def __init__(self, name: str, param_id: int):
         # assign dummy values to the index to allow creation of the parent
         # variable class
         super().__init__(name, 0, 0)
 
         # Assign the id to set the index and subindex
-        self.id = id
+        self.id = param_id
 
         # All openinverter params are 32-bit fixed float values
         # we will convert to float on presentation as required
@@ -74,6 +74,8 @@ class OIVariable(canopen.objectdictionary.Variable):
 
     @property
     def id(self) -> int:
+        """The openinverter parameter identifier for this parameter or spot
+        value"""
         return ((self.index & ~0x2100) << 8) + self.subindex
 
     @id.setter
@@ -174,10 +176,10 @@ def import_remote_database(
         The Object Dictionary.
     :rtype: canopen.ObjectDictionary
     """
-    node = OpenInverterNode(network, node_id)
+    node = RemoteDatabaseNode(network, node_id)
 
     return import_database_json(
-        json.loads(filter_zero_bytes(node.ParamDb())))
+        json.loads(filter_zero_bytes(node.param_db())))
 
 
 def import_cached_database(
@@ -207,16 +209,16 @@ def import_cached_database(
     if not cache_location.exists():
         cache_location.mkdir(parents=True)
 
-    node = OpenInverterNode(network, node_id)
+    node = RemoteDatabaseNode(network, node_id)
 
-    checksum = node.ParamDbChecksum()
+    checksum = node.param_db_checksum()
 
     cache_file = cache_location / f"{node_id}-{checksum}.json"
 
     if cache_file.exists():
         dictionary = import_database(cache_file)
     else:
-        param_db_str = filter_zero_bytes(node.ParamDb())
+        param_db_str = filter_zero_bytes(node.param_db())
 
         dictionary = import_database_json(json.loads(param_db_str))
 
