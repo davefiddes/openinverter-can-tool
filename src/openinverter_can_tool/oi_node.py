@@ -81,7 +81,7 @@ class OpenInverterNode:
     def __del__(self) -> None:
         self.network.unsubscribe(0x580 + self.node_id)
 
-    def SerialNo(self) -> bytes:
+    def serial_no(self) -> bytes:
         """Device unique serial number"""
 
         # Fetch the serial number in 3 parts reversing from little-endian on
@@ -95,32 +95,32 @@ class OpenInverterNode:
 
         return serialno
 
-    def Save(self) -> None:
+    def save(self) -> None:
         """
         Request the remote node save its parameters to persistent storage
         """
         self.sdo_client.download(
             oi.COMMAND_INDEX, oi.SAVE_COMMAND_SUBINDEX, bytes(4))
 
-    def Load(self) -> None:
+    def load(self) -> None:
         """
         Request the remote node load its parameters from persistent storage
         """
         self.sdo_client.download(
             oi.COMMAND_INDEX, oi.LOAD_COMMAND_SUBINDEX, bytes(4))
 
-    def Reset(self) -> None:
+    def reset(self) -> None:
         """Request the remote node reset/reboot"""
         self.sdo_client.download(
             oi.COMMAND_INDEX, oi.RESET_COMMAND_SUBINDEX, bytes(4))
 
-    def LoadDefaults(self) -> None:
+    def load_defaults(self) -> None:
         """Request the remote node load its default parameters. Equivalent to
         a factory configuration reset."""
         self.sdo_client.download(
             oi.COMMAND_INDEX, oi.DEFAULTS_COMMAND_SUBINDEX, bytes(4))
 
-    def Start(self, mode: int = oi.START_MODE_NORMAL) -> None:
+    def start(self, mode: int = oi.START_MODE_NORMAL) -> None:
         """
         Request the remote node start normal operation
 
@@ -131,12 +131,12 @@ class OpenInverterNode:
             oi.START_COMMAND_SUBINDEX,
             UNSIGNED32.pack(mode))
 
-    def Stop(self) -> None:
+    def stop(self) -> None:
         """Request the remote node stop normal operation"""
         self.sdo_client.download(
             oi.COMMAND_INDEX, oi.STOP_COMMAND_SUBINDEX, bytes(4))
 
-    def MapParamToCan(
+    def add_can_map_entry(
             self,
             can_id: int,
             direction: Direction,
@@ -171,13 +171,13 @@ class OpenInverterNode:
         if offset not in range(-128, 128):
             raise ValueError
 
-        MapDirectionIndex = {
+        map_direction_index = {
             Direction.TX: oi.CAN_MAP_TX_INDEX,
             Direction.RX: oi.CAN_MAP_RX_INDEX
         }
 
-        if direction in MapDirectionIndex:
-            cmd_index = MapDirectionIndex[direction]
+        if direction in map_direction_index:
+            cmd_index = map_direction_index[direction]
         else:
             raise ValueError
 
@@ -204,7 +204,7 @@ class OpenInverterNode:
             oi.MAP_GAIN_OFFSET_SUBINDEX,
             gain_bytes + offset_bytes)
 
-    def _GetMappedCanId(self, index: int) -> Optional[int]:
+    def _get_mapped_can_id(self, index: int) -> Optional[int]:
         """
         Get the can_id stored at a given index in a can message param map.
 
@@ -223,7 +223,7 @@ class OpenInverterNode:
 
         return can_id
 
-    def _GetMapEntry(
+    def _get_map_entry(
             self,
             can_id_index: int,
             param_index: int) -> Optional[MapEntry]:
@@ -261,7 +261,7 @@ class OpenInverterNode:
 
         return param
 
-    def _GetMapEntries(
+    def _get_map_entries(
             self,
             can_id_index: int) -> List[MapEntry]:
         """List all of the parameter map entries for a specific CAN ID
@@ -271,7 +271,7 @@ class OpenInverterNode:
 
         param_index = 1
         while True:
-            param = self._GetMapEntry(can_id_index, param_index)
+            param = self._get_map_entry(can_id_index, param_index)
 
             if param is not None:
                 params.append(param)
@@ -281,7 +281,7 @@ class OpenInverterNode:
 
         return params
 
-    def ListParamCanMap(self, direction: Direction) -> List[CanMessage]:
+    def list_can_map(self, direction: Direction) -> List[CanMessage]:
         """
         List all of the parameter to CAN frame mappings on the remote device.
 
@@ -297,10 +297,10 @@ class OpenInverterNode:
 
         messages: List[CanMessage] = []
         while True:
-            can_id = self._GetMappedCanId(can_id_index)
+            can_id = self._get_mapped_can_id(can_id_index)
 
             if can_id is not None:
-                msg = CanMessage(can_id, self._GetMapEntries(can_id_index))
+                msg = CanMessage(can_id, self._get_map_entries(can_id_index))
                 messages.append(msg)
                 can_id_index += 1
             else:
@@ -308,7 +308,7 @@ class OpenInverterNode:
 
         return messages
 
-    def RemoveCanMapEntry(
+    def remove_can_map_entry(
             self,
             direction: Direction,
             can_index: int,

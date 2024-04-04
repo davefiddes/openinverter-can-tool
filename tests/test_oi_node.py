@@ -1,13 +1,19 @@
+"""openinverter custom SDO protocol unit tests"""
+
 import unittest
+from typing import List, Tuple
 
 import canopen
 
 from openinverter_can_tool import constants as oi
-from openinverter_can_tool.oi_node import OpenInverterNode, Direction
+from openinverter_can_tool.oi_node import Direction, OpenInverterNode
 from openinverter_can_tool.paramdb import OIVariable
 
 TX = 1
 RX = 2
+
+# Reduce test verbosity
+# pylint: disable=missing-function-docstring
 
 
 class TestOpenInverterNode(unittest.TestCase):
@@ -26,7 +32,10 @@ class TestOpenInverterNode(unittest.TestCase):
         self.assertSequenceEqual(data, next_data[1])
         self.assertEqual(can_id, 0x602)
         while self.data and self.data[0][0] == RX:
-            self.network.notify(0x582, self.data.pop(0)[1], 0.0)
+            self.network.notify(0x582, bytearray(self.data.pop(0)[1]), 0.0)
+
+        # pretend to use remote
+        _ = remote
 
     def setUp(self):
         network = canopen.Network()
@@ -35,6 +44,7 @@ class TestOpenInverterNode(unittest.TestCase):
         node.sdo_client.RESPONSE_TIMEOUT = 0.01
         self.node = node
         self.network = network
+        self.data: List[Tuple[int, bytes]] = []
 
     def tearDown(self) -> None:
         # At the end of every test all of the data data should have been
@@ -50,7 +60,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (TX, b'\x40\x00\x50\x00\x00\x00\x00\x00'),
             (RX, b'\x43\x00\x50\x00\x54\xFF\x70\x06')
         ]
-        serialno = self.node.SerialNo()
+        serialno = self.node.serial_no()
 
         # "serial" command returns:
         # 87193029:49498648:670FF54
@@ -61,49 +71,49 @@ class TestOpenInverterNode(unittest.TestCase):
             (TX, b'\x23\x02\x50\x00\x00\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x00\x00\x00\x00\x00')
         ]
-        self.node.Save()
+        self.node.save()
 
     def test_load_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x01\x00\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x01\x00\x00\x00\x00')
         ]
-        self.node.Load()
+        self.node.load()
 
     def test_reset_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x02\x00\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x02\x00\x00\x00\x00')
         ]
-        self.node.Reset()
+        self.node.reset()
 
     def test_defaults_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x03\x00\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x03\x00\x00\x00\x00')
         ]
-        self.node.LoadDefaults()
+        self.node.load_defaults()
 
     def test_normal_start_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x04\x01\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x04\x01\x00\x00\x00')
         ]
-        self.node.Start()
+        self.node.start()
 
     def test_manual_start_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x04\x02\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x04\x02\x00\x00\x00')
         ]
-        self.node.Start(mode=oi.START_MODE_MANUAL)
+        self.node.start(mode=oi.START_MODE_MANUAL)
 
     def test_stop_command(self):
         self.data = [
             (TX, b'\x23\x02\x50\x05\x00\x00\x00\x00'),
             (RX, b'\x60\x02\x50\x05\x00\x00\x00\x00')
         ]
-        self.node.Stop()
+        self.node.stop()
 
     def test_list_empty_tx_and_rx_map(self):
         self.data = [
@@ -116,10 +126,10 @@ class TestOpenInverterNode(unittest.TestCase):
         # The original capture covers both TX followed by RX listing of the map
         # but the API separates these two operations. Combine the requests into
         # a single test.
-        tx_map = self.node.ListParamCanMap(Direction.TX)
+        tx_map = self.node.list_can_map(Direction.TX)
         assert not tx_map
 
-        rx_map = self.node.ListParamCanMap(Direction.RX)
+        rx_map = self.node.list_can_map(Direction.RX)
         assert not rx_map
 
     def test_list_tx_map_single_message_and_single_param(self):
@@ -149,10 +159,10 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x80\x01\x31\x00\x00\x00\x02\x06')
         ]
 
-        map = self.node.ListParamCanMap(Direction.TX)
+        can_map = self.node.list_can_map(Direction.TX)
 
-        assert len(map) == 1
-        msg = map[0]
+        assert len(can_map) == 1
+        msg = can_map[0]
 
         assert msg.can_id == 0x101
 
@@ -201,10 +211,10 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x80\x01\x31\x00\x00\x00\x02\x06'),
         ]
 
-        map = self.node.ListParamCanMap(Direction.TX)
+        can_map = self.node.list_can_map(Direction.TX)
 
-        assert len(map) == 1
-        msg = map[0]
+        assert len(can_map) == 1
+        msg = can_map[0]
 
         assert msg.can_id == 0x101
 
@@ -269,10 +279,10 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x80\x02\x31\x00\x00\x00\x02\x06'),
         ]
 
-        map = self.node.ListParamCanMap(Direction.TX)
+        can_map = self.node.list_can_map(Direction.TX)
 
-        assert len(map) == 2
-        msg = map[0]
+        assert len(can_map) == 2
+        msg = can_map[0]
 
         assert msg.can_id == 0x001
 
@@ -284,7 +294,7 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.gain == -1.0
         assert param.offset == 0
 
-        msg = map[1]
+        msg = can_map[1]
         assert msg.can_id == 0x7ff
 
         assert len(msg.params) == 1
@@ -307,7 +317,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x00')
         ]
         tmphs = OIVariable("tmphs", 2019)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
@@ -328,7 +338,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x00\x30\x02\x18\xFC\xFF\x00')
         ]
         tmphs = OIVariable("tmphs", 2019)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
@@ -353,7 +363,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x80')
         ]
         tmphs = OIVariable("tmphs", 2019)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
@@ -378,7 +388,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x00\x30\x02\xff\xff\x7f\x00')
         ]
         tmphs = OIVariable("tmphs", 2019)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
@@ -403,7 +413,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x00\x30\x02\x00\x00\x80\x00')
         ]
         tmphs = OIVariable("tmphs", 2019)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
@@ -428,7 +438,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (RX, b'\x60\x01\x30\x02\xff\xff\x7f\x7f')
         ]
         big_param = OIVariable("fiction", 32767)
-        self.node.MapParamToCan(
+        self.node.add_can_map_entry(
             can_id=0x7ff,
             direction=Direction.RX,
             param_id=big_param.id,
@@ -441,7 +451,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x800,
                 direction=Direction.TX,
                 param_id=1,
@@ -451,7 +461,7 @@ class TestOpenInverterNode(unittest.TestCase):
                 offset=0)
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=-1,
                 direction=Direction.TX,
                 param_id=1,
@@ -464,7 +474,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction(42),
                 param_id=1,
@@ -477,7 +487,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -487,7 +497,7 @@ class TestOpenInverterNode(unittest.TestCase):
                 offset=0)
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -500,7 +510,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -510,7 +520,7 @@ class TestOpenInverterNode(unittest.TestCase):
                 offset=0)
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -523,7 +533,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -533,7 +543,7 @@ class TestOpenInverterNode(unittest.TestCase):
                 offset=0)
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -546,7 +556,7 @@ class TestOpenInverterNode(unittest.TestCase):
         self.data = []
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -556,7 +566,7 @@ class TestOpenInverterNode(unittest.TestCase):
                 offset=-129)
 
         with self.assertRaises(ValueError):
-            self.node.MapParamToCan(
+            self.node.add_can_map_entry(
                 can_id=0x101,
                 direction=Direction.TX,
                 param_id=1,
@@ -572,7 +582,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
             (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00')
         ]
-        assert self.node.RemoveCanMapEntry(Direction.TX, 0, 0)
+        assert self.node.remove_can_map_entry(Direction.TX, 0, 0)
 
     def test_remove_fourth_param_from_second_can_messsage(self):
         # from a capture of the command:
@@ -581,7 +591,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (TX, b'\x23\x01\x31\x08\x00\x00\x00\x00'),
             (RX, b'\x23\x01\x31\x08\x00\x00\x00\x00')
         ]
-        assert self.node.RemoveCanMapEntry(Direction.TX, 1, 3)
+        assert self.node.remove_can_map_entry(Direction.TX, 1, 3)
 
     def test_remove_not_present_rx_mapping(self):
         # from a capture of the command:
@@ -591,7 +601,7 @@ class TestOpenInverterNode(unittest.TestCase):
             (TX, b'\x23\x85\x31\x0C\x00\x00\x00\x00'),
             (RX, b'\x80\x85\x31\x0C\x00\x00\x02\x06')
         ]
-        assert not self.node.RemoveCanMapEntry(Direction.RX, 5, 5)
+        assert not self.node.remove_can_map_entry(Direction.RX, 5, 5)
 
 
 if __name__ == "__main__":
