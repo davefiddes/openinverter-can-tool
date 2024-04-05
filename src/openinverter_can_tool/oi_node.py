@@ -8,6 +8,7 @@ from typing import List, Optional
 
 import canopen
 import canopen.objectdictionary
+from canopen.node.base import BaseNode
 from canopen.sdo import SdoClient
 
 from . import constants as oi
@@ -59,7 +60,7 @@ class CanMessage:
         self.params = params
 
 
-class OpenInverterNode:
+class OpenInverterNode(BaseNode):
     """
     openinverter lightly abuses the CANopen SDO protocol to implement a series
     of command and control API end-points to manipulate and manage devices.
@@ -67,16 +68,22 @@ class OpenInverterNode:
     complexities.
     """
 
-    def __init__(self, network: canopen.Network, node_id: int) -> None:
+    def __init__(self,
+                 network: canopen.Network,
+                 node_id: int,
+                 object_dictionary: canopen.ObjectDictionary =
+                 canopen.ObjectDictionary()
+                 ) -> None:
         """Create temporary SDO client and attach to the network """
 
+        super().__init__(node_id, object_dictionary)
         self.network = network
         self.node_id = node_id
-        self.sdo_client = SdoClient(0x600 + node_id,
-                                    0x580 + node_id,
-                                    canopen.ObjectDictionary())
-        self.sdo_client.network = network  # type: ignore
-        network.subscribe(0x580 + node_id, self.sdo_client.on_response)
+        self.sdo = SdoClient(0x600 + node_id,
+                             0x580 + node_id,
+                             object_dictionary)
+        self.sdo.network = network  # type: ignore
+        network.subscribe(0x580 + node_id, self.sdo.on_response)
 
     def __del__(self) -> None:
         self.network.unsubscribe(0x580 + self.node_id)
@@ -91,7 +98,7 @@ class OpenInverterNode:
         serialno = bytearray()
         for i in reversed(range(3)):
             serialno.extend(
-                reversed(self.sdo_client.upload(oi.SERIALNO_INDEX, i)))
+                reversed(self.sdo.upload(oi.SERIALNO_INDEX, i)))
 
         return serialno
 
@@ -99,25 +106,25 @@ class OpenInverterNode:
         """
         Request the remote node save its parameters to persistent storage
         """
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX, oi.SAVE_COMMAND_SUBINDEX, bytes(4))
 
     def load(self) -> None:
         """
         Request the remote node load its parameters from persistent storage
         """
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX, oi.LOAD_COMMAND_SUBINDEX, bytes(4))
 
     def reset(self) -> None:
         """Request the remote node reset/reboot"""
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX, oi.RESET_COMMAND_SUBINDEX, bytes(4))
 
     def load_defaults(self) -> None:
         """Request the remote node load its default parameters. Equivalent to
         a factory configuration reset."""
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX, oi.DEFAULTS_COMMAND_SUBINDEX, bytes(4))
 
     def start(self, mode: int = oi.START_MODE_NORMAL) -> None:
@@ -126,14 +133,14 @@ class OpenInverterNode:
 
         :param mode: Device specific mode parameter
         """
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX,
             oi.START_COMMAND_SUBINDEX,
             UNSIGNED32.pack(mode))
 
     def stop(self) -> None:
         """Request the remote node stop normal operation"""
-        self.sdo_client.download(
+        self.sdo.download(
             oi.COMMAND_INDEX, oi.STOP_COMMAND_SUBINDEX, bytes(4))
 
     def add_can_map_entry(
@@ -182,14 +189,14 @@ class OpenInverterNode:
             raise ValueError
 
         # Fill out the SDO "variable" with the CAN ID we want to map
-        self.sdo_client.download(
+        self.sdo.download(
             cmd_index,
             oi.MAP_CAN_ID_SUBINDEX,
             UNSIGNED32.pack(can_id))
 
         # Fill out the SDO "variable" with the parameter ID to map and
         # the position and length they should take up in each CAN frame
-        self.sdo_client.download(
+        self.sdo.download(
             cmd_index,
             oi.MAP_PARAM_POS_LEN_SUBINDEX,
             struct.pack("<HBB", param_id, position, length))
@@ -199,7 +206,7 @@ class OpenInverterNode:
         # cause the mapping to be created on the remote node
         gain_bytes = struct.pack("<i", int(gain * 1000))[:3]
         offset_bytes = struct.pack("<b", offset)
-        self.sdo_client.download(
+        self.sdo.download(
             cmd_index,
             oi.MAP_GAIN_OFFSET_SUBINDEX,
             gain_bytes + offset_bytes)
@@ -214,7 +221,7 @@ class OpenInverterNode:
         """
         try:
             can_id, = UNSIGNED32.unpack(
-                self.sdo_client.upload(index, 0))
+                self.sdo.upload(index, 0))
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
                 return None
@@ -234,9 +241,9 @@ class OpenInverterNode:
         try:
             (param_id, position, length) = struct.unpack(
                 "<HBB",
-                self.sdo_client.upload(can_id_index, param_index))
+                self.sdo.upload(can_id_index, param_index))
 
-            gain_offset_bytes = self.sdo_client.upload(
+            gain_offset_bytes = self.sdo.upload(
                 can_id_index, param_index+1)
             gain_bytes = gain_offset_bytes[:3]
 
@@ -341,7 +348,7 @@ class OpenInverterNode:
         param_sdo_index = 2*(param_index+1)
 
         try:
-            self.sdo_client.download(
+            self.sdo.download(
                 can_sdo_index, param_sdo_index, UNSIGNED32.pack(0))
         except canopen.SdoCommunicationError as err:
             if str(err) == "Unexpected response 0x23":

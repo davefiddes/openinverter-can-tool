@@ -41,7 +41,7 @@ class TestOpenInverterNode(unittest.TestCase):
         network = canopen.Network()
         network.send_message = self._send_message
         node = OpenInverterNode(network, 2)
-        node.sdo_client.RESPONSE_TIMEOUT = 0.01
+        node.sdo.RESPONSE_TIMEOUT = 0.01
         self.node = node
         self.network = network
         self.data: List[Tuple[int, bytes]] = []

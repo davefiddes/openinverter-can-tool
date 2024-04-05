@@ -22,6 +22,7 @@ import click
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
 from .paramdb import OIVariable, import_cached_database, import_database
+from .oi_node import OpenInverterNode
 
 
 class CliSettings:
@@ -38,7 +39,7 @@ class CliSettings:
         self.node_number = node_number
         self.network: Optional[canopen.Network] = None
         self.database = canopen.objectdictionary.ObjectDictionary()
-        self.node: Optional[canopen.Node] = None
+        self.node: Optional[OpenInverterNode] = None
         self.timeout = timeout
 
 
@@ -106,10 +107,11 @@ def can_action(func):
 
             network.check()
 
-            node = canopen.RemoteNode(
-                cli_settings.node_number, cli_settings.database)
+            node = OpenInverterNode(
+                network,
+                cli_settings.node_number,
+                cli_settings.database)
             node.sdo.RESPONSE_TIMEOUT = cli_settings.timeout
-            network.add_node(node)
 
             # store the network and node objects in the context
             cli_settings.network = network
