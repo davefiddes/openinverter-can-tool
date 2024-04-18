@@ -301,7 +301,11 @@ class OpenInverterNode:
 
             if can_id is not None:
                 msg = CanMessage(can_id, self._get_map_entries(can_id_index))
-                messages.append(msg)
+
+                # Just ignore a message without any params
+                if msg.params:
+                    messages.append(msg)
+
                 can_id_index += 1
             else:
                 break
