@@ -565,7 +565,7 @@ def cmd_stop(cli_settings: CliSettings) -> None:
     click.echo("Command sent successfully")
 
 
-@cli.group("map")
+@cli.group("can")
 @pass_cli_settings
 def can_map(cli_settings: CliSettings) -> None:
     """Manage parameter to CAN message mappings on a device"""
@@ -669,7 +669,7 @@ def cmd_can_add(
 
     \b
     Example:
-    $ oic -n22 map add tx 0x101 temp3 32 8
+    $ oic -n22 can add tx 0x101 temp3 32 8
     """
 
     # Get the parameter id by name from the cached database
@@ -718,17 +718,17 @@ def cmd_can_remove(
 
     \b
     Example:
-    $ oic map list
+    $ oic can list
     0x202:
      rx.0.0 param='soc' pos=16 len=8 gain=1.0 offset=0
     0x203:
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
      rx.1.2 param='maxcur' pos=16 len=16 gain=1.0 offset=0
-    $ oic map remove rx.1.2
+    $ oic can remove rx.1.2
     CAN mapping removed successfully.
-    $ oic map remove rx.0.0
+    $ oic can remove rx.0.0
     CAN mapping removed successfully.
-    $ oic map list
+    $ oic can list
     0x203:
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
     """
