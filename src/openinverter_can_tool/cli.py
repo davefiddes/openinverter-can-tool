@@ -9,9 +9,10 @@ import glob
 import json
 import os
 import time
+import re
 from ast import literal_eval
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Optional, Union, cast, List
 
 import appdirs
 import can
@@ -22,7 +23,7 @@ import click
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
 from .paramdb import OIVariable, import_cached_database, import_database
-from .oi_node import OpenInverterNode
+from .oi_node import OpenInverterNode, Direction, CanMessage
 
 
 class CliSettings:
@@ -470,16 +471,8 @@ def serialno(cli_settings: CliSettings) -> None:
     """Read the device serial number. This is required to load firmware over
     CAN"""
 
-    # Fetch the serial number in 3 parts reversing from little-endian on the
-    # wire into a reversed array where the LSB is first and MSB is last. This
-    # is odd but mirrors the behaviour of the STM32 terminal "serial" command
-    # for consistency.
-    serialno_data = bytearray()
-    for i in reversed(range(3)):
-        serialno_data.extend(
-            reversed(cli_settings.node.sdo.upload(oi.SERIALNO_INDEX, i)))
-
-    # Print out the serial number array
+    assert cli_settings.node
+    serialno_data = cli_settings.node.serial_no()
     serialno_str = "".join(format(x, "02x") for x in serialno_data)
     click.echo(f"Serial Number: {serialno_str}")
 
@@ -493,28 +486,14 @@ def cmd(cli_settings: CliSettings) -> None:
     _ = cli_settings
 
 
-def send_command(
-        cli_settings: CliSettings,
-        command: int,
-        arg: int = 0) -> None:
-    """Send a command as a faked up SDO download """
-
-    fake_var = canopen.objectdictionary.Variable(
-        "command",
-        oi.COMMAND_INDEX,
-        command)
-    fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-    cli_settings.database.add_object(fake_var)
-    cli_settings.node.sdo["command"].raw = arg
-    click.echo("Command sent successfully")
-
-
 @cmd.command("save")
 @pass_cli_settings
 @can_action
 def cmd_save(cli_settings: CliSettings) -> None:
     """Save device parameters and CAN map to flash"""
-    send_command(cli_settings, oi.SAVE_COMMAND_SUBINDEX)
+    assert cli_settings.node
+    cli_settings.node.save()
+    click.echo("Command sent successfully")
 
 
 @cmd.command("load")
@@ -522,7 +501,9 @@ def cmd_save(cli_settings: CliSettings) -> None:
 @can_action
 def cmd_load(cli_settings: CliSettings) -> None:
     """Load device parameters and CAN map from flash"""
-    send_command(cli_settings, oi.LOAD_COMMAND_SUBINDEX)
+    assert cli_settings.node
+    cli_settings.node.load()
+    click.echo("Command sent successfully")
 
 
 @cmd.command("reset")
@@ -530,7 +511,9 @@ def cmd_load(cli_settings: CliSettings) -> None:
 @can_action
 def cmd_reset(cli_settings: CliSettings) -> None:
     """Reset the device"""
-    send_command(cli_settings, oi.RESET_COMMAND_SUBINDEX)
+    assert cli_settings.node
+    cli_settings.node.reset()
+    click.echo("Command sent successfully")
 
 
 @cmd.command("defaults")
@@ -538,7 +521,9 @@ def cmd_reset(cli_settings: CliSettings) -> None:
 @can_action
 def cmd_defaults(cli_settings: CliSettings) -> None:
     """Reset the device parameters to their built-in defaults"""
-    send_command(cli_settings, oi.DEFAULTS_COMMAND_SUBINDEX)
+    assert cli_settings.node
+    cli_settings.node.load_defaults()
+    click.echo("Command sent successfully")
 
 
 @cmd.command("start")
@@ -565,7 +550,9 @@ def cmd_start(cli_settings: CliSettings, mode: str) -> None:
         "ACHeat": oi.START_MODE_ACHEAT
     }
 
-    send_command(cli_settings, oi.START_COMMAND_SUBINDEX, mode_list[mode])
+    assert cli_settings.node
+    cli_settings.node.start(mode_list[mode])
+    click.echo("Command sent successfully")
 
 
 @cmd.command("stop")
@@ -573,7 +560,9 @@ def cmd_start(cli_settings: CliSettings, mode: str) -> None:
 @can_action
 def cmd_stop(cli_settings: CliSettings) -> None:
     """Stop the device from operating"""
-    send_command(cli_settings, oi.STOP_COMMAND_SUBINDEX)
+    assert cli_settings.node
+    cli_settings.node.stop()
+    click.echo("Command sent successfully")
 
 
 @cli.group("map")
@@ -585,46 +574,43 @@ def can_map(cli_settings: CliSettings) -> None:
     _ = cli_settings
 
 
-class CanMapping:
-    """Encapsulate a CAN parameter mapping"""
+def param_name_from_id(param_id: int, db: canopen.ObjectDictionary) -> str:
+    """Return the name of a parameter based on the openinverter parameter ID.
+    If it is not in the database the number is returned."""
 
-    def __init__(
-            self,
-            sdo_index,
-            sdo_subindex,
-            rx,
-            can_id,
-            param_id,
-            param_name,
-            position,
-            length,
-            gain,
-            offset):
+    # This is not evenly remotely efficient
+    param_name = None
+    for item in db.names.values():
+        if isinstance(item, OIVariable) and item.id == param_id:
+            param_name = item.name
+            break
 
-        self.sdo_index = sdo_index
-        self.sdo_subindex = sdo_subindex
-        self.rx = rx
-        self.can_id = can_id
-        self.param_id = param_id
-        self.param_name = param_name
-        self.position = position
-        self.length = length
-        self.gain = gain
-        self.offset = offset
+    if param_name is None:
+        return f"{param_id}"
+    else:
+        return f"{param_name}"
 
-    def __str__(self):
-        return (
-            ("rx" if self.rx else "tx") +
-            " sdo_index=" + str(self.sdo_index) +
-            " sdo_subindex=" + str(self.sdo_subindex) +
-            " can_id=" + hex(self.can_id) +
-            (" param=" + repr(self.param_name) if self.param_name
-                else " param_id=" + str(self.param_id)) +
-            " pos=" + str(self.position) +
-            " len=" + str(self.length) +
-            " gain=" + str(self.gain) +
-            " offset=" + str(self.offset)
-        )
+
+def print_can_map(
+        direction_str: str,
+        cur_map: List[CanMessage],
+        db: canopen.ObjectDictionary) -> None:
+    """Helper function to print the contents of a CAN message map """
+
+    msg_index = 0
+    param_index = 0
+    for msg in cur_map:
+        click.echo(f"0x{msg.can_id:x}:")
+        for entry in msg.params:
+            click.echo(
+                f" {direction_str}.{msg_index}.{param_index}" +
+                f" param='{param_name_from_id(entry.param_id, db)}'" +
+                f" pos={entry.position} length={entry.length}" +
+                f" gain={entry.gain} offset={entry.offset}"
+            )
+            param_index += 1
+        param_index = 0
+        msg_index += 1
 
 
 @can_map.command("list")
@@ -636,130 +622,43 @@ def cmd_can_list(
 ) -> None:
     """List parameter to CAN message mappings"""
 
-    sdo_index = oi.CAN_MAP_LIST_TX_INDEX
-    sdo_subindex = 0
-    rx = False  # tx mappings come first, then rx
+    assert cli_settings.node
+    node = cli_settings.node
 
-    mappings = []
+    tx_map = node.list_can_map(Direction.TX)
+    rx_map = node.list_can_map(Direction.RX)
 
-    while True:
-        # Request COB ID
-        fake_var = canopen.objectdictionary.Variable(
-            "command", sdo_index, 0)
-        fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-        cli_settings.database.add_object(fake_var)
-        try:
-            can_id = cli_settings.node.sdo["command"].raw  # SDO read
-            sdo_subindex += 1
-        except canopen.SdoAbortedError as err:
-            if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                if not rx:
-                    rx = True
-                    sdo_index = oi.CAN_MAP_LIST_RX_INDEX
-                    continue
-                else:
-                    break
-            else:
-                raise err
-
-        while True:
-            # Request Parameter id, position and length
-            fake_var = canopen.objectdictionary.Variable(
-                "command", sdo_index, sdo_subindex)
-            fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-            cli_settings.database.add_object(fake_var)
-            try:
-                dataposlen = cli_settings.node.sdo["command"].raw  # SDO read
-            except canopen.SdoAbortedError as err:
-                if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                    sdo_index += 1
-                    sdo_subindex = 0
-                    break
-                else:
-                    raise err
-
-            # Request Gain and offset
-            sdo_subindex += 1
-            fake_var = canopen.objectdictionary.Variable(
-                "command", sdo_index, sdo_subindex)
-            fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-            cli_settings.database.add_object(fake_var)
-            try:
-                gainofs = cli_settings.node.sdo["command"].raw  # SDO read
-            except canopen.SdoAbortedError as err:
-                if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
-                    break
-                else:
-                    raise err
-
-            # Parse
-            param_id = dataposlen & 0xffff
-            position = (dataposlen >> 16) & 0xff
-            length = (dataposlen >> 24) & 0xff
-            gain = (gainofs & 0xffffff) / 1000
-            offset = (gainofs >> 24) & 0xff
-
-            # Get the parameter name by id from the cached database
-            param_name = None
-            for item in cli_settings.database.names.values():
-                if isinstance(item, OIVariable) and item.id == param_id:
-                    param_name = item.name
-
-            mapping = CanMapping(
-                sdo_index,
-                sdo_subindex,
-                rx,
-                can_id,
-                param_id,
-                param_name,
-                position,
-                length,
-                gain,
-                offset)
-
-            mappings.append(mapping)
-
-            sdo_subindex += 1
-
-    if not mappings:
+    if not tx_map and not rx_map:
         click.echo("(none)")
     else:
-        printed_can_id = None
-        for mapping in mappings:
-            if printed_can_id != mapping.can_id:
-                printed_can_id = mapping.can_id
-                click.echo(hex(printed_can_id) + ":")
-            click.echo(
-                " " +
-                ("rx" if mapping.rx else "tx") +
-                "." +
-                str(mapping.sdo_index - (oi.CAN_MAP_LIST_RX_INDEX if mapping.rx
-                                         else oi.CAN_MAP_LIST_TX_INDEX)) +
-                "." + str(mapping.sdo_subindex // 2 - 1) +
-                (" param=" + repr(mapping.param_name) if mapping.param_name
-                    else " param_id=" + str(mapping.param_id)) +
-                " pos=" + str(mapping.position) +
-                " length=" + str(mapping.length) +
-                " gain=" + str(mapping.gain) +
-                " offset=" + str(mapping.offset)
-            )
+        print_can_map(
+            "tx",
+            tx_map,
+            cli_settings.database)
+
+        print_can_map(
+            "rx",
+            rx_map,
+            cli_settings.database)
 
 
 @can_map.command("add")
-@click.argument("txrx", required=True, type=click.Choice(["tx", "rx"]))
+@click.argument("direction", required=True, type=click.Choice(["tx", "rx"]))
 @click.argument("can_id", required=True)
 @click.argument("param", required=True)
-@click.argument("position", required=True, type=click.IntRange(0, 64))
-@click.argument("length", required=True, type=click.IntRange(1, 64))
-@click.argument("gain", type=click.FloatRange(0.0, 16777.215), default=1.0)
-@click.argument("offset", type=int, default=0)
+@click.argument("position", required=True, type=click.IntRange(0, 63))
+@click.argument("length", required=True, type=click.IntRange(1, 32))
+@click.argument("gain",
+                type=click.FloatRange(-8388.608, 8388.607),
+                default=1.0)
+@click.argument("offset", type=click.IntRange(-128, 127), default=0)
 @pass_cli_settings
 @db_action
 @can_action
 def cmd_can_add(
     cli_settings: CliSettings,
-    txrx: str,
-    can_id: int,
+    direction: str,
+    can_id: str,
     param: str,
     position: int,
     length: int,
@@ -781,39 +680,25 @@ def cmd_can_add(
         return
 
     # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
-    can_id = literal_eval(can_id)
-    if can_id <= 0 or can_id >= 0x800:
+    can_id_int = literal_eval(can_id)
+    if can_id_int <= 0 or can_id_int >= 0x800:
         click.echo("can_id out of range")
         return
 
-    click.echo("Adding CAN mapping with " +
-               f"can_id={can_id:#x} param='{param}' position={position} " +
-               f" length={length} gain={gain} offset={offset}")
+    click.echo("Adding CAN {direction_str} mapping with " +
+               f"can_id={can_id_int:#x} param='{param}' position={position} " +
+               f"length={length} gain={gain} offset={offset}")
 
-    sdo_index = oi.CAN_MAP_TX_INDEX if txrx == "tx" else oi.CAN_MAP_RX_INDEX
-
-    # Send COB id (CAN frame id)
-    fake_var = canopen.objectdictionary.Variable(
-        "command", sdo_index, 0x00)
-    fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-    cli_settings.database.add_object(fake_var)
-    cli_settings.node.sdo["command"].raw = can_id
-
-    # Send Parameter id, position and length
-    fake_var = canopen.objectdictionary.Variable(
-        "command", sdo_index, 0x01)
-    fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-    cli_settings.database.add_object(fake_var)
-    cli_settings.node.sdo["command"].raw = (
-        param_id | (position << 16) | (length << 24))
-
-    # Send Gain and offset
-    fake_var = canopen.objectdictionary.Variable(
-        "command", sdo_index, 0x02)
-    fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-    cli_settings.database.add_object(fake_var)
-    cli_settings.node.sdo["command"].raw = (
-        int(gain * 1000) | (offset << 24))
+    assert cli_settings.node
+    node = cli_settings.node
+    node.add_can_map_entry(
+        can_id_int,
+        Direction[direction.upper()],
+        param_id,
+        position,
+        length,
+        gain,
+        offset)
 
     click.echo("CAN mapping added successfully.")
 
@@ -848,37 +733,28 @@ def cmd_can_remove(
      rx.1.0 param='maxpower' pos=32 len=16 gain=1.0 offset=0
     """
 
-    sub_ids = listing_id.split('.')
-    txrx = sub_ids[0]
-    mapping_index = sub_ids[1]
-    mapping_subindex = sub_ids[2]
+    listing_parts = re.match(
+        r"^(tx|rx)\.(\d{1,2})\.(\d{1,2})$",
+        listing_id,
+        flags=re.IGNORECASE)
 
-    if (txrx not in ["tx", "rx"] or not mapping_index.isnumeric() or
-            not mapping_subindex.isnumeric()):
+    if not listing_parts:
         click.echo('Invalid listing id: Correct format is "[tx/rx].<n>.<n>"')
         return
 
-    mapping_index = int(mapping_index)
-    mapping_subindex = int(mapping_subindex)
+    direction = Direction[listing_parts[1].upper()]
+    msg_index = int(listing_parts[2])
+    param_index = int(listing_parts[3])
 
-    sdo_index = mapping_index + \
-        (oi.CAN_MAP_LIST_RX_INDEX if txrx == "rx" else
-         oi.CAN_MAP_LIST_TX_INDEX)
-    sdo_subindex = (mapping_subindex + 1) * 2
-
-    try:
-        # Send COB id (CAN frame id)
-        fake_var = canopen.objectdictionary.Variable(
-            "command", sdo_index, sdo_subindex)
-        fake_var.data_type = canopen.objectdictionary.UNSIGNED32
-        cli_settings.database.add_object(fake_var)
-        cli_settings.node.sdo["command"].raw = 0
-    except canopen.SdoCommunicationError as err:
-        if str(err) == "Unexpected response 0x23":
-            # This is normal
-            click.echo("CAN mapping removed successfully.")
-        else:
-            raise err
+    assert cli_settings.node
+    node = cli_settings.node
+    if node.remove_can_map_entry(
+            direction,
+            msg_index,
+            param_index):
+        click.echo("CAN mapping removed successfully.")
+    else:
+        click.echo("Unable to find CAN map entry.")
 
 
 @cli.command()
