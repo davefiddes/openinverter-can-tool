@@ -428,7 +428,7 @@ def write_impl(
         click.echo(f"Unknown parameter: {param}")
 
 
-@cli.command(context_settings=dict(ignore_unknown_options=True))
+@cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("param")
 @click.argument("value")
 @pass_cli_settings
@@ -642,7 +642,7 @@ def cmd_can_list(
             cli_settings.database)
 
 
-@can_map.command("add")
+@can_map.command("add", context_settings={"ignore_unknown_options": True})
 @click.argument("direction", required=True, type=click.Choice(["tx", "rx"]))
 @click.argument("can_id", required=True)
 @click.argument("param", required=True)
