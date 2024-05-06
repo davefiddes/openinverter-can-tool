@@ -305,6 +305,49 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.gain == 1.0
         assert param.offset == 0
 
+    def test_list_tx_map_negative_gain_offset(self):
+        # From a capture of the command:
+        # oic map list
+        # 0x101:
+        # tx.0.0 param='tmphs' pos=24 length=8 gain=-8388.608 offset=-128
+        self.data = [
+            # First CAN ID
+            (TX, b'\x40\x00\x31\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x00\x01\x01\x00\x00'),
+
+            # First CAN ID - first param: id, position and length
+            (TX, b'\x40\x00\x31\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x01\xE3\x07\x18\x08'),
+
+            # First CAN ID - first param: gain and offset
+            (TX, b'\x40\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x02\x00\x00\x80\x80'),
+
+            # First CAN ID - second param: not present
+            (TX, b'\x40\x00\x31\x03\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x03\x00\x00\x02\x06'),
+
+            # Second CAN ID - not present
+            (TX, b'\x40\x01\x31\x00\x00\x00\x00\x00'),
+            (RX, b'\x80\x01\x31\x00\x00\x00\x02\x06')
+        ]
+
+        can_map = self.node.list_can_map(Direction.TX)
+
+        assert len(can_map) == 1
+        msg = can_map[0]
+
+        assert msg.can_id == 0x101
+
+        assert len(msg.params) == 1
+        param = msg.params[0]
+
+        assert param.param_id == 2019
+        assert param.position == 24
+        assert param.length == 8
+        assert param.gain == -8388.608
+        assert param.offset == -128
+
     def test_list_tx_map_single_can_id_corrupt_param(self):
         # Manually synthesised CAN packets with the gain/offset fields not
         # provided

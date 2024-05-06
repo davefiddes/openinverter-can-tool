@@ -245,9 +245,9 @@ class OpenInverterNode(BaseNode):
 
             gain_offset_bytes = self.sdo.upload(
                 can_id_index, param_index+1)
-            gain_bytes = gain_offset_bytes[:3]
 
             # Sign-extend the 24-bit gain into a 32-bit signed integer
+            gain_bytes = gain_offset_bytes[:3]
             neg_gain = (gain_bytes[2] & 0x80) > 0
             (gain,) = struct.unpack(
                 "<i",
@@ -256,7 +256,8 @@ class OpenInverterNode(BaseNode):
             # Scale fixed-point to a float
             gain = gain / 1000.0
 
-            (offset,) = struct.pack("<b", gain_offset_bytes[3])
+            offset_bytes = gain_offset_bytes[3:4]
+            (offset,) = struct.unpack("<b", offset_bytes)
 
             param = MapEntry(param_id, position, length, gain, offset)
 
