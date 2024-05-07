@@ -685,7 +685,7 @@ def cmd_can_add(
         click.echo("can_id out of range")
         return
 
-    click.echo("Adding CAN {direction_str} mapping with " +
+    click.echo(f"Adding CAN {direction} mapping with " +
                f"can_id={can_id_int:#x} param='{param}' position={position} " +
                f"length={length} gain={gain} offset={offset}")
 
