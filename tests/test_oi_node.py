@@ -633,6 +633,28 @@ class TestOpenInverterNode(unittest.TestCase):
             gain=8388.607,
             offset=127)
 
+    def test_map_transmit_big_endian_successfully(self):
+        # Manually synthesized equivalent to the command:
+        # oic map add tx 0x101 tmpm 0 8 big 1.0 0
+        self.data = [
+            (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
+            (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
+            (TX, b'\x23\x00\x30\x01\xE3\x07\x00\xF8'),
+            (RX, b'\x60\x00\x30\x01\xE3\x07\x00\xF8'),
+            (TX, b'\x23\x00\x30\x02\xE8\x03\x00\x00'),
+            (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x00')
+        ]
+        tmphs = OIVariable("tmphs", 2019)
+        self.node.add_can_map_entry(
+            can_id=0x101,
+            direction=Direction.TX,
+            param_id=tmphs.id,
+            position=0,
+            length=8,
+            gain=1.0,
+            offset=0,
+            endian=Endian.BIG)
+
     def test_map_param_out_of_range_can_id(self):
         self.data = []
 

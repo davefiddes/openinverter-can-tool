@@ -23,7 +23,7 @@ import click
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
 from .paramdb import OIVariable, import_cached_database, import_database
-from .oi_node import OpenInverterNode, Direction, CanMessage
+from .oi_node import OpenInverterNode, Direction, CanMessage, Endian
 
 
 class CliSettings:
@@ -649,6 +649,9 @@ def cmd_can_list(
 @click.argument("param", required=True)
 @click.argument("position", required=True, type=click.IntRange(0, 63))
 @click.argument("length", required=True, type=click.IntRange(1, 32))
+@click.argument("endian",
+                type=click.Choice(["little", "big"], case_sensitive=False),
+                default="little")
 @click.argument("gain",
                 type=click.FloatRange(-8388.608, 8388.607),
                 default=1.0)
@@ -663,8 +666,9 @@ def cmd_can_add(
     param: str,
     position: int,
     length: int,
+    endian: str,
     gain: float,
-    offset: int,
+    offset: int
 ) -> None:
     """Add a CAN message mapping for a specific parameter
 
@@ -688,7 +692,7 @@ def cmd_can_add(
 
     click.echo(f"Adding CAN {direction} mapping with " +
                f"can_id={can_id_int:#x} param='{param}' position={position} " +
-               f"length={length} gain={gain} offset={offset}")
+               f"length={length} endian={endian} gain={gain} offset={offset}")
 
     assert cli_settings.node
     node = cli_settings.node
@@ -699,7 +703,8 @@ def cmd_can_add(
         position,
         length,
         gain,
-        offset)
+        offset,
+        Endian[endian.upper()])
 
     click.echo("CAN mapping added successfully.")
 

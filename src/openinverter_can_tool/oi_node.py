@@ -159,7 +159,8 @@ class OpenInverterNode(BaseNode):
             position: int,
             length: int,
             gain: float,
-            offset: int) -> None:
+            offset: int,
+            endian: Endian = Endian.LITTLE) -> None:
         """
         Add a CAN map entry to transmit the current value of a given parameter.
 
@@ -173,6 +174,7 @@ class OpenInverterNode(BaseNode):
                           inserted into the CAN frame. [-8388.608, 8388.607]
         :param offset:    The offset to be added to the parameter after the
                           gain is applied. [-128, 127]
+        :param endian:    The endian-ness of the mapping [LITTLE,BIG]
 
         """
         if can_id not in range(1, 0x800):
@@ -207,7 +209,11 @@ class OpenInverterNode(BaseNode):
         self.sdo.download(
             cmd_index,
             oi.MAP_PARAM_POS_LEN_SUBINDEX,
-            struct.pack("<HBB", param_id, position, length))
+            struct.pack(
+                "<HBb",
+                param_id,
+                position,
+                length if endian is Endian.LITTLE else -length))
 
         # Finally fill out the SDO "variable" with the gain and offset
         # the parameter requires for the CAN frame. This will actually
