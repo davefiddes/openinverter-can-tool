@@ -606,6 +606,7 @@ def print_can_map(
                 f" {direction_str}.{msg_index}.{param_index}" +
                 f" param='{param_name_from_id(entry.param_id, db)}'" +
                 f" pos={entry.position} length={entry.length}" +
+                f" endian={entry.endian.name.lower()}" +
                 f" gain={entry.gain} offset={entry.offset}"
             )
             param_index += 1

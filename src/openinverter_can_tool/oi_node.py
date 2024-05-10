@@ -29,6 +29,12 @@ MapListDirectionIndex = {
 }
 
 
+class Endian(IntEnum):
+    """Endian-ness of the mapping"""
+    LITTLE = 1
+    BIG = 2
+
+
 class MapEntry:
     """Describe a openinverter parameter to CAN message mapping"""
 
@@ -37,12 +43,14 @@ class MapEntry:
             param_id: int,
             position: int,
             length: int,
+            endian: Endian,
             gain: float,
             offset: int):
 
         self.param_id = param_id
         self.position = position
         self.length = length
+        self.endian = endian
         self.gain = gain
         self.offset = offset
 
@@ -240,7 +248,7 @@ class OpenInverterNode(BaseNode):
 
         try:
             (param_id, position, length) = struct.unpack(
-                "<HBB",
+                "<HBb",
                 self.sdo.upload(can_id_index, param_index))
 
             gain_offset_bytes = self.sdo.upload(
@@ -259,7 +267,13 @@ class OpenInverterNode(BaseNode):
             offset_bytes = gain_offset_bytes[3:4]
             (offset,) = struct.unpack("<b", offset_bytes)
 
-            param = MapEntry(param_id, position, length, gain, offset)
+            param = MapEntry(
+                param_id,
+                position,
+                abs(length),
+                Endian.LITTLE if length > 0 else Endian.BIG,
+                gain,
+                offset)
 
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
