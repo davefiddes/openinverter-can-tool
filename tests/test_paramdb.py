@@ -19,7 +19,7 @@ from openinverter_can_tool.paramdb import import_cached_database
 
 from .oi_sim import OISimulatedNode
 
-TEST_DATA_DIR = Path(__file__).parent / "test_data"
+TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
 
 
 class OpeninverterVariable(unittest.TestCase):
