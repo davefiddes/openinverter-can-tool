@@ -1,25 +1,28 @@
 """
 Unit test parameter database functions
 """
+import filecmp
+import json
 import unittest
 from pathlib import Path
-import json
-import pytest
 from typing import cast
-import filecmp
 
 import canopen.objectdictionary
+import pytest
 
 from openinverter_can_tool.fpfloat import fixed_from_float
-from openinverter_can_tool.paramdb import OIVariable
-from openinverter_can_tool.paramdb import import_database
-from openinverter_can_tool.paramdb import import_database_json
-from openinverter_can_tool.paramdb import import_remote_database
-from openinverter_can_tool.paramdb import import_cached_database
+from openinverter_can_tool.paramdb import (OIVariable,
+                                           import_cached_database,
+                                           import_database,
+                                           import_database_json,
+                                           import_remote_database)
 
 from .oi_sim import OISimulatedNode
 
 TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
+
+# Reduce test verbosity
+# pylint: disable=missing-function-docstring
 
 
 class OpeninverterVariable(unittest.TestCase):
