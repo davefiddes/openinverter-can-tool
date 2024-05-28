@@ -1,0 +1,80 @@
+{
+    "version": 1,
+    "tx": [
+        {
+            "can_id": 257,
+            "params": [
+                {
+                    "param": "potmin",
+                    "position": 24,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": -1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "potmax",
+                    "position": 0,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": 1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "potmin",
+                    "position": 8,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": -1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "potmax",
+                    "position": 16,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": 1.0,
+                    "offset": 0
+                }
+            ]
+        },
+        {
+            "can_id": 819,
+            "params": [
+                {
+                    "param": "cpuload",
+                    "position": 0,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": 1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "curkp",
+                    "position": 8,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": -1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "cpuload",
+                    "position": 16,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": 1.0,
+                    "offset": 0
+                },
+                {
+                    "param": "curkp",
+                    "position": 24,
+                    "length": 8,
+                    "endian": "little",
+                    "gain": -1.0,
+                    "offset": 0
+                }
+            ]
+        }
+    ],
+    "rx": []
+}

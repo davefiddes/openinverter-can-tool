@@ -8,11 +8,11 @@ import functools
 import glob
 import json
 import os
-import time
 import re
+import time
 from ast import literal_eval
 from pathlib import Path
-from typing import Optional, Union, cast, List
+from typing import List, Optional, Union, cast
 
 import appdirs
 import can
@@ -22,8 +22,9 @@ import click
 
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
+from .oi_node import CanMessage, Direction, Endian, OpenInverterNode
 from .paramdb import OIVariable, import_cached_database, import_database
-from .oi_node import OpenInverterNode, Direction, CanMessage, Endian
+from .map_persistence import export_json_map
 
 
 class CliSettings:
@@ -761,6 +762,25 @@ def cmd_can_remove(
         click.echo("CAN mapping removed successfully.")
     else:
         click.echo("Unable to find CAN map entry.")
+
+
+@can_map.command("export")
+@click.argument("out_file", type=click.File("w"))
+@pass_cli_settings
+@db_action
+@can_action
+def cmd_can_export(cli_settings: CliSettings, out_file: click.File) -> None:
+    """Export all parameter to CAN message mappings in json to OUT_FILE"""
+
+    assert cli_settings.node
+    node = cli_settings.node
+
+    tx_map = node.list_can_map(Direction.TX)
+    rx_map = node.list_can_map(Direction.RX)
+
+    export_json_map(tx_map, rx_map, cli_settings.database, out_file)
+
+    click.echo("Parameter CAN message map exported")
 
 
 @cli.command()
