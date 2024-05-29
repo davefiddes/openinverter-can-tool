@@ -54,6 +54,16 @@ class MapEntry:
         self.gain = gain
         self.offset = offset
 
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __repr__(self) -> str:
+        cls = self.__class__.__name__
+        attrs = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
+        return f"{cls}({attrs})"
+
 
 class CanMessage:
     """
@@ -66,6 +76,16 @@ class CanMessage:
             params: List[MapEntry]) -> None:
         self.can_id = can_id
         self.params = params
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __repr__(self) -> str:
+        cls = self.__class__.__name__
+        attrs = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
+        return f"{cls}({attrs})"
 
 
 class OpenInverterNode(BaseNode):

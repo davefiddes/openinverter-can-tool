@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "tx": [
+        {
+            "can_id": 291,
+            "params": [
+                {
+                    "param": "param1",
+                    "position": 24,
+                    "length": 8,
+                    "endian": "large",
+                    "gain": -1.0,
+                    "offset": 0
+                }
+            ]
+        }
+    ],
+    "rx": []
+}

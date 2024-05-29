@@ -3,11 +3,11 @@ Routines to allow CAN message maps to be persisted
 """
 
 import json
-from typing import IO, Dict, List
+from typing import IO, Dict, List, Tuple
 
 import canopen.objectdictionary
 
-from .oi_node import CanMessage
+from .oi_node import CanMessage, MapEntry, Endian
 from .paramdb import OIVariable
 
 
@@ -58,6 +58,7 @@ def export_json_map(tx_map: List[CanMessage],
 
     :param tx_map:  The transmit CAN message map
     :param rx_map:  The receive CAN message map
+    :param db:      The object database to convert parameter IDs to names with
     :param out_file: The writeable file object to output the encoded JSON to
     """
 
@@ -67,3 +68,55 @@ def export_json_map(tx_map: List[CanMessage],
         "rx": convert_map_to_dict(rx_map, db)
     }
     json.dump(doc, out_file, indent=4)
+
+
+def import_json_map(in_file: IO,
+                    db: canopen.ObjectDictionary,
+                    ) -> Tuple[List[CanMessage],
+                               List[CanMessage]]:
+    """
+    Import a CAN message map from the supplied JSON file.
+
+    :param in_file: The JSON file with the CAN message map to import
+    :param db:      The object database to resolve parameter names with
+
+    :returns: Tuple with the transmit and receive CAN message maps
+    """
+
+    def _parse_map_entries(params_doc) -> List[MapEntry]:
+        params = []
+        for param in params_doc:
+            param_id = db.names[param["param"]].id
+            params.append(
+                MapEntry(
+                    param_id,
+                    param["position"],
+                    param["length"],
+                    Endian[param["endian"].upper()],
+                    param["gain"],
+                    param["offset"],
+                ))
+
+        return params
+
+    def _parse_can_messages(msg_doc) -> List[CanMessage]:
+        msg_list = []
+        for msg in msg_doc:
+            msg_list.append(
+                CanMessage(msg["can_id"],
+                           _parse_map_entries(msg["params"])))
+        return msg_list
+
+    doc = json.load(in_file)
+
+    if "version" not in doc or "tx" not in doc or "rx" not in doc:
+        raise RuntimeError("Invalid file format")
+
+    version = doc["version"]
+    if version != 1:
+        raise RuntimeError(f"Unsupported version: {version}")
+
+    tx_map = _parse_can_messages(doc["tx"])
+    rx_map = _parse_can_messages(doc["rx"])
+
+    return (tx_map, rx_map)
