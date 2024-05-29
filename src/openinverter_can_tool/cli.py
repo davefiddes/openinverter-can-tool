@@ -780,6 +780,8 @@ def cmd_can_clear(
     node = cli_settings.node
     node.clear_map(Direction[direction.upper()])
 
+    click.echo(f"CAN {direction} mapping removed successfully.")
+
 
 @can_map.command("export")
 @click.argument("out_file", type=click.File("w"))
