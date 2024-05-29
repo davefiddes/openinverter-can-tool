@@ -134,7 +134,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_single_message_and_single_param(self):
         # From a capture of the command:
-        # oic map list
+        # oic can list
         # 0x101:
         # tx.0.0 param='tmphs' pos=24 length=8 gain=-1.0 offset=0
         self.data = [
@@ -178,7 +178,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_single_can_id_two_params(self):
         # From a capture of the command:
-        # oic map list
+        # oic can list
         # 0x101:
         # tx.0.0 param='tmphs' pos=24 length=8 gain=-1.0 offset=0
         # tx.0.1 param='tmpm' pos=0 length=8 gain=1.0 offset=0
@@ -239,7 +239,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_two_can_ids_single_param(self):
         # Manually synthesised CAN packets equivalent to:
-        # oic map list
+        # oic can list
         # 0x001:
         # tx.0.0 param='tmphs' pos=24 length=8 gain=-1.0 offset=0
         # 0x7ff:
@@ -312,7 +312,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_negative_gain_offset(self):
         # From a capture of the command:
-        # oic map list
+        # oic can list
         # 0x101:
         # tx.0.0 param='tmphs' pos=24 length=8 gain=-8388.608 offset=-128
         self.data = [
@@ -356,7 +356,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_big_endian(self):
         # Manually synthesised CAN packets equivalent to:
-        # oic map list
+        # oic can list
         # 0x103:
         # tx.0.0 param='tmpm' pos=0 length=8 endian=big gain=1.0 offset=0
         self.data = [
@@ -445,7 +445,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_list_tx_map_single_can_id_corrupt_second_param(self):
         # Synthesised CAN frame equivalent to the command:
-        # oic map list
+        # oic can list
         # 0x101:
         # tx.0.0 param='tmphs' pos=24 length=8 gain=-1.0 offset=0
         self.data = [
@@ -493,7 +493,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_map_transmit_parameter_successfully(self):
         # from a capture of the command:
-        # oic map add tx 0x101 tmpm 0 8 1.0 0
+        # oic can add tx 0x101 tmpm 0 8 1.0 0
         self.data = [
             (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
             (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
@@ -514,7 +514,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_map_transmit_param_with_negative_unity_gain(self):
         # from a capture of the command:
-        # oic map add tx 0x101 tmphs 24 8 -1.0 0
+        # oic can add tx 0x101 tmphs 24 8 -1.0 0
         self.data = [
             (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
             (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
@@ -635,7 +635,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_map_transmit_big_endian_successfully(self):
         # Manually synthesized equivalent to the command:
-        # oic map add tx 0x101 tmpm 0 8 big 1.0 0
+        # oic can add tx 0x101 tmpm 0 8 big 1.0 0
         self.data = [
             (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
             (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
@@ -785,7 +785,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_remove_first_mapped_param(self):
         # from a capture of the command:
-        # oic map remove tx.0.0
+        # oic can remove tx.0.0
         self.data = [
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
             (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00')
@@ -794,7 +794,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_remove_fourth_param_from_second_can_messsage(self):
         # from a capture of the command:
-        # oic map remove tx.1.3
+        # oic can remove tx.1.3
         self.data = [
             (TX, b'\x23\x01\x31\x08\x00\x00\x00\x00'),
             (RX, b'\x23\x01\x31\x08\x00\x00\x00\x00')
@@ -803,13 +803,56 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_remove_not_present_rx_mapping(self):
         # from a capture of the command:
-        # oic map remove rx.5.5
+        # oic can remove rx.5.5
         # with no RX map defined
         self.data = [
             (TX, b'\x23\x85\x31\x0C\x00\x00\x00\x00'),
             (RX, b'\x80\x85\x31\x0C\x00\x00\x02\x06')
         ]
         assert not self.node.remove_can_map_entry(Direction.RX, 5, 5)
+
+    def test_clear_map_tx_no_mappings_present(self):
+        # From a capture of running:
+        # oic can remove rx.0.0
+        self.data = [
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x02\x00\x00\x02\x06')
+        ]
+        assert not self.node.clear_map(Direction.TX)
+
+    def test_clear_map_tx_large_map(self):
+        # From a capture of running:
+        # oic can remove tx.0.0
+        # until it reports "Unable to find CAN map entry."
+        self.data = [
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x02\x00\x00\x02\x06')
+        ]
+        assert not self.node.clear_map(Direction.TX)
+
+    def test_clear_map_rx_single_message_single_param_map(self):
+        # From a capture of running:
+        # oic can remove rx.0.0
+        # until it reports "Unable to find CAN map entry."
+        self.data = [
+            (TX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x80\x80\x31\x02\x00\x00\x02\x06')
+        ]
+        assert not self.node.clear_map(Direction.RX)
 
 
 if __name__ == "__main__":

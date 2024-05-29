@@ -764,6 +764,23 @@ def cmd_can_remove(
         click.echo("Unable to find CAN map entry.")
 
 
+@can_map.command("clear")
+@click.argument("direction", required=True, type=click.Choice(["tx", "rx"]))
+@pass_cli_settings
+@can_action
+def cmd_can_clear(
+    cli_settings: CliSettings,
+    direction: str,
+) -> None:
+    """
+    Clear all parameter to CAN message mappings for the specified direction
+    """
+
+    assert cli_settings.node
+    node = cli_settings.node
+    node.clear_map(Direction[direction.upper()])
+
+
 @can_map.command("export")
 @click.argument("out_file", type=click.File("w"))
 @pass_cli_settings

@@ -375,6 +375,8 @@ class OpenInverterNode(BaseNode):
         :param can_index:   The list index of the CAN ID to remove
         :param param_index: The list index of the param within the CanMessage
                             to remove
+
+        :return: True if the removal was successful
         """
 
         if direction in MapListDirectionIndex:
@@ -404,3 +406,16 @@ class OpenInverterNode(BaseNode):
                 raise err
 
         return False
+
+    def clear_map(self, direction: Direction) -> None:
+        """
+        Remove all entries from the CAN message map
+
+        :param direction:   Which map direction to clear
+        """
+
+        # Repeated removal of the 0th parameter of the 0th message will remove
+        # everything as the device automatically shunts up existing parameters
+        # into that position.
+        while self.remove_can_map_entry(direction, 0, 0):
+            _ = 1
