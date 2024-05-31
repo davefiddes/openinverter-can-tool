@@ -6,7 +6,8 @@ from typing import List, Tuple
 import canopen
 
 from openinverter_can_tool import constants as oi
-from openinverter_can_tool.oi_node import Direction, OpenInverterNode, Endian
+from openinverter_can_tool.oi_node import (CanMessage, Direction, Endian,
+                                           MapEntry, OpenInverterNode)
 from openinverter_can_tool.paramdb import OIVariable
 
 TX = 1
@@ -854,6 +855,40 @@ class TestOpenInverterNode(unittest.TestCase):
         ]
         assert not self.node.clear_map(Direction.RX)
 
+    def test_add_multiple_messages_in_a_single_map(self):
+        # Captured from running the command sequence:
+        # oic can add tx 0x101 tmpm 0 8 little 1.0 0
+        # oic can add tx 0x102 tmphs 32 32 little 2.0 0
+        self.data = [
+            (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
+            (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
+            (TX, b'\x23\x00\x30\x01\xE4\x07\x00\x08'),
+            (RX, b'\x60\x00\x30\x01\xE4\x07\x00\x08'),
+            (TX, b'\x23\x00\x30\x02\xE8\x03\x00\x00'),
+            (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x00'),
+            (TX, b'\x23\x00\x30\x00\x02\x01\x00\x00'),
+            (RX, b'\x60\x00\x30\x00\x02\x01\x00\x00'),
+            (TX, b'\x23\x00\x30\x01\xE3\x07\x20\x20'),
+            (RX, b'\x60\x00\x30\x01\xE3\x07\x20\x20'),
+            (TX, b'\x23\x00\x30\x02\xD0\x07\x00\x00'),
+            (RX, b'\x60\x00\x30\x02\xD0\x07\x00\x00')
+        ]
 
-if __name__ == "__main__":
-    unittest.main()
+        tmpm = OIVariable("tmpm", 2020)
+        tmphs = OIVariable("tmphs", 2019)
+
+        msg_map = [
+            CanMessage(
+                can_id=0x101,
+                params=[MapEntry(tmpm.id, 0, 8, Endian.LITTLE, 1.0, 0)]
+            ),
+            CanMessage(
+                can_id=0x102,
+                params=[MapEntry(tmphs.id, 32, 32, Endian.LITTLE, 2.0, 0)]
+            )
+        ]
+
+        self.node.add_can_map(Direction.TX, msg_map)
+
+        if __name__ == "__main__":
+            unittest.main()

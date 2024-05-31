@@ -182,7 +182,8 @@ class OpenInverterNode(BaseNode):
             offset: int,
             endian: Endian = Endian.LITTLE) -> None:
         """
-        Add a CAN map entry to transmit the current value of a given parameter.
+        Add a CAN map entry to transmit or receive the current value of a
+        given parameter.
 
         :param can_id:    The CAN ID that will be transmitted. [1,0x7ff]
         :param direction: The direction the parameter will be mapped, either
@@ -244,6 +245,31 @@ class OpenInverterNode(BaseNode):
             cmd_index,
             oi.MAP_GAIN_OFFSET_SUBINDEX,
             gain_bytes + offset_bytes)
+
+    def add_can_map(
+            self,
+            direction: Direction,
+            msg_map: List[CanMessage]) -> None:
+        """
+        Add complete CAN map for a given direction. The map may be obtained
+        from the list_can_map() method or manually constructed.
+
+        :param direction: The direction the parameter will be mapped, either
+                          transmit or receive.
+        :param msg_map:  The list of CanMessage objects that comprise the map
+        """
+        for msg in msg_map:
+            for param in msg.params:
+                self.add_can_map_entry(
+                    msg.can_id,
+                    direction,
+                    param.param_id,
+                    param.position,
+                    param.length,
+                    param.gain,
+                    param.offset,
+                    param.endian
+                )
 
     def _get_mapped_can_id(self, index: int) -> Optional[int]:
         """

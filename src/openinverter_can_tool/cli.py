@@ -22,9 +22,9 @@ import click
 
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
+from .map_persistence import export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, Endian, OpenInverterNode
 from .paramdb import OIVariable, import_cached_database, import_database
-from .map_persistence import export_json_map
 
 
 class CliSettings:
@@ -800,6 +800,37 @@ def cmd_can_export(cli_settings: CliSettings, out_file: click.File) -> None:
     export_json_map(tx_map, rx_map, cli_settings.database, out_file)
 
     click.echo("Parameter CAN message map exported")
+
+
+@can_map.command("import")
+@click.argument("in_file", type=click.File("r"))
+@click.option("--clear/--no-clear",
+              show_default=True,
+              default=True,
+              help="Clear any existing CAN message map")
+@pass_cli_settings
+@db_action
+@can_action
+def cmd_can_import(cli_settings: CliSettings,
+                   in_file: click.File,
+                   clear: bool) -> None:
+    """Import a CAN message map from a json IN_FILE"""
+
+    assert cli_settings.node
+    node = cli_settings.node
+
+    if clear:
+        node.clear_map(Direction.TX)
+        node.clear_map(Direction.RX)
+        click.echo("Existing CAN message map cleared")
+
+    (tx_map, rx_map) = import_json_map(in_file, cli_settings.database)
+
+    node.add_can_map(Direction.TX, tx_map)
+    click.echo("Transmit CAN message map configured")
+
+    node.add_can_map(Direction.RX, rx_map)
+    click.echo("Receive CAN message map configured")
 
 
 @cli.command()
