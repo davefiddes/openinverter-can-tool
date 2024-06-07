@@ -8,7 +8,6 @@
                     "param": "param1",
                     "position": 24,
                     "length": 8,
-                    "endian": "little",
                     "gain": -1.0,
                     "offset": 0
                 }
@@ -22,8 +21,7 @@
                 {
                     "param": "param1",
                     "position": 23,
-                    "length": 16,
-                    "endian": "big",
+                    "length": -16,
                     "gain": 2.5,
                     "offset": -42
                 }

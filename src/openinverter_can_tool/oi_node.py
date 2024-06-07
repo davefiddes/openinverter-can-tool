@@ -29,12 +29,6 @@ MapListDirectionIndex = {
 }
 
 
-class Endian(IntEnum):
-    """Endian-ness of the mapping"""
-    LITTLE = 1
-    BIG = 2
-
-
 class MapEntry:
     """Describe a openinverter parameter to CAN message mapping"""
 
@@ -43,14 +37,12 @@ class MapEntry:
             param_id: int,
             position: int,
             length: int,
-            endian: Endian,
             gain: float,
             offset: int):
 
         self.param_id = param_id
         self.position = position
         self.length = length
-        self.endian = endian
         self.gain = gain
         self.offset = offset
 
@@ -179,8 +171,7 @@ class OpenInverterNode(BaseNode):
             position: int,
             length: int,
             gain: float,
-            offset: int,
-            endian: Endian = Endian.LITTLE) -> None:
+            offset: int) -> None:
         """
         Add a CAN map entry to transmit or receive the current value of a
         given parameter.
@@ -190,19 +181,19 @@ class OpenInverterNode(BaseNode):
                           transmit or receive.
         :param param_id:  The openinverter parameter id to be mapped.
         :param position:  The bit position the parameter will start at. [0, 63]
-        :param length:    The bit length the parameter will occupy. [1, 32]
+        :param length:    The bit length the parameter will occupy. Positive
+                          lengths indicate a little-endian length and negative
+                          big-endian. [-32,-1][1, 32]
         :param gain:      The parameter is multiplied by the gain before being
                           inserted into the CAN frame. [-8388.608, 8388.607]
         :param offset:    The offset to be added to the parameter after the
                           gain is applied. [-128, 127]
-        :param endian:    The endian-ness of the mapping [LITTLE,BIG]
-
         """
         if can_id not in range(1, 0x800):
             raise ValueError
         if position not in range(0, 64):
             raise ValueError
-        if length not in range(1, 33):
+        if abs(length) not in range(1, 33):
             raise ValueError
         if gain < -8388.608 or gain > 8388.607:
             raise ValueError
@@ -234,7 +225,7 @@ class OpenInverterNode(BaseNode):
                 "<HBb",
                 param_id,
                 position,
-                length if endian is Endian.LITTLE else -length))
+                length))
 
         # Finally fill out the SDO "variable" with the gain and offset
         # the parameter requires for the CAN frame. This will actually
@@ -267,8 +258,7 @@ class OpenInverterNode(BaseNode):
                     param.position,
                     param.length,
                     param.gain,
-                    param.offset,
-                    param.endian
+                    param.offset
                 )
 
     def _get_mapped_can_id(self, index: int) -> Optional[int]:
@@ -322,8 +312,7 @@ class OpenInverterNode(BaseNode):
             param = MapEntry(
                 param_id,
                 position,
-                abs(length),
-                Endian.LITTLE if length > 0 else Endian.BIG,
+                length,
                 gain,
                 offset)
 

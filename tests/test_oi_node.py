@@ -6,7 +6,7 @@ from typing import List, Tuple
 import canopen
 
 from openinverter_can_tool import constants as oi
-from openinverter_can_tool.oi_node import (CanMessage, Direction, Endian,
+from openinverter_can_tool.oi_node import (CanMessage, Direction,
                                            MapEntry, OpenInverterNode)
 from openinverter_can_tool.paramdb import OIVariable
 
@@ -173,7 +173,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2019
         assert param.position == 24
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == -1.0
         assert param.offset == 0
 
@@ -226,7 +225,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2019
         assert param.position == 24
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == -1.0
         assert param.offset == 0
 
@@ -234,7 +232,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2020
         assert param.position == 0
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == 1.0
         assert param.offset == 0
 
@@ -295,7 +292,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2019
         assert param.position == 24
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == -1.0
         assert param.offset == 0
 
@@ -307,7 +303,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2020
         assert param.position == 0
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == 1.0
         assert param.offset == 0
 
@@ -351,7 +346,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2019
         assert param.position == 24
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == -8388.608
         assert param.offset == -128
 
@@ -359,7 +353,7 @@ class TestOpenInverterNode(unittest.TestCase):
         # Manually synthesised CAN packets equivalent to:
         # oic can list
         # 0x103:
-        # tx.0.0 param='tmpm' pos=0 length=8 endian=big gain=1.0 offset=0
+        # tx.0.0 param='tmpm' pos=7 length=-8 gain=1.0 offset=0
         self.data = [
             # First CAN ID
             (TX, b'\x40\x00\x31\x00\x00\x00\x00\x00'),
@@ -367,7 +361,7 @@ class TestOpenInverterNode(unittest.TestCase):
 
             # First CAN ID - first param: id, position and length
             (TX, b'\x40\x00\x31\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x00\x31\x01\xE4\x07\x00\xF8'),
+            (RX, b'\x43\x00\x31\x01\xE4\x07\x07\xF8'),
 
             # First CAN ID - first param: gain and offset
             (TX, b'\x40\x00\x31\x02\x00\x00\x00\x00'),
@@ -393,9 +387,8 @@ class TestOpenInverterNode(unittest.TestCase):
         param = msg.params[0]
 
         assert param.param_id == 2020
-        assert param.position == 0
-        assert param.length == 8
-        assert param.endian == Endian.BIG
+        assert param.position == 7
+        assert param.length == -8
         assert param.gain == 1.0
         assert param.offset == 0
 
@@ -488,7 +481,6 @@ class TestOpenInverterNode(unittest.TestCase):
         assert param.param_id == 2019
         assert param.position == 24
         assert param.length == 8
-        assert param.endian == Endian.LITTLE
         assert param.gain == -1.0
         assert param.offset == 0
 
@@ -636,12 +628,12 @@ class TestOpenInverterNode(unittest.TestCase):
 
     def test_map_transmit_big_endian_successfully(self):
         # Manually synthesized equivalent to the command:
-        # oic can add tx 0x101 tmpm 0 8 big 1.0 0
+        # oic can add tx 0x101 tmpm 7 -8 1.0 0
         self.data = [
             (TX, b'\x23\x00\x30\x00\x01\x01\x00\x00'),
             (RX, b'\x60\x00\x30\x00\x01\x01\x00\x00'),
-            (TX, b'\x23\x00\x30\x01\xE3\x07\x00\xF8'),
-            (RX, b'\x60\x00\x30\x01\xE3\x07\x00\xF8'),
+            (TX, b'\x23\x00\x30\x01\xE3\x07\x07\xF8'),
+            (RX, b'\x60\x00\x30\x01\xE3\x07\x07\xF8'),
             (TX, b'\x23\x00\x30\x02\xE8\x03\x00\x00'),
             (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x00')
         ]
@@ -650,11 +642,10 @@ class TestOpenInverterNode(unittest.TestCase):
             can_id=0x101,
             direction=Direction.TX,
             param_id=tmphs.id,
-            position=0,
-            length=8,
+            position=7,
+            length=-8,
             gain=1.0,
-            offset=0,
-            endian=Endian.BIG)
+            offset=0)
 
     def test_map_param_out_of_range_can_id(self):
         self.data = []
@@ -880,11 +871,11 @@ class TestOpenInverterNode(unittest.TestCase):
         msg_map = [
             CanMessage(
                 can_id=0x101,
-                params=[MapEntry(tmpm.id, 0, 8, Endian.LITTLE, 1.0, 0)]
+                params=[MapEntry(tmpm.id, 0, 8,  1.0, 0)]
             ),
             CanMessage(
                 can_id=0x102,
-                params=[MapEntry(tmphs.id, 32, 32, Endian.LITTLE, 2.0, 0)]
+                params=[MapEntry(tmphs.id, 32, 32, 2.0, 0)]
             )
         ]
 

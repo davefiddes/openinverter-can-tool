@@ -7,7 +7,7 @@ from typing import IO, Dict, List, Tuple
 
 import canopen.objectdictionary
 
-from .oi_node import CanMessage, MapEntry, Endian
+from .oi_node import CanMessage, MapEntry
 from .paramdb import OIVariable
 
 
@@ -48,7 +48,6 @@ def export_json_map(tx_map: List[CanMessage],
                     "param": param_name,
                     "position": entry.position,
                     "length": entry.length,
-                    "endian": entry.endian.name.lower(),
                     "gain": entry.gain,
                     "offset": entry.offset
                 }
@@ -88,7 +87,6 @@ def import_json_map(in_file: IO,
                     param_id,
                     param["position"],
                     param["length"],
-                    Endian[param["endian"].upper()],
                     param["gain"],
                     param["offset"],
                 ))

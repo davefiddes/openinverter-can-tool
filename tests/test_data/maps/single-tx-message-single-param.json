@@ -8,7 +8,6 @@
                     "param": "param1",
                     "position": 24,
                     "length": 8,
-                    "endian": "little",
                     "gain": -1.0,
                     "offset": 0
                 }

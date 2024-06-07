@@ -10,7 +10,7 @@ import pytest
 
 from openinverter_can_tool.map_persistence import (export_json_map,
                                                    import_json_map)
-from openinverter_can_tool.oi_node import CanMessage, Endian, MapEntry
+from openinverter_can_tool.oi_node import CanMessage, MapEntry
 from openinverter_can_tool.paramdb import import_database
 
 MAP_DIR = Path(__file__).parent / "test_data" / "maps"
@@ -35,7 +35,7 @@ class TestJSONMaps:
     def test_export_single_tx_message_single_param(self, tmp_path: Path):
 
         tx_map = [
-            CanMessage(0x123, [MapEntry(1, 24, 8, Endian.LITTLE, -1.0, 0)])
+            CanMessage(0x123, [MapEntry(1, 24, 8, -1.0, 0)])
         ]
 
         db = import_database(DB_DIR / "single-param.json")
@@ -52,10 +52,10 @@ class TestJSONMaps:
     def test_export_simple_tx_and_rx_message_map(self, tmp_path: Path):
 
         tx_map = [
-            CanMessage(0x123, [MapEntry(1, 24, 8, Endian.LITTLE, -1.0, 0)]),
+            CanMessage(0x123, [MapEntry(1, 24, 8, -1.0, 0)]),
         ]
         rx_map = [
-            CanMessage(0x321, [MapEntry(1, 23, 16, Endian.BIG, 2.5, -42)])
+            CanMessage(0x321, [MapEntry(1, 23, -16, 2.5, -42)])
         ]
 
         db = import_database(DB_DIR / "single-param.json")
@@ -75,16 +75,16 @@ class TestJSONMaps:
 
         tx_map = [
             CanMessage(0x101, [
-                MapEntry(17, 24, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(18, 0, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(17, 8, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(18, 16, 8, Endian.LITTLE, 1.0, 0)
+                MapEntry(17, 24, 8, -1.0, 0),
+                MapEntry(18, 0, 8, 1.0, 0),
+                MapEntry(17, 8, 8, -1.0, 0),
+                MapEntry(18, 16, 8, 1.0, 0)
             ]),
             CanMessage(0x333, [
-                MapEntry(2035, 0, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(107, 8, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(2035, 16, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(107, 24, 8, Endian.LITTLE, -1.0, 0)
+                MapEntry(2035, 0, 8, 1.0, 0),
+                MapEntry(107, 8, 8, -1.0, 0),
+                MapEntry(2035, 16, 8,  1.0, 0),
+                MapEntry(107, 24, 8, -1.0, 0)
             ])
         ]
 
@@ -102,7 +102,7 @@ class TestJSONMaps:
     def test_export_map_with_invalid_param_id(self, tmp_path: Path):
 
         rx_map = [
-            CanMessage(0x123, [MapEntry(2, 24, 8, Endian.LITTLE, -1.0, 0)])
+            CanMessage(0x123, [MapEntry(2, 24, 8, -1.0, 0)])
         ]
 
         db = import_database(DB_DIR / "single-param.json")
@@ -126,7 +126,7 @@ class TestJSONMaps:
         db = import_database(DB_DIR / "single-param.json")
 
         expected_tx_map = [
-            CanMessage(0x123, [MapEntry(1, 24, 8, Endian.LITTLE, -1.0, 0)])
+            CanMessage(0x123, [MapEntry(1, 24, 8, -1.0, 0)])
         ]
 
         with open(MAP_DIR / "single-tx-message-single-param.json",
@@ -140,10 +140,10 @@ class TestJSONMaps:
         db = import_database(DB_DIR / "single-param.json")
 
         expected_tx_map = [
-            CanMessage(0x123, [MapEntry(1, 24, 8, Endian.LITTLE, -1.0, 0)])
+            CanMessage(0x123, [MapEntry(1, 24, 8, -1.0, 0)])
         ]
         expected_rx_map = [
-            CanMessage(0x321, [MapEntry(1, 23, 16, Endian.BIG, 2.5, -42)])
+            CanMessage(0x321, [MapEntry(1, 23, -16, 2.5, -42)])
         ]
 
         with open(MAP_DIR / "simple-tx-rx-message-map.json",
@@ -158,16 +158,16 @@ class TestJSONMaps:
 
         expected_tx_map = [
             CanMessage(0x101, [
-                MapEntry(17, 24, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(18, 0, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(17, 8, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(18, 16, 8, Endian.LITTLE, 1.0, 0)
+                MapEntry(17, 24, 8, -1.0, 0),
+                MapEntry(18, 0, 8, 1.0, 0),
+                MapEntry(17, 8, 8, -1.0, 0),
+                MapEntry(18, 16, 8, 1.0, 0)
             ]),
             CanMessage(0x333, [
-                MapEntry(2035, 0, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(107, 8, 8, Endian.LITTLE, -1.0, 0),
-                MapEntry(2035, 16, 8, Endian.LITTLE, 1.0, 0),
-                MapEntry(107, 24, 8, Endian.LITTLE, -1.0, 0)
+                MapEntry(2035, 0, 8, 1.0, 0),
+                MapEntry(107, 8, 8, -1.0, 0),
+                MapEntry(2035, 16, 8, 1.0, 0),
+                MapEntry(107, 24, 8, -1.0, 0)
             ])
         ]
 
@@ -205,14 +205,6 @@ class TestJSONMaps:
         db = import_database(DB_DIR / "single-param.json")
         with pytest.raises(KeyError):
             with open(MAP_DIR / "corrupt-invalid-param-name.json",
-                      "rt",
-                      encoding="utf-8") as map_file:
-                import_json_map(map_file, db)
-
-    def test_import_corrupt_invalid_endianness(self):
-        db = import_database(DB_DIR / "single-param.json")
-        with pytest.raises(KeyError):
-            with open(MAP_DIR / "corrupt-invalid-endianness.json",
                       "rt",
                       encoding="utf-8") as map_file:
                 import_json_map(map_file, db)
