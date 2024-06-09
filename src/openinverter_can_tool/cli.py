@@ -669,6 +669,26 @@ def cmd_can_add(
     """Add a CAN message mapping for a specific parameter
 
     \b
+    CAN_ID   - A valid CAN ID in decimal (0-2047) or hexadecimal (0x000-0x7ff)
+    PARAM    - The parameter name to map
+    POSITION - The starting bit position (0-63)
+    LENGTH   - The number of bits the value will take up (-32,-1) or (1,32)
+    GAIN     - The gain to multiply the value (-8388.608, 8388.607)
+    OFFSET   - The offset to add (-128, 127)
+
+    For transmit mappings the parameter value is multiplied by the GAIN before
+    adding the OFFSET. The value is then mapped into the specified bits.
+
+    For receive mappings the value is identified in the CAN frame, the OFFSET
+    subtracted before dividing by the GAIN.
+
+    Positive LENGTH values indicate a little-endian mapping. The bits count
+    up from the start POSITION.
+
+    Negative LENGTH values indicate a big-endian mapping. The bits count down
+    from the end POSITION.
+
+    \b
     Example:
     $ oic -n22 can add tx 0x101 temp3 32 8
     """
