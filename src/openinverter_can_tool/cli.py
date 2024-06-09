@@ -273,17 +273,45 @@ def log(cli_settings: CliSettings,
         out_file: click.File,
         step: int,
         timestamp: bool) -> None:
-    """Log the value of PARAMS from the device periodically in CSV
+    """
+    Log the value of PARAMS from the device periodically in CSV
     format. Multiple parameters may be specified separated by a space.
-    OUT_FILE may be a filename or - to output to stdout."""
+    OUT_FILE may be a filename or - to output to stdout.
 
-    # Validate the list of supplied parameters
+    Special wild card parameter names can be used:
+
+    \b
+    ALL    - Logs all parameters and spot values on the device
+    PARAMS - Logs all the parameters on the device
+    VALUES - Logs all spot values on the device
+
+    The wildcards are case-sensitive.
+    """
+
     query_list = []
-    for param in params:
-        if param in cli_settings.database.names:
+
+    # special case wildcard parameter names
+    if "ALL" in params:
+        for param in cli_settings.database.names:
             query_list.append(param)
-        else:
-            click.echo(f"Unknown parameter: {param}")
+
+    elif "PARAMS" in params:
+        for param in cli_settings.database.names.values():
+            if param.isparam:
+                query_list.append(param.name)
+
+    elif "VALUES" in params:
+        for param in cli_settings.database.names.values():
+            if not param.isparam:
+                query_list.append(param.name)
+
+    else:
+        # Validate the list of supplied parameters
+        for param in params:
+            if param in cli_settings.database.names:
+                query_list.append(param)
+            else:
+                click.echo(f"Unknown parameter: {param}")
 
     # create a CSV writer to control the output in a format that LibreOffice
     # can open and graph easily
