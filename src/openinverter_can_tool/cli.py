@@ -686,8 +686,9 @@ def cmd_can_add(
 
     # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
     can_id_int = literal_eval(can_id)
-    if can_id_int <= 0 or can_id_int >= 0x800:
-        click.echo("can_id out of range")
+    if can_id_int < 0 or can_id_int >= 0x800:
+        click.echo(f"can_id: {can_id} out of range. " +
+                   "Expected 0x000-0x7ff or 0-2047")
         return
 
     click.echo(f"Adding CAN {direction} mapping with " +

@@ -647,6 +647,27 @@ class TestOpenInverterNode(unittest.TestCase):
             gain=1.0,
             offset=0)
 
+    def test_map_transmit_zero_can_id(self):
+        # Manually synthesized packets equivalent to:
+        # oic can add tx 0 tmpm 0 8 1.0 0
+        self.data = [
+            (TX, b'\x23\x00\x30\x00\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x30\x00\x00\x00\x00\x00'),
+            (TX, b'\x23\x00\x30\x01\xE3\x07\x00\x08'),
+            (RX, b'\x60\x00\x30\x01\xE3\x07\x00\x08'),
+            (TX, b'\x23\x00\x30\x02\xE8\x03\x00\x00'),
+            (RX, b'\x60\x00\x30\x02\xE8\x03\x00\x00')
+        ]
+        tmphs = OIVariable("tmphs", 2019)
+        self.node.add_can_map_entry(
+            can_id=0,
+            direction=Direction.TX,
+            param_id=tmphs.id,
+            position=0,
+            length=8,
+            gain=1.0,
+            offset=0)
+
     def test_map_param_out_of_range_can_id(self):
         self.data = []
 

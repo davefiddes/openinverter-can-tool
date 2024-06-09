@@ -176,7 +176,7 @@ class OpenInverterNode(BaseNode):
         Add a CAN map entry to transmit or receive the current value of a
         given parameter.
 
-        :param can_id:    The CAN ID that will be transmitted. [1,0x7ff]
+        :param can_id:    The CAN ID that will be transmitted. [0,0x7ff]
         :param direction: The direction the parameter will be mapped, either
                           transmit or receive.
         :param param_id:  The openinverter parameter id to be mapped.
@@ -189,7 +189,7 @@ class OpenInverterNode(BaseNode):
         :param offset:    The offset to be added to the parameter after the
                           gain is applied. [-128, 127]
         """
-        if can_id not in range(1, 0x800):
+        if can_id not in range(0, 0x800):
             raise ValueError
         if position not in range(0, 64):
             raise ValueError
