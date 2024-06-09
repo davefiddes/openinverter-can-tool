@@ -50,7 +50,12 @@ setup(
     packages=find_packages(where="src"),
     python_requires=">=3.8, <4",
 
-    install_requires=["click", "canopen", "appdirs"],
+    install_requires=[
+        "click",
+        "canopen==2.2.0",
+        "appdirs",
+        "python-can<4.4"],
+
     extras_require={
         "dev": ["check-manifest", "flake8", "pre-commit"],
         "test": ["coverage", "pytest"],
