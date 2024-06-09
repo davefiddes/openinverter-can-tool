@@ -896,8 +896,13 @@ def cmd_clean(cli_settings: CliSettings) -> None:
     # cli_settings is unused
     _ = cli_settings
 
+    count = 0
     for file in glob.glob(
             os.path.join(
                 appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR), "*.json")):
         click.echo(f"Removing {file}")
         os.remove(file)
+        count += 1
+
+    if count == 0:
+        click.echo("No cache entries found")
