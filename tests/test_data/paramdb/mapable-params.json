@@ -1,0 +1,21 @@
+{
+    "ocurlim": {
+        "unit": "A",
+        "id": 22,
+        "isparam": true,
+        "minimum": -65536.00,
+        "maximum": 65536.00,
+        "default": 100.00,
+        "category": "Inverter"
+    },
+    "tmphs": {
+        "unit": "°C",
+        "id": 2019,
+        "isparam": false
+    },
+    "tmpm": {
+        "unit": "°C",
+        "id": 2020,
+        "isparam": false
+    }
+}

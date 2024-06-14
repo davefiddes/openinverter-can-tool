@@ -209,6 +209,57 @@ class TestJSONMaps:
                       encoding="utf-8") as map_file:
                 import_json_map(map_file, db)
 
+    def test_round_trip_complex_tx_and_rx_map(self, tmp_path: Path):
+
+        tx_map = [
+            # Simple 8-bit mapping of common temperature values
+            CanMessage(0x101, [
+                MapEntry(2019, 0, 8, 1.0, 0),
+                MapEntry(2020, 8, 8, 1.0, 0)
+            ]),
+
+            # 8-bit mapping with an offset
+            CanMessage(0x102, [
+                MapEntry(2019, 0, 8, 1.0, 10),
+                MapEntry(2020, 8, 8, 1.0, 10)
+            ]),
+
+            # Little-endian full 32-bit mapping with generous scale
+            CanMessage(0x103, [
+                MapEntry(2019, 0, 32, 100.0, 0),
+                MapEntry(2020, 32, 32, 100.0, 0)
+            ]),
+
+            # Big-endian 16-bit mapping of an inverter parameter
+            CanMessage(0x104, [
+                MapEntry(22, 23, -16, 1.0, 0)
+            ]),
+
+            # Big-endian full 32-bit mapping with generous scale
+            CanMessage(0x105, [
+                MapEntry(2019, 31, -32, 100.0, 0),
+                MapEntry(2020, 63, -32, 100.0, 0)
+            ])
+        ]
+
+        rx_map = [
+            # Receive an inverter parameter with a big-endian mapping
+            CanMessage(0x201, [
+                MapEntry(22, 23, -16, 1.0, 0)
+            ])
+        ]
+
+        db = import_database(DB_DIR / "mapable-params.json")
+
+        map_file_path = tmp_path / "complex_tx_and_rx_map.json"
+        with open(map_file_path, "wt", encoding="utf-8") as map_file:
+            export_json_map(tx_map, rx_map, db, map_file)
+
+        with open(map_file_path, "rt", encoding="utf-8") as read_map_file:
+            (in_tx_map, in_rx_map) = import_json_map(read_map_file, db)
+            assert in_tx_map == tx_map
+            assert in_rx_map == rx_map
+
 
 if __name__ == '__main__':
     unittest.main()
