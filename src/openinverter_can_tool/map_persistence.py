@@ -28,10 +28,11 @@ def export_json_map(tx_map: List[CanMessage],
     def _convert_map_to_dict(msg_map: List[CanMessage]) -> List[Dict]:
         out_list = []
         for msg in msg_map:
+            out_params = []
             out_msg = {
-                "can_id": msg.can_id
+                "can_id": msg.can_id,
+                "params": out_params
             }
-            params = []
             for entry in msg.params:
                 # Search inefficiently for the parameter name
                 param_name = None
@@ -44,15 +45,13 @@ def export_json_map(tx_map: List[CanMessage],
                 if param_name is None:
                     raise KeyError(entry.param_id)
 
-                param = {
+                out_params.append({
                     "param": param_name,
                     "position": entry.position,
                     "length": entry.length,
                     "gain": entry.gain,
                     "offset": entry.offset
-                }
-                params.append(param)
-            out_msg["params"] = params
+                })
             out_list.append(out_msg)
 
         return out_list
