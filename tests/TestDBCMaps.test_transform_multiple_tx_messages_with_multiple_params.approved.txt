@@ -1,0 +1,13 @@
+version('None')
+
+message('tx_msg1', 0x101, False, 8, None)
+  signal('potmax', 0, 8, 'little_endian', True, None, 1, 0, None, 4095.0, 'dig', False, None, None, None, None)
+  signal('potmin_1', 8, 8, 'little_endian', True, None, -1, 0, None, 4095.0, 'dig', False, None, None, None, None)
+  signal('potmax_1', 16, 8, 'little_endian', True, None, 1, 0, None, 4095.0, 'dig', False, None, None, None, None)
+  signal('potmin', 24, 8, 'little_endian', True, None, -1, 0, None, 4095.0, 'dig', False, None, None, None, None)
+
+message('tx_msg2', 0x333, False, 8, None)
+  signal('cpuload', 0, 8, 'little_endian', True, None, 1, 0, None, None, 'None', False, None, None, None, None)
+  signal('curkp', 8, 8, 'little_endian', True, None, -1, 0, None, 20000.0, '', False, None, None, None, None)
+  signal('cpuload_1', 16, 8, 'little_endian', True, None, 1, 0, None, None, 'None', False, None, None, None, None)
+  signal('curkp_1', 24, 8, 'little_endian', True, None, -1, 0, None, 20000.0, '', False, None, None, None, None)

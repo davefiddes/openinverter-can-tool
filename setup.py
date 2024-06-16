@@ -54,11 +54,21 @@ setup(
         "click",
         "canopen==2.2.0",
         "appdirs",
-        "python-can<4.4"],
+        "python-can<4.4",
+        "cantools"],
 
     extras_require={
-        "dev": ["check-manifest", "flake8", "pre-commit"],
-        "test": ["coverage", "pytest"],
+        "dev": [
+            "check-manifest",
+            "flake8",
+            "pre-commit"
+        ],
+        "test": [
+            "coverage",
+            "pytest",
+            "approvaltests",
+            "pytest-approvaltests"
+        ],
     },
 
     # No data files are expected within the package

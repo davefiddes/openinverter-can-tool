@@ -17,5 +17,19 @@
         "unit": "°C",
         "id": 2020,
         "isparam": false
+    },
+    "dirmode": {
+        "unit": "0=Button, 1=Switch, 2=ButtonReversed, 3=SwitchReversed, 4=DefaultForward",
+        "minimum": "0",
+        "maximum": "4",
+        "default": "1",
+        "isparam": true,
+        "category": "Params",
+        "id": "95"
+    },
+    "status": {
+        "unit": "0=None, 1=UdcLow, 2=UdcHigh, 4=UdcBelowUdcSw, 8=UdcLim, 16=EmcyStop, 32=MProt, 64=PotPressed, 128=TmpHs, 256=WaitStart, 512=BrakeCheck",
+        "id": 2044,
+        "isparam": false
     }
 }

@@ -3,10 +3,14 @@ Routines to allow CAN message maps to be persisted
 """
 
 import json
+from collections import OrderedDict
 from typing import IO, Dict, List, Tuple
 
 import canopen.objectdictionary
+import cantools
+import cantools.database
 
+from .fpfloat import fixed_to_float
 from .oi_node import CanMessage, MapEntry
 from .paramdb import OIVariable
 
@@ -113,3 +117,142 @@ def import_json_map(in_file: IO,
     rx_map = _parse_can_messages(doc["rx"])
 
     return (tx_map, rx_map)
+
+
+# cantools don't export the Database properly but it is safe to use this type
+# pyright: reportPrivateImportUsage=false
+
+def transform_map_to_canopen_db(
+        tx_map: List[CanMessage],
+        rx_map: List[CanMessage],
+        db: canopen.ObjectDictionary) -> cantools.database.can.Database:
+    """
+    Transform the provided CAN message maps to a canopen database
+
+    :param tx_map:  The transmit CAN message map
+    :param rx_map:  The receive CAN message map
+    :param db:      The object database to convert parameter IDs to names with
+
+    :returns: The canopen database representing the two maps
+    """
+
+    def _find_param(param_id: int) -> OIVariable:
+        """Search inefficiently for the parameter given the openinverter
+        internal id"""
+
+        for item in db.names.values():
+            if isinstance(item, OIVariable) and item.id == param_id:
+                return item
+
+        # Didn't find the parameter
+        raise KeyError(param_id)
+
+    def _convert_param_to_signal(
+        param_name: str,
+        param: OIVariable,
+        entry: MapEntry
+    ) -> cantools.database.can.signal.Signal:
+        if entry.length > 0:
+            byte_order = "little_endian"
+            start_bit = entry.position
+            bit_length = entry.length
+        else:
+            byte_order = "big_endian"
+            start_bit = entry.position + entry.length + 8
+            bit_length = -entry.length
+
+        signal = cantools.database.can.signal.Signal(
+            name=param_name,
+            start=start_bit,
+            length=bit_length,
+            byte_order=byte_order
+        )
+
+        if param.value_descriptions:
+            values = OrderedDict()
+            for value, description in param.value_descriptions.items():
+                values[value] = description
+            signal.choices = values
+            signal.is_signed = False
+
+        elif param.bit_definitions:
+            bits = OrderedDict()
+            for value, description in param.bit_definitions.items():
+                bits[value] = description
+            signal.choices = bits
+            signal.is_signed = False
+
+        else:
+            # dbc files scale and offset are the inverse of openinverter
+            # gain and offset
+            signal.scale = 1.0 / entry.gain
+            signal.offset = -entry.offset
+            signal.is_signed = True
+
+            if param.isparam:
+                signal.unit = param.unit
+
+        if param.isparam:
+            if param.min:
+                signal.minimum = fixed_to_float(param.min)
+            if param.max:
+                signal.maximum = fixed_to_float(param.max)
+
+        return signal
+
+    def _convert_map_to_messages(
+            msg_map: List[CanMessage],
+            prefix: str
+    ) -> List[cantools.database.can.message.Message]:
+        out_list = []
+        msg_no = 1
+        for msg in msg_map:
+            signals = []
+            signal_names = {}
+            for entry in msg.params:
+                param = _find_param(entry.param_id)
+
+                # Ensure we don't have duplicate signal names
+                param_name = param.name
+                if param_name in signal_names:
+                    signal_names[param_name] += 1
+                    param_name = f"{param_name}_{signal_names[param_name]}"
+                else:
+                    signal_names[param_name] = 0
+
+                signals.append(
+                    _convert_param_to_signal(param_name, param, entry)
+                )
+
+            out_msg = cantools.database.can.message.Message(
+                name=f"{prefix}_msg{msg_no}",
+                frame_id=msg.can_id,
+                length=8,
+                signals=signals
+            )
+            out_list.append(out_msg)
+            msg_no += 1
+
+        return out_list
+
+    messages = _convert_map_to_messages(tx_map, "tx")
+    messages += _convert_map_to_messages(rx_map, "rx")
+
+    return cantools.database.can.Database(messages)
+
+
+def export_dbc_map(tx_map: List[CanMessage],
+                   rx_map: List[CanMessage],
+                   db: canopen.ObjectDictionary,
+                   out_file: IO) -> None:
+    """
+    Export the provided CAN message maps to a DBC
+
+    :param tx_map:  The transmit CAN message map
+    :param rx_map:  The receive CAN message map
+    :param db:      The object database to convert parameter IDs to names with
+    :param out_file: The file object to output the DBC to
+    """
+    cantools_db = transform_map_to_canopen_db(tx_map, rx_map, db)
+
+    out_file.write(cantools_db.as_dbc_string())
