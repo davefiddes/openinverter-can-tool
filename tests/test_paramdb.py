@@ -459,6 +459,7 @@ class DatabaseImport(unittest.TestCase):
         # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
+            assert isinstance(item, OIVariable)
             self.assertFalse(item.bit_definitions)
 
             expected_enums = param["enums"]
@@ -502,6 +503,7 @@ class DatabaseImport(unittest.TestCase):
         # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
+            assert isinstance(item, OIVariable)
             self.assertFalse(item.value_descriptions)
 
             expected_bitfield = param["bitfield"]
