@@ -1,7 +1,6 @@
 """
 Test CAN message map to dbc persistence
 """
-import io
 import unittest
 from pathlib import Path
 
@@ -94,7 +93,8 @@ class TestDBCMaps:
         with pytest.raises(KeyError):
             transform_map_to_canopen_db([], rx_map, db)
 
-    def test_export_multiple_tx_messages_with_multiple_params(self):
+    def test_export_multiple_tx_messages_with_multiple_params(
+            self, tmp_path: Path):
 
         tx_map = [
             CanMessage(0x101, [
@@ -113,13 +113,15 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "complex.json")
 
-        output = io.StringIO()
+        dbc_path = tmp_path / "multiple_tx_messages_with_multiple_params.dbc"
+        export_dbc_map(tx_map, [], db, dbc_path)
 
-        export_dbc_map(tx_map, [], db, output)
+        with open(dbc_path, "rt", encoding="utf-8",
+                  newline="\r\n") as dbc_file:
+            verify(dbc_file.read())
 
-        verify(output.getvalue())
-
-    def test_export_complex_tx_and_rx_map(self, tmp_path: Path):
+    def test_export_complex_tx_and_rx_map(
+            self, tmp_path: Path):
 
         tx_map = [
             # Simple 8-bit mapping of common temperature values
@@ -161,11 +163,12 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "mapable-params.json")
 
-        output = io.StringIO()
+        dbc_path = tmp_path / "complex_tx_and_rx_map.dbc"
+        export_dbc_map(tx_map, rx_map, db, dbc_path)
 
-        export_dbc_map(tx_map, rx_map, db, output)
-
-        verify(output.getvalue())
+        with open(dbc_path, "rt", encoding="utf-8",
+                  newline="\r\n") as dbc_file:
+            verify(dbc_file.read())
 
         # export a JSON map to allow the resulting DBC to be manually tested
         # with SavvyCAN on real hardware
@@ -173,7 +176,7 @@ class TestDBCMaps:
         with open(map_file_path, "wt", encoding="utf-8") as map_file:
             export_json_map(tx_map, rx_map, db, map_file)
 
-    def test_export_tx_map_with_enum_param(self):
+    def test_export_tx_map_with_enum_param(self, tmp_path: Path):
 
         tx_map = [
             # Map an enum param to the first 8 bits of a frame
@@ -184,13 +187,14 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "mapable-params.json")
 
-        output = io.StringIO()
+        dbc_path = tmp_path / "tx_map_with_enum_param.dbc"
+        export_dbc_map(tx_map, [], db, dbc_path)
 
-        export_dbc_map(tx_map, [], db, output)
+        with open(dbc_path, "rt", encoding="utf-8",
+                  newline="\r\n") as dbc_file:
+            verify(dbc_file.read())
 
-        verify(output.getvalue())
-
-    def test_export_tx_map_with_bitfield_spot_value(self):
+    def test_export_tx_map_with_bitfield_spot_value(self, tmp_path: Path):
 
         tx_map = [
             # Map a bitfield spot value param to the first 8 bits of a frame
@@ -201,11 +205,12 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "mapable-params.json")
 
-        output = io.StringIO()
+        dbc_path = tmp_path / "tx_map_with_bitfield_spot_value.dbc"
+        export_dbc_map(tx_map, [], db, dbc_path)
 
-        export_dbc_map(tx_map, [], db, output)
-
-        verify(output.getvalue())
+        with open(dbc_path, "rt", encoding="utf-8",
+                  newline="\r\n") as dbc_file:
+            verify(dbc_file.read())
 
 
 if __name__ == '__main__':

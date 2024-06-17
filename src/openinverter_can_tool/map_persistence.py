@@ -4,6 +4,7 @@ Routines to allow CAN message maps to be persisted
 
 import json
 from collections import OrderedDict
+from pathlib import Path
 from typing import IO, Dict, List, Tuple
 
 import canopen.objectdictionary
@@ -244,15 +245,15 @@ def transform_map_to_canopen_db(
 def export_dbc_map(tx_map: List[CanMessage],
                    rx_map: List[CanMessage],
                    db: canopen.ObjectDictionary,
-                   out_file: IO) -> None:
+                   out_file: Path) -> None:
     """
     Export the provided CAN message maps to a DBC
 
     :param tx_map:  The transmit CAN message map
     :param rx_map:  The receive CAN message map
     :param db:      The object database to convert parameter IDs to names with
-    :param out_file: The file object to output the DBC to
+    :param out_file: The file path to output the DBC to
     """
     cantools_db = transform_map_to_canopen_db(tx_map, rx_map, db)
 
-    out_file.write(cantools_db.as_dbc_string())
+    cantools.database.dump_file(cantools_db, out_file)
