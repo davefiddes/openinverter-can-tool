@@ -116,8 +116,7 @@ class TestDBCMaps:
         dbc_path = tmp_path / "multiple_tx_messages_with_multiple_params.dbc"
         export_dbc_map(tx_map, [], db, dbc_path)
 
-        with open(dbc_path, "rt", encoding="utf-8",
-                  newline="\r\n") as dbc_file:
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
 
     def test_export_complex_tx_and_rx_map(
@@ -166,8 +165,7 @@ class TestDBCMaps:
         dbc_path = tmp_path / "complex_tx_and_rx_map.dbc"
         export_dbc_map(tx_map, rx_map, db, dbc_path)
 
-        with open(dbc_path, "rt", encoding="utf-8",
-                  newline="\r\n") as dbc_file:
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
 
         # export a JSON map to allow the resulting DBC to be manually tested
@@ -190,8 +188,7 @@ class TestDBCMaps:
         dbc_path = tmp_path / "tx_map_with_enum_param.dbc"
         export_dbc_map(tx_map, [], db, dbc_path)
 
-        with open(dbc_path, "rt", encoding="utf-8",
-                  newline="\r\n") as dbc_file:
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
 
     def test_export_tx_map_with_bitfield_spot_value(self, tmp_path: Path):
@@ -208,8 +205,7 @@ class TestDBCMaps:
         dbc_path = tmp_path / "tx_map_with_bitfield_spot_value.dbc"
         export_dbc_map(tx_map, [], db, dbc_path)
 
-        with open(dbc_path, "rt", encoding="utf-8",
-                  newline="\r\n") as dbc_file:
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
 
 
