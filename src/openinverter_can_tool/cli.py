@@ -22,7 +22,7 @@ import click
 
 from . import constants as oi
 from .fpfloat import fixed_from_float, fixed_to_float
-from .map_persistence import export_json_map, import_json_map
+from .map_persistence import export_json_map, import_json_map, export_dbc_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
 from .paramdb import OIVariable, import_cached_database, import_database
 
@@ -831,12 +831,27 @@ def cmd_can_clear(
 
 
 @can_map.command("export")
-@click.argument("out_file", type=click.File("w"))
+@click.argument("out_file",
+                type=click.Path(
+                    file_okay=True,
+                    dir_okay=False,
+                    writable=True,
+                    path_type=Path))
+@click.option("--format",
+              type=click.Choice(["json",
+                                 "dbc"],
+                                case_sensitive=False),
+              default="json",
+              show_default=True)
 @pass_cli_settings
 @db_action
 @can_action
-def cmd_can_export(cli_settings: CliSettings, out_file: click.File) -> None:
-    """Export all parameter to CAN message mappings in json to OUT_FILE"""
+def cmd_can_export(
+    cli_settings: CliSettings,
+    out_file: Path,
+    format: str  # pylint: disable=redefined-builtin
+) -> None:
+    """Export all parameter to CAN message mappings to OUT_FILE"""
 
     assert cli_settings.node
     node = cli_settings.node
@@ -844,7 +859,12 @@ def cmd_can_export(cli_settings: CliSettings, out_file: click.File) -> None:
     tx_map = node.list_can_map(Direction.TX)
     rx_map = node.list_can_map(Direction.RX)
 
-    export_json_map(tx_map, rx_map, cli_settings.database, out_file)
+    if format == "json":
+        with open(out_file, "wt", encoding="utf-8") as json_file:
+            export_json_map(tx_map, rx_map, cli_settings.database, json_file)
+
+    elif format == "dbc":
+        export_dbc_map(None, tx_map, rx_map, cli_settings.database, out_file)
 
     click.echo("Parameter CAN message map exported")
 
