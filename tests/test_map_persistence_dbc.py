@@ -25,6 +25,7 @@ class TestDBCMaps:
 
     def test_transform_empty_map(self):
         canopen_db = transform_map_to_canopen_db(
+            None,
             [],
             [],
             canopen.ObjectDictionary())
@@ -39,7 +40,7 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "single-param.json")
 
-        canopen_db = transform_map_to_canopen_db(tx_map, [], db)
+        canopen_db = transform_map_to_canopen_db(None, tx_map, [], db)
 
         verify(canopen_db)
 
@@ -54,7 +55,7 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "single-param.json")
 
-        canopen_db = transform_map_to_canopen_db(tx_map, rx_map, db)
+        canopen_db = transform_map_to_canopen_db(None, tx_map, rx_map, db)
 
         verify(canopen_db)
 
@@ -78,7 +79,7 @@ class TestDBCMaps:
 
         db = import_database(DB_DIR / "complex.json")
 
-        canopen_db = transform_map_to_canopen_db(tx_map, [], db)
+        canopen_db = transform_map_to_canopen_db(None, tx_map, [], db)
 
         verify(canopen_db)
 
@@ -91,7 +92,7 @@ class TestDBCMaps:
         db = import_database(DB_DIR / "single-param.json")
 
         with pytest.raises(KeyError):
-            transform_map_to_canopen_db([], rx_map, db)
+            transform_map_to_canopen_db(None, [], rx_map, db)
 
     def test_export_multiple_tx_messages_with_multiple_params(
             self, tmp_path: Path):
@@ -114,7 +115,7 @@ class TestDBCMaps:
         db = import_database(DB_DIR / "complex.json")
 
         dbc_path = tmp_path / "multiple_tx_messages_with_multiple_params.dbc"
-        export_dbc_map(tx_map, [], db, dbc_path)
+        export_dbc_map(None, tx_map, [], db, dbc_path)
 
         with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
@@ -163,7 +164,7 @@ class TestDBCMaps:
         db = import_database(DB_DIR / "mapable-params.json")
 
         dbc_path = tmp_path / "complex_tx_and_rx_map.dbc"
-        export_dbc_map(tx_map, rx_map, db, dbc_path)
+        export_dbc_map(None, tx_map, rx_map, db, dbc_path)
 
         with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
@@ -186,7 +187,7 @@ class TestDBCMaps:
         db = import_database(DB_DIR / "mapable-params.json")
 
         dbc_path = tmp_path / "tx_map_with_enum_param.dbc"
-        export_dbc_map(tx_map, [], db, dbc_path)
+        export_dbc_map(None, tx_map, [], db, dbc_path)
 
         with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
@@ -203,7 +204,25 @@ class TestDBCMaps:
         db = import_database(DB_DIR / "mapable-params.json")
 
         dbc_path = tmp_path / "tx_map_with_bitfield_spot_value.dbc"
-        export_dbc_map(tx_map, [], db, dbc_path)
+        export_dbc_map(None, tx_map, [], db, dbc_path)
+
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
+            verify(dbc_file.read())
+
+    def test_export_tx_and_rx_map_with_node_name(self, tmp_path: Path):
+
+        tx_map = [
+            CanMessage(1, [MapEntry(2019, 0, 8, 1.0, 0)])
+        ]
+
+        rx_map = [
+            CanMessage(2, [MapEntry(22, 32, 16, 1.0, 0)])
+        ]
+
+        db = import_database(DB_DIR / "mapable-params.json")
+
+        dbc_path = tmp_path / "tx_and_rx_map_with_node_name.dbc"
+        export_dbc_map("custom_node_name", tx_map, rx_map, db, dbc_path)
 
         with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())

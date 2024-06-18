@@ -5,7 +5,7 @@ Routines to allow CAN message maps to be persisted
 import json
 from collections import OrderedDict
 from pathlib import Path
-from typing import IO, Dict, List, Tuple
+from typing import IO, Dict, List, Tuple, Optional
 
 import canopen.objectdictionary
 import cantools
@@ -124,15 +124,18 @@ def import_json_map(in_file: IO,
 # pyright: reportPrivateImportUsage=false
 
 def transform_map_to_canopen_db(
+        node_prefix: Optional[str],
         tx_map: List[CanMessage],
         rx_map: List[CanMessage],
         db: canopen.ObjectDictionary) -> cantools.database.can.Database:
     """
     Transform the provided CAN message maps to a canopen database
 
-    :param tx_map:  The transmit CAN message map
-    :param rx_map:  The receive CAN message map
-    :param db:      The object database to convert parameter IDs to names with
+    :param node_prefix: An optional string prefix that is added to each db node
+    :param tx_map:      The transmit CAN message map
+    :param rx_map:      The receive CAN message map
+    :param db:          The object database to convert parameter IDs to names
+                        with
 
     :returns: The canopen database representing the two maps
     """
@@ -203,7 +206,8 @@ def transform_map_to_canopen_db(
 
     def _convert_map_to_messages(
             msg_map: List[CanMessage],
-            node_name: str
+            node_name: str,
+            msg_prefix: str
     ) -> List[cantools.database.can.message.Message]:
         out_list = []
         msg_no = 1
@@ -226,7 +230,7 @@ def transform_map_to_canopen_db(
                 )
 
             out_msg = cantools.database.can.message.Message(
-                name=f"{node_name}_msg{msg_no}",
+                name=f"{msg_prefix}_msg{msg_no}",
                 frame_id=msg.can_id,
                 length=8,
                 signals=signals,
@@ -237,8 +241,12 @@ def transform_map_to_canopen_db(
 
         return out_list
 
-    tx_node = cantools.database.can.node.Node("tx")
-    rx_node = cantools.database.can.node.Node("rx")
+    tx_node = cantools.database.can.node.Node(
+        f"{node_prefix}_tx" if node_prefix else "tx"
+    )
+    rx_node = cantools.database.can.node.Node(
+        f"{node_prefix}_rx" if node_prefix else "rx"
+    )
 
     nodes = []
     if tx_map:
@@ -246,24 +254,28 @@ def transform_map_to_canopen_db(
     if rx_map:
         nodes.append(rx_node)
 
-    messages = _convert_map_to_messages(tx_map, tx_node.name)
-    messages += _convert_map_to_messages(rx_map, rx_node.name)
+    messages = _convert_map_to_messages(tx_map, tx_node.name, "tx")
+    messages += _convert_map_to_messages(rx_map, rx_node.name, "rx")
 
     return cantools.database.can.Database(messages, nodes)
 
 
-def export_dbc_map(tx_map: List[CanMessage],
-                   rx_map: List[CanMessage],
-                   db: canopen.ObjectDictionary,
-                   out_file: Path) -> None:
+def export_dbc_map(
+        node_prefix: Optional[str],
+        tx_map: List[CanMessage],
+        rx_map: List[CanMessage],
+        db: canopen.ObjectDictionary,
+        out_file: Path) -> None:
     """
     Export the provided CAN message maps to a DBC
 
-    :param tx_map:  The transmit CAN message map
-    :param rx_map:  The receive CAN message map
-    :param db:      The object database to convert parameter IDs to names with
-    :param out_file: The file path to output the DBC to
+    :param node_prefix: An optional string prefix that is added to each db node
+    :param tx_map:      The transmit CAN message map
+    :param rx_map:      The receive CAN message map
+    :param db:          The object database to convert parameter IDs to names
+                        with
+    :param out_file:    The file path to output the DBC to
     """
-    cantools_db = transform_map_to_canopen_db(tx_map, rx_map, db)
+    cantools_db = transform_map_to_canopen_db(node_prefix, tx_map, rx_map, db)
 
     cantools.database.dump_file(cantools_db, out_file)
