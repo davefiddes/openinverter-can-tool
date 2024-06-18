@@ -1,4 +1,6 @@
 version('None')
 
+node('tx', None)
+
 message('tx_msg1', 0x123, False, 8, None)
   signal('param1', 24, 8, 'little_endian', True, None, -1, 0, None, 100.0, 'km / h', False, None, None, None, None)

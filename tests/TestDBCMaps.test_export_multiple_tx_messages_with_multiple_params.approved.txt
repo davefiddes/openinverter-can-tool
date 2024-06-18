@@ -33,16 +33,16 @@ NS_ :
 
 BS_:
 
-BU_: 
+BU_: tx
 
 
-BO_ 257 tx_msg1: 8 Vector__XXX
+BO_ 257 tx_msg1: 8 tx
  SG_ potmin : 24|8@1- (-1,0) [0|4095.0] "dig" Vector__XXX
  SG_ potmax_1 : 16|8@1- (1,0) [0|4095.0] "dig" Vector__XXX
  SG_ potmin_1 : 8|8@1- (-1,0) [0|4095.0] "dig" Vector__XXX
  SG_ potmax : 0|8@1- (1,0) [0|4095.0] "dig" Vector__XXX
 
-BO_ 819 tx_msg2: 8 Vector__XXX
+BO_ 819 tx_msg2: 8 tx
  SG_ curkp_1 : 24|8@1- (-1,0) [0|20000.0] "" Vector__XXX
  SG_ cpuload_1 : 16|8@1- (1,0) [0|0] "" Vector__XXX
  SG_ curkp : 8|8@1- (-1,0) [0|20000.0] "" Vector__XXX

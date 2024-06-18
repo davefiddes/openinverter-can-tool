@@ -33,10 +33,10 @@ NS_ :
 
 BS_:
 
-BU_: 
+BU_: tx
 
 
-BO_ 1 tx_msg1: 8 Vector__XXX
+BO_ 1 tx_msg1: 8 tx
  SG_ status : 0|8@1+ (1,0) [0|0] "" Vector__XXX
 
 

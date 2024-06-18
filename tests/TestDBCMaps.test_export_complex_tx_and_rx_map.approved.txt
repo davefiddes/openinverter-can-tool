@@ -33,29 +33,29 @@ NS_ :
 
 BS_:
 
-BU_: 
+BU_: tx rx
 
 
-BO_ 257 tx_msg1: 8 Vector__XXX
+BO_ 257 tx_msg1: 8 tx
  SG_ tmpm : 8|8@1- (1,0) [0|0] "" Vector__XXX
  SG_ tmphs : 0|8@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 258 tx_msg2: 8 Vector__XXX
+BO_ 258 tx_msg2: 8 tx
  SG_ tmpm : 8|8@1- (1,-10) [0|0] "" Vector__XXX
  SG_ tmphs : 0|8@1- (1,-10) [0|0] "" Vector__XXX
 
-BO_ 259 tx_msg3: 8 Vector__XXX
+BO_ 259 tx_msg3: 8 tx
  SG_ tmpm : 32|32@1- (0.01,0) [0|0] "" Vector__XXX
  SG_ tmphs : 0|32@1- (0.01,0) [0|0] "" Vector__XXX
 
-BO_ 260 tx_msg4: 8 Vector__XXX
+BO_ 260 tx_msg4: 8 tx
  SG_ ocurlim : 15|16@0- (1,0) [-65536.0|65536.0] "A" Vector__XXX
 
-BO_ 261 tx_msg5: 8 Vector__XXX
+BO_ 261 tx_msg5: 8 tx
  SG_ tmpm : 39|32@0- (0.01,0) [0|0] "" Vector__XXX
  SG_ tmphs : 7|32@0- (0.01,0) [0|0] "" Vector__XXX
 
-BO_ 513 rx_msg1: 8 Vector__XXX
+BO_ 513 rx_msg1: 8 rx
  SG_ ocurlim : 15|16@0- (1,0) [-65536.0|65536.0] "A" Vector__XXX
 
 

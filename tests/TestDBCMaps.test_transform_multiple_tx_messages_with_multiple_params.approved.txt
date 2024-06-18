@@ -1,5 +1,7 @@
 version('None')
 
+node('tx', None)
+
 message('tx_msg1', 0x101, False, 8, None)
   signal('potmax', 0, 8, 'little_endian', True, None, 1, 0, None, 4095.0, 'dig', False, None, None, None, None)
   signal('potmin_1', 8, 8, 'little_endian', True, None, -1, 0, None, 4095.0, 'dig', False, None, None, None, None)

@@ -203,7 +203,7 @@ def transform_map_to_canopen_db(
 
     def _convert_map_to_messages(
             msg_map: List[CanMessage],
-            prefix: str
+            node_name: str
     ) -> List[cantools.database.can.message.Message]:
         out_list = []
         msg_no = 1
@@ -226,20 +226,30 @@ def transform_map_to_canopen_db(
                 )
 
             out_msg = cantools.database.can.message.Message(
-                name=f"{prefix}_msg{msg_no}",
+                name=f"{node_name}_msg{msg_no}",
                 frame_id=msg.can_id,
                 length=8,
-                signals=signals
+                signals=signals,
+                senders=[node_name]
             )
             out_list.append(out_msg)
             msg_no += 1
 
         return out_list
 
-    messages = _convert_map_to_messages(tx_map, "tx")
-    messages += _convert_map_to_messages(rx_map, "rx")
+    tx_node = cantools.database.can.node.Node("tx")
+    rx_node = cantools.database.can.node.Node("rx")
 
-    return cantools.database.can.Database(messages)
+    nodes = []
+    if tx_map:
+        nodes.append(tx_node)
+    if rx_map:
+        nodes.append(rx_node)
+
+    messages = _convert_map_to_messages(tx_map, tx_node.name)
+    messages += _convert_map_to_messages(rx_map, rx_node.name)
+
+    return cantools.database.can.Database(messages, nodes)
 
 
 def export_dbc_map(tx_map: List[CanMessage],
