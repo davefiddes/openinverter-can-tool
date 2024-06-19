@@ -909,14 +909,25 @@ def cmd_can_import(cli_settings: CliSettings,
 def scan(cli_settings: CliSettings) -> None:
     """Scan the CAN bus for available nodes"""
 
+    assert cli_settings.network is not None
+
     # Maximum number of devices we are going to scan for
-    limit = 20
+    limit = 127
 
-    # Actively scan the bus for SDO nodes which might indicate something we
-    # can talk to
+    # Canned SDO request we use to scan the bus with to find something
+    # we can talk to
+    sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
+
     click.echo("Scanning for devices. Please wait...\n")
-    cli_settings.network.scanner.search(limit)
 
+    # Implement our own scanner rather than use
+    # canopen.network.scanner.search() as this lets us rate limit the scan to
+    # avoid exhausting local CAN network queues
+    for node_id in range(1, limit + 1):
+        cli_settings.network.send_message(0x600 + node_id, sdo_req)
+        time.sleep(0.01)
+
+    # Wait for any responses to show up
     time.sleep(5)
 
     # filter out weird canopen internal node IDs that show up here and
