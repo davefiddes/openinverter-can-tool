@@ -148,8 +148,8 @@ def can_action(func):
 
 @click.group()
 @click.option("-d", "--database",
-              help="Override the openinverter JSON parameter database to use",
-              type=click.Path(exists=True, file_okay=True, dir_okay=False))
+              type=click.Path(exists=True, file_okay=True, dir_okay=False),
+              help="Override the openinverter JSON parameter database to use")
 @click.option("-c", "--context",
               default=None,
               show_default=True,
@@ -159,6 +159,8 @@ def can_action(func):
               default=1,
               show_default=True,
               type=click.INT,
+              envvar="OIC_NODE",
+              show_envvar=True,
               help="The CAN SDO node ID to communicate with")
 @click.option("-t", "--timeout",
               default=1.0,
