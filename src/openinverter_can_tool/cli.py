@@ -866,7 +866,8 @@ def cmd_can_export(
             export_json_map(tx_map, rx_map, cli_settings.database, json_file)
 
     elif format == "dbc":
-        export_dbc_map(None, tx_map, rx_map, cli_settings.database, out_file)
+        export_dbc_map(f"node{cli_settings.node_number}",
+                       tx_map, rx_map, cli_settings.database, out_file)
 
     click.echo("Parameter CAN message map exported")
 
