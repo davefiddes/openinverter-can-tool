@@ -514,6 +514,93 @@ class DatabaseImport(unittest.TestCase):
                 self.assertEqual(
                     item.bit_definitions[value], description)
 
+    def test_badly_punctuated_enum_missing_comma(self):
+        """Extracted from issue #4 a badly punctuated enum should fail
+        gracefully
+        """
+
+        raw_json = {
+            "Inverter": {
+                # Note the lack of a comma between 7 and 8
+                "unit": "0=None, 1=Leaf_Gen1, 2=GS450H, 3=UserCAN, 4=OpenI, "
+                "5=Prius_Gen3, 6=Outlander, 7=GS300H 8=RearOutlander",
+                "id": 5,
+                "value": 0.00,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 8.00,
+                "default": 0.00,
+                "category": "General Setup",
+                "i": 0
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["Inverter"]
+        assert item.unit == ("0=None, 1=Leaf_Gen1, 2=GS450H, 3=UserCAN, "
+                             "4=OpenI, 5=Prius_Gen3, 6=Outlander, "
+                             "7=GS300H 8=RearOutlander"
+                             " [DB FORMAT ERROR]")
+        assert len(item.value_descriptions) == 0
+
+    def test_badly_punctuated_enum_full_stop_rather_than_comma(self):
+        """Extracted from issue #4 a badly punctuated enum should fail
+        gracefully
+        """
+
+        raw_json = {
+            "CAN3Speed": {
+                "unit": "0=k33.3, 1=k500. 2=k100",
+                "id": 77,
+                "value": 0.00,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 2.00,
+                "default": 0.00,
+                "category": "Communication",
+                "i": 53
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["CAN3Speed"]
+        assert item.unit == ("0=k33.3, 1=k500. 2=k100 [DB FORMAT ERROR]")
+        assert len(item.value_descriptions) == 0
+
+    def test_badly_punctuated_enum_with_no_spaces(self):
+        """Extracted from issue #4 a badly punctuated enum without any spaces
+        should still be parsed fine
+        """
+
+        raw_json = {
+            "Out1Func": {
+                "unit": "0=None, 1=ChaDeMoAlw, 2=OBCEnable, 3=HeaterEnable, "
+                "4=RunIndication, 5=WarnIndication,6=CoolantPump, "
+                "7=NegContactor, 8=BrakeLight, 9=ReverseLight, 10=HeatReq, "
+                "11=HVRequest,12=DCFCRequest, 13=BrakeVacPump, 14=PwmTim3",
+                "id": 80,
+                "value": 6.00,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 13.00,
+                "default": 6.00,
+                "category": "General Purpose I/O",
+                "i": 87
+            }
+        }
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["Out1Func"]
+        assert item.value_descriptions[11] == "HVRequest"
+        assert item.value_descriptions[12] == "DCFCRequest"
+        assert item.value_descriptions[13] == "BrakeVacPump"
+        assert item.value_descriptions[14] == "PwmTim3"
+        assert len(item.value_descriptions) == 15
+
 
 class TestCachedDatabases:
     """

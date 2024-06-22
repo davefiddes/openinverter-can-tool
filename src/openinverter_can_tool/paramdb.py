@@ -116,18 +116,24 @@ def import_database_json(
         # parse units containing enumerations or bitfields
         unit = param["unit"]
         if '=' in unit:
-            # Some parameters like "lasterr" have trailing commas
-            unit = unit.rstrip(",")
+            try:
+                # Some parameters like "lasterr" have trailing commas
+                unit = unit.rstrip(",")
 
-            values = {int(value): description for value, description in [
-                item.split('=') for item in unit.split(',')]}
+                values = {int(value): description for value, description in [
+                    item.split('=') for item in unit.split(',')]}
 
-            # Infer if this a bitfield or an enumeration and store the
-            # description in the appropriate dictionary
-            if is_bitfield(values):
-                var.bit_definitions = values
-            else:
-                var.value_descriptions = values
+                # Infer if this a bitfield or an enumeration and store the
+                # description in the appropriate dictionary
+                if is_bitfield(values):
+                    var.bit_definitions = values
+                else:
+                    var.value_descriptions = values
+
+            except ValueError:
+                # If something bad happens parsing the unit string just bail
+                # out and make it a plain numerical value
+                unit += " [DB FORMAT ERROR]"
 
         # Store the unit text for all types of parameters
         var.unit = unit

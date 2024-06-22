@@ -100,7 +100,7 @@ class TestRemoteDatabaseNode(unittest.TestCase):
             db = import_database(Path(db_file.name))
 
         assert checksum == 181129
-        assert len(db) == 195
+        assert len(db.names) == 194
 
 
 if __name__ == "__main__":
