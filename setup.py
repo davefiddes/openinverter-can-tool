@@ -52,9 +52,9 @@ setup(
 
     install_requires=[
         "click",
-        "canopen==2.2.0",
+        "canopen",
         "appdirs",
-        "python-can<4.4",
+        "python-can",
         "cantools"],
 
     extras_require={
