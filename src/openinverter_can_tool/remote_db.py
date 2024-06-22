@@ -27,7 +27,10 @@ class RemoteDatabaseNode:
         network.subscribe(0x580 + node_id, self.sdo_client.on_response)
 
     def __del__(self) -> None:
-        self.network.unsubscribe(0x580 + self.node_id)
+        can_id = 0x580 + self.node_id
+
+        if can_id in self.network.subscribers:
+            self.network.unsubscribe(can_id)
 
     def param_db_checksum(self) -> int:
         """
