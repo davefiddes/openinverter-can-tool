@@ -93,9 +93,9 @@ class TestRemoteDatabaseNode(unittest.TestCase):
 
         checksum = self.node.param_db_checksum()
 
-        with tempfile.NamedTemporaryFile(delete_on_close=False) as db_file:
+        with tempfile.NamedTemporaryFile() as db_file:
             db_file.write(self.node.param_db())
-            db_file.close()
+            db_file.flush()
 
             db = import_database(Path(db_file.name))
 
