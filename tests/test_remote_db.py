@@ -1,11 +1,13 @@
 """openinverter remote database unit tests"""
 import csv
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import List, Tuple
 
 import canopen
+import pytest
 
 from openinverter_can_tool.paramdb import import_database
 from openinverter_can_tool.remote_db import RemoteDatabaseNode
@@ -84,6 +86,9 @@ class TestRemoteDatabaseNode(unittest.TestCase):
                     row["D5"] + row["D6"] + row["D7"] + row["D8"]
                 self.data.append((direction, bytes.fromhex(frame)))
 
+    @pytest.mark.skipif(sys.version_info < (3, 12),
+                        reason="NamedTemporaryFile() missing delete_on_close "
+                        "before python 3.12")
     def test_query_zombieverter_paramdb(self):
         self.load_capture(
             "zombieverter-node3-query-paramdb.csv",
