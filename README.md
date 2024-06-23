@@ -15,6 +15,10 @@ electric vehicles over a CAN connection.
 * Display the current value of each parameter/value on a given device
 * Log a list of parameters to a CSV file at regular intervals
 * Save and load all parameters to and from a JSON file
+* Manage parameter to custom CAN message mappings:
+  * Create, remove and list parameter mappings on a device
+  * Export and import mappings to a local JSON file
+  * Export mappings to DBC allowing easier debugging with [SavvyCAN](https://savvycan.com/)
 * Display the inverter serial number
 * Command the inverter to:
   * Start
@@ -27,7 +31,8 @@ electric vehicles over a CAN connection.
 * Runs on Linux, Windows and MacOS with python 3.8+
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
-* Automatic parameter database download and caching (requires stm32-sine development branch - likely 5.27.R or later)
+* Automatic parameter database download and caching (requires stm32-sine 5.27.R or later)
+* Works with [Foccci/Clara](https://github.com/uhi22/ccs32clara) CCS controller and [Stm32-vcu](https://github.com/damienmaguire/Stm32-vcu) (a.k.a Zombieverter VCU)
 
 ## Installation
 
@@ -105,30 +110,32 @@ To get the usage information for the tool run the `oic` command with no paramete
 ```text
     Usage: oic [OPTIONS] COMMAND [ARGS]...
 
-      openinverter CAN Tool allows querying and setting configuration of inverter
-      parameters over a CAN connection
+    openinverter CAN Tool allows querying and setting configuration of inverter
+    parameters over a CAN connection
 
     Options:
-      -d, --database FILE  Override the openinverter JSON parameter database to
-                           use
-      -c, --context TEXT   Which python-can configuration context to use
-      -n, --node INTEGER   The CAN SDO node ID to communicate with  [default: 1]
-      -t, --timeout FLOAT  Response timeout in seconds  [default: 1.0]
-      --version            Show the version and exit.
-      --help               Show this message and exit.
+    -d, --database FILE  Override the openinverter JSON parameter database to
+                        use
+    -c, --context TEXT   Which python-can configuration context to use
+    -n, --node INTEGER   The CAN SDO node ID to communicate with  [env var:
+                        OIC_NODE; default: 1]
+    -t, --timeout FLOAT  Response timeout in seconds  [default: 1.0]
+    --version            Show the version and exit.
+    --help               Show this message and exit.
 
     Commands:
-      cache       Parameter database cache management commands
-      cmd         Execute a command on a device
-      dumpall     Dump the values of all available parameters and values
-      listparams  List all available parameters and values
-      load        Load all parameters from json IN_FILE
-      log         Log the value of PARAMS from the device periodically in CSV...
-      read        Read the value of PARAM from the device
-      save        Save all parameters in json to OUT_FILE
-      scan        Scan the CAN bus for available nodes
-      serialno    Read the device serial number.
-      write       Write the value to the parameter PARAM on the device
+    cache       Parameter database cache management commands
+    can         Manage parameter to CAN message mappings on a device
+    cmd         Execute a command on a device
+    dumpall     Dump the values of all available parameters and values
+    listparams  List all available parameters and values
+    load        Load all parameters from json IN_FILE
+    log         Log the value of PARAMS from the device periodically in CSV...
+    read        Read the value of PARAM from the device
+    save        Save all parameters in json to OUT_FILE
+    scan        Scan the CAN bus for available nodes
+    serialno    Read the device serial number.
+    write       Write the value to the parameter PARAM on the device
 ```
 
 To read a specific parameter from 5.24.R firmware:
