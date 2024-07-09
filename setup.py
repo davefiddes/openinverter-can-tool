@@ -8,6 +8,7 @@ https://github.com/pypa/sampleproject
 # Always prefer setuptools over distutils
 import pathlib
 import re
+from glob import glob
 from setuptools import setup, find_packages
 
 here = pathlib.Path(__file__).parent.resolve()
@@ -76,10 +77,9 @@ setup(
 
     # Pull in all our example parameter databases
     data_files=[("parameter-databases",
-                 ["parameter-databases/c2000-sine.5.14.R.C2000-foc.json",
-                  "parameter-databases/c2000-sine.5.24.R.C2000-foc.json",
-                  "parameter-databases/stm32-sine.5.24.R-foc.json",
-                  "parameter-databases/stm32-sine.5.24.R-sine.json"])],
+                 glob("parameter-databases/*.json")),
+                ("docs",
+                 glob("docs/*.md") + glob("docs/*.png"))],
 
     # The main command-line tool
     entry_points={
