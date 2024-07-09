@@ -15,7 +15,7 @@ electric vehicles over a CAN connection.
 * Display the current value of each parameter/value on a given device
 * Log a list of parameters to a CSV file at regular intervals
 * Save and load all parameters to and from a JSON file
-* Manage parameter to custom [CAN message mappings](doc/can-mapping.md):
+* Manage parameter to custom [CAN message mappings](docs/can-mapping.md):
   * Create, remove and list parameter mappings on a device
   * Export and import mappings to a local JSON file
   * Export mappings to DBC allowing easier debugging with [SavvyCAN](https://savvycan.com/)
@@ -29,6 +29,7 @@ electric vehicles over a CAN connection.
   * Reset
 * Scan a CAN bus for possible nodes
 * Runs on Linux, Windows and MacOS with python 3.8+
+* Support [shell completion](docs/)for commands and options for bash, zsh and fish shells
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
 * Automatic parameter database download and caching (requires stm32-sine 5.27.R or later)
