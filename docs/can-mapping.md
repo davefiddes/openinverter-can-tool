@@ -23,15 +23,15 @@ This will then immediately start sending a CAN message with ID 0x100 (decimal 25
 Don't forget to save the CAN mapping to Flash on the inverter:
 
 ```text
-$ oic cmd save
-Command sent successfully
+    $ oic cmd save
+    Command sent successfully
 ```
 
 To look at the messages in SavvyCAN you need to export the CAN map:
 
 ```text
-$ oic can export --format dbc inverter-temperatures.dbc
-Parameter CAN message map exported
+    $ oic can export --format dbc inverter-temperatures.dbc
+    Parameter CAN message map exported
 ```
 
 If you load inverter-temperatures.dbc into SavvyCAN it will look like this in the Signal Editor:
