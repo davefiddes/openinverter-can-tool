@@ -166,6 +166,7 @@ class TestOpenInverterNode(unittest.TestCase):
         msg = can_map[0]
 
         assert msg.can_id == 0x101
+        assert not msg.is_extended_frame
 
         assert len(msg.params) == 1
         param = msg.params[0]
@@ -902,5 +903,6 @@ class TestOpenInverterNode(unittest.TestCase):
 
         self.node.add_can_map(Direction.TX, msg_map)
 
-        if __name__ == "__main__":
-            unittest.main()
+
+if __name__ == "__main__":
+    unittest.main()

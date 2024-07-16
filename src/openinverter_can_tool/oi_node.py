@@ -65,9 +65,11 @@ class CanMessage:
     def __init__(
             self,
             can_id: int,
-            params: List[MapEntry]) -> None:
+            params: List[MapEntry],
+            is_extended_frame: bool = False) -> None:
         self.can_id = can_id
         self.params = params
+        self.is_extended_frame = is_extended_frame
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -171,12 +173,15 @@ class OpenInverterNode(BaseNode):
             position: int,
             length: int,
             gain: float,
-            offset: int) -> None:
+            offset: int,
+            is_extended_frame: bool = False) -> None:
         """
         Add a CAN map entry to transmit or receive the current value of a
         given parameter.
 
-        :param can_id:    The CAN ID that will be transmitted. [0,0x7ff]
+        :param can_id:    The CAN ID that will be transmitted.
+                          [0,0x7ff] for standard frames
+                          [0,0x1fffffff] for extended frames
         :param direction: The direction the parameter will be mapped, either
                           transmit or receive.
         :param param_id:  The openinverter parameter id to be mapped.
@@ -188,9 +193,15 @@ class OpenInverterNode(BaseNode):
                           inserted into the CAN frame. [-8388.608, 8388.607]
         :param offset:    The offset to be added to the parameter after the
                           gain is applied. [-128, 127]
+        :param is_extended_frame: Does the can_id represent an extended CAN
+                          frame id
         """
-        if can_id not in range(0, 0x800):
-            raise ValueError
+        if is_extended_frame:
+            if can_id not in range(0, 0x20000000):
+                raise ValueError
+        else:
+            if can_id not in range(0, 0x800):
+                raise ValueError
         if position not in range(0, 64):
             raise ValueError
         if abs(length) not in range(1, 33):
@@ -211,10 +222,14 @@ class OpenInverterNode(BaseNode):
             raise ValueError
 
         # Fill out the SDO "variable" with the CAN ID we want to map
+        if is_extended_frame:
+            packed_can_id = can_id | oi.MAP_EXTENDED_FRAME_FLAG
+        else:
+            packed_can_id = can_id
         self.sdo.download(
             cmd_index,
             oi.MAP_CAN_ID_SUBINDEX,
-            UNSIGNED32.pack(can_id))
+            UNSIGNED32.pack(packed_can_id))
 
         # Fill out the SDO "variable" with the parameter ID to map and
         # the position and length they should take up in each CAN frame
@@ -258,7 +273,8 @@ class OpenInverterNode(BaseNode):
                     param.position,
                     param.length,
                     param.gain,
-                    param.offset
+                    param.offset,
+                    msg.is_extended_frame
                 )
 
     def _get_mapped_can_id(self, index: int) -> Optional[int]:
@@ -363,7 +379,11 @@ class OpenInverterNode(BaseNode):
             can_id = self._get_mapped_can_id(can_id_index)
 
             if can_id is not None:
-                msg = CanMessage(can_id, self._get_map_entries(can_id_index))
+                is_extended_frame = can_id & oi.MAP_EXTENDED_FRAME_FLAG
+                msg = CanMessage(
+                    can_id & oi.MAP_EXTENDED_FRAME_MASK,
+                    self._get_map_entries(can_id_index),
+                    is_extended_frame)
 
                 # Just ignore a message without any params
                 if msg.params:
