@@ -71,6 +71,13 @@ class CanMessage:
         self.params = params
         self.is_extended_frame = is_extended_frame
 
+        if is_extended_frame:
+            if can_id not in range(0, 0x20000000):
+                raise ValueError
+        else:
+            if can_id not in range(0, 0x800):
+                raise ValueError
+
     def __eq__(self, other):
         if type(other) is type(self):
             return self.__dict__ == other.__dict__

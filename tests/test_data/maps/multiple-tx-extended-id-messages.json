@@ -33,10 +33,10 @@
                     "offset": 0
                 }
             ],
-            "is_extended_frame": false
+            "is_extended_frame": true
         },
         {
-            "can_id": 819,
+            "can_id": 305419896,
             "params": [
                 {
                     "param": "cpuload",
@@ -67,7 +67,7 @@
                     "offset": 0
                 }
             ],
-            "is_extended_frame": false
+            "is_extended_frame": true
         }
     ],
     "rx": []

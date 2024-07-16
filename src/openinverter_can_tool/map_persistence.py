@@ -36,7 +36,8 @@ def export_json_map(tx_map: List[CanMessage],
             out_params = []
             out_msg = {
                 "can_id": msg.can_id,
-                "params": out_params
+                "params": out_params,
+                "is_extended_frame": msg.is_extended_frame
             }
             for entry in msg.params:
                 # Search inefficiently for the parameter name
@@ -100,9 +101,14 @@ def import_json_map(in_file: IO,
     def _parse_can_messages(msg_doc) -> List[CanMessage]:
         msg_list = []
         for msg in msg_doc:
+            if "is_extended_frame" in msg:
+                is_extended_frame = msg["is_extended_frame"]
+            else:
+                is_extended_frame = False
             msg_list.append(
                 CanMessage(msg["can_id"],
-                           _parse_map_entries(msg["params"])))
+                           _parse_map_entries(msg["params"]),
+                           is_extended_frame))
         return msg_list
 
     doc = json.load(in_file)

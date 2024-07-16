@@ -260,6 +260,59 @@ class TestJSONMaps:
             assert in_tx_map == tx_map
             assert in_rx_map == rx_map
 
+    def test_import_simple_tx_and_rx_message_map_without_extended_support(
+            self):
+        """The original file format from 0.0.9"""
+        db = import_database(DB_DIR / "single-param.json")
+
+        expected_tx_map = [
+            CanMessage(0x123, [MapEntry(1, 24, 8, -1.0, 0)])
+        ]
+        expected_rx_map = [
+            CanMessage(0x321, [MapEntry(1, 23, -16, 2.5, -42)])
+        ]
+
+        with open(MAP_DIR /
+                  "simple-tx-rx-message-map-without-extended-support.json",
+                  "rt",
+                  encoding="utf-8") as map_file:
+            (tx_map, rx_map) = import_json_map(map_file, db)
+            assert tx_map == expected_tx_map
+            assert rx_map == expected_rx_map
+
+    def test_import_multiple_tx_messages_with_extended_can_ids(self):
+        db = import_database(DB_DIR / "complex.json")
+
+        expected_tx_map = [
+            CanMessage(0x101, [
+                MapEntry(17, 24, 8, -1.0, 0),
+                MapEntry(18, 0, 8, 1.0, 0),
+                MapEntry(17, 8, 8, -1.0, 0),
+                MapEntry(18, 16, 8, 1.0, 0)
+            ], is_extended_frame=True),
+            CanMessage(0x12345678, [
+                MapEntry(2035, 0, 8, 1.0, 0),
+                MapEntry(107, 8, 8, -1.0, 0),
+                MapEntry(2035, 16, 8, 1.0, 0),
+                MapEntry(107, 24, 8, -1.0, 0)
+            ], is_extended_frame=True)
+        ]
+
+        with open(MAP_DIR / "multiple-tx-extended-id-messages.json",
+                  "rt",
+                  encoding="utf-8") as map_file:
+            (tx_map, rx_map) = import_json_map(map_file, db)
+            assert repr(tx_map) == repr(expected_tx_map)
+            assert not rx_map
+
+    def test_import_corrupt_out_of_range_extended_can_id(self):
+        db = import_database(DB_DIR / "single-param.json")
+        with pytest.raises(ValueError):
+            with open(MAP_DIR / "corrupt-out-of-range-extended-can-id.json",
+                      "rt",
+                      encoding="utf-8") as map_file:
+                import_json_map(map_file, db)
+
 
 if __name__ == '__main__':
     unittest.main()

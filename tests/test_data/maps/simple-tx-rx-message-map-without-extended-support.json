@@ -11,8 +11,7 @@
                     "gain": -1.0,
                     "offset": 0
                 }
-            ],
-            "is_extended_frame": false
+            ]
         }
     ],
     "rx": [
@@ -26,8 +25,7 @@
                     "gain": 2.5,
                     "offset": -42
                 }
-            ],
-            "is_extended_frame": false
+            ]
         }
     ]
 }
