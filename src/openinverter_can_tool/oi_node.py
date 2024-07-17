@@ -29,6 +29,22 @@ MapListDirectionIndex = {
 }
 
 
+def _validate_map_entry_parameters(
+        position: int,
+        length: int,
+        gain: float,
+        offset: int) -> None:
+    """Common validation of map entry parameters"""
+    if position not in range(0, 64):
+        raise ValueError
+    if abs(length) not in range(1, 33):
+        raise ValueError
+    if gain < -8388.608 or gain > 8388.607:
+        raise ValueError
+    if offset not in range(-128, 128):
+        raise ValueError
+
+
 class MapEntry:
     """Describe a openinverter parameter to CAN message mapping"""
 
@@ -39,6 +55,13 @@ class MapEntry:
             length: int,
             gain: float,
             offset: int):
+
+        _validate_map_entry_parameters(
+            position,
+            length,
+            gain,
+            offset
+        )
 
         self.param_id = param_id
         self.position = position
@@ -57,6 +80,17 @@ class MapEntry:
         return f"{cls}({attrs})"
 
 
+def _validate_can_message_parameters(
+        can_id: int,
+        is_extended_frame: bool = False) -> None:
+    if is_extended_frame:
+        if can_id not in range(0, 0x20000000):
+            raise ValueError
+    else:
+        if can_id not in range(0, 0x800):
+            raise ValueError
+
+
 class CanMessage:
     """
     A custom CAN message that maps openinverter parameters to a specific CAN ID
@@ -67,16 +101,11 @@ class CanMessage:
             can_id: int,
             params: List[MapEntry],
             is_extended_frame: bool = False) -> None:
+        _validate_can_message_parameters(can_id, is_extended_frame)
+
         self.can_id = can_id
         self.params = params
         self.is_extended_frame = is_extended_frame
-
-        if is_extended_frame:
-            if can_id not in range(0, 0x20000000):
-                raise ValueError
-        else:
-            if can_id not in range(0, 0x800):
-                raise ValueError
 
     def __eq__(self, other):
         if type(other) is type(self):
@@ -203,20 +232,13 @@ class OpenInverterNode(BaseNode):
         :param is_extended_frame: Does the can_id represent an extended CAN
                           frame id
         """
-        if is_extended_frame:
-            if can_id not in range(0, 0x20000000):
-                raise ValueError
-        else:
-            if can_id not in range(0, 0x800):
-                raise ValueError
-        if position not in range(0, 64):
-            raise ValueError
-        if abs(length) not in range(1, 33):
-            raise ValueError
-        if gain < -8388.608 or gain > 8388.607:
-            raise ValueError
-        if offset not in range(-128, 128):
-            raise ValueError
+        _validate_can_message_parameters(can_id, is_extended_frame)
+        _validate_map_entry_parameters(
+            position,
+            length,
+            gain,
+            offset
+        )
 
         map_direction_index = {
             Direction.TX: oi.CAN_MAP_TX_INDEX,
