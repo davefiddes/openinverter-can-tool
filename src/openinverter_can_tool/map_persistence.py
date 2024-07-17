@@ -63,7 +63,7 @@ def export_json_map(tx_map: List[CanMessage],
         return out_list
 
     doc = {
-        "version": 1,
+        "version": 2,
         "tx": _convert_map_to_dict(tx_map),
         "rx": _convert_map_to_dict(rx_map)
     }
@@ -117,7 +117,9 @@ def import_json_map(in_file: IO,
         raise RuntimeError("Invalid file format")
 
     version = doc["version"]
-    if version != 1:
+    if version not in (1, 2):
+        # Version 1: Original version introduced in 0.0.9 release
+        # Version 2: Adds is_extended_frame field to the CAN message
         raise RuntimeError(f"Unsupported version: {version}")
 
     tx_map = _parse_can_messages(doc["tx"])
