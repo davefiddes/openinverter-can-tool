@@ -238,6 +238,7 @@ def transform_map_to_canopen_db(
             out_msg = cantools.database.can.message.Message(
                 name=f"{msg_prefix}_msg{msg_no}",
                 frame_id=msg.can_id,
+                is_extended_frame=msg.is_extended_frame,
                 length=8,
                 signals=signals,
                 senders=[node_name]

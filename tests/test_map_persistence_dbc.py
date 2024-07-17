@@ -227,6 +227,27 @@ class TestDBCMaps:
         with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
             verify(dbc_file.read())
 
+    def test_export_tx_message_with_extended_frame_ids(self, tmp_path: Path):
+
+        tx_map = [
+            CanMessage(0x00000123, [MapEntry(1, 24, 8, -1.0, 0)], True),
+            CanMessage(0x12345678, [MapEntry(1, 24, 8, -1.0, 0)], True)
+        ]
+
+        db = import_database(DB_DIR / "single-param.json")
+
+        dbc_path = tmp_path / "tx_message_with_extended_frame_ids.dbc"
+        export_dbc_map(None, tx_map, [], db, dbc_path)
+
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
+            verify(dbc_file.read())
+
+        # export a JSON map to allow the resulting DBC to be manually tested
+        # with SavvyCAN on real hardware
+        map_file_path = tmp_path / "tx_message_with_extended_frame_ids.json"
+        with open(map_file_path, "wt", encoding="utf-8") as map_file:
+            export_json_map(tx_map, [], db, map_file)
+
 
 if __name__ == '__main__':
     unittest.main()
