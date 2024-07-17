@@ -1,14 +1,12 @@
 """openinverter custom SDO protocol unit tests"""
 
 import unittest
-from typing import List, Tuple
-
-import canopen
 
 from openinverter_can_tool import constants as oi
-from openinverter_can_tool.oi_node import (CanMessage, Direction,
-                                           MapEntry, OpenInverterNode)
+from openinverter_can_tool.oi_node import CanMessage, Direction, MapEntry
 from openinverter_can_tool.paramdb import OIVariable
+
+from .network_test_case import NetworkTestCase
 
 TX = 1
 RX = 2
@@ -17,40 +15,10 @@ RX = 2
 # pylint: disable=missing-function-docstring
 
 
-class TestOpenInverterNode(unittest.TestCase):
+class TestOpenInverterNode(NetworkTestCase):
     """
     Test the custom openinverter node protocol by example
     """
-
-    def _send_message(self, can_id, data, remote=False):
-        """Will be used instead of the usual Network.send_message method.
-
-        Checks that the message data is according to expected and answers
-        with the provided data.
-        """
-        next_data = self.data.pop(0)
-        self.assertEqual(next_data[0], TX, "No transmission was expected")
-        self.assertSequenceEqual(data, next_data[1])
-        self.assertEqual(can_id, 0x602)
-        while self.data and self.data[0][0] == RX:
-            self.network.notify(0x582, bytearray(self.data.pop(0)[1]), 0.0)
-
-        # pretend to use remote
-        _ = remote
-
-    def setUp(self):
-        network = canopen.Network()
-        network.send_message = self._send_message
-        node = OpenInverterNode(network, 2)
-        node.sdo.RESPONSE_TIMEOUT = 0.01
-        self.node = node
-        self.network = network
-        self.data: List[Tuple[int, bytes]] = []
-
-    def tearDown(self) -> None:
-        # At the end of every test all of the data data should have been
-        # consumed by _send_message()
-        assert len(self.data) == 0
 
     def test_serialno(self):
         self.data = [
