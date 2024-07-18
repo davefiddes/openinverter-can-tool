@@ -40,7 +40,7 @@ BO_ 1 tx_msg1: 8 custom_node_name_tx
  SG_ tmphs : 0|8@1- (1,0) [0|0] "" Vector__XXX
 
 BO_ 2 rx_msg1: 8 custom_node_name_rx
- SG_ ocurlim : 32|16@1- (1,0) [-65536.0|65536.0] "A" Vector__XXX
+ SG_ ocurlim : 32|16@1+ (1,0) [-65536.0|65536.0] "A" Vector__XXX
 
 
 

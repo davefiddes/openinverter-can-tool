@@ -56,7 +56,7 @@ BO_ 261 tx_msg5: 8 tx
  SG_ tmphs : 7|32@0- (0.01,0) [0|0] "" Vector__XXX
 
 BO_ 513 rx_msg1: 8 rx
- SG_ ocurlim : 15|16@0- (1,0) [-65536.0|65536.0] "A" Vector__XXX
+ SG_ ocurlim : 15|16@0+ (1,0) [-65536.0|65536.0] "A" Vector__XXX
 
 
 

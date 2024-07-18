@@ -7,4 +7,4 @@ message('tx_msg1', 0x123, False, 8, None)
   signal('param1', 24, 8, 'little_endian', True, None, -1, 0, None, 100.0, 'km / h', False, None, None, None, None)
 
 message('rx_msg1', 0x321, False, 8, None)
-  signal('param1', 15, 16, 'big_endian', True, None, 0.4, 42, None, 100.0, 'km / h', False, None, None, None, None)
+  signal('param1', 15, 16, 'big_endian', False, None, 0.4, 42, None, 100.0, 'km / h', False, None, None, None, None)

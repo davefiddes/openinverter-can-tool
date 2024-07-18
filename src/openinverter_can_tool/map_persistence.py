@@ -162,7 +162,8 @@ def transform_map_to_canopen_db(
     def _convert_param_to_signal(
         param_name: str,
         param: OIVariable,
-        entry: MapEntry
+        entry: MapEntry,
+        is_signed: bool
     ) -> cantools.database.can.signal.Signal:
         if entry.length > 0:
             byte_order = "little_endian"
@@ -199,7 +200,7 @@ def transform_map_to_canopen_db(
             # gain and offset
             signal.scale = 1.0 / entry.gain
             signal.offset = -entry.offset
-            signal.is_signed = True
+            signal.is_signed = is_signed
 
             if param.isparam:
                 signal.unit = param.unit
@@ -215,7 +216,8 @@ def transform_map_to_canopen_db(
     def _convert_map_to_messages(
             msg_map: List[CanMessage],
             node_name: str,
-            msg_prefix: str
+            msg_prefix: str,
+            is_signed: bool
     ) -> List[cantools.database.can.message.Message]:
         out_list = []
         msg_no = 1
@@ -234,7 +236,8 @@ def transform_map_to_canopen_db(
                     signal_names[param_name] = 0
 
                 signals.append(
-                    _convert_param_to_signal(param_name, param, entry)
+                    _convert_param_to_signal(
+                        param_name, param, entry, is_signed)
                 )
 
             out_msg = cantools.database.can.message.Message(
@@ -263,8 +266,8 @@ def transform_map_to_canopen_db(
     if rx_map:
         nodes.append(rx_node)
 
-    messages = _convert_map_to_messages(tx_map, tx_node.name, "tx")
-    messages += _convert_map_to_messages(rx_map, rx_node.name, "rx")
+    messages = _convert_map_to_messages(tx_map, tx_node.name, "tx", True)
+    messages += _convert_map_to_messages(rx_map, rx_node.name, "rx", False)
 
     return cantools.database.can.Database(messages, nodes)
 
