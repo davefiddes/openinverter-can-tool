@@ -17,6 +17,7 @@ electric vehicles over a CAN connection.
 * Save and load all parameters to and from a JSON file
 * Manage parameter to custom [CAN message mappings](docs/can-mapping.md):
   * Create, remove and list parameter mappings on a device
+  * Support maps with standard CAN 2.0a and extended CAN 2.0b frames
   * Export and import mappings to a local JSON file
   * Export mappings to DBC allowing easier debugging with [SavvyCAN](https://savvycan.com/)
 * Display the inverter serial number
@@ -33,7 +34,7 @@ electric vehicles over a CAN connection.
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
 * Automatic parameter database download and caching (requires stm32-sine 5.27.R or later)
-* Works with [Foccci/Clara](https://github.com/uhi22/ccs32clara) CCS controller and [Stm32-vcu](https://github.com/damienmaguire/Stm32-vcu) (a.k.a Zombieverter VCU)
+* Works with [Foccci/Clara](https://github.com/uhi22/ccs32clara) CCS controller and [Stm32-vcu](https://github.com/damienmaguire/Stm32-vcu) (a.k.a. Zombieverter VCU)
 
 ## Installation
 
