@@ -116,6 +116,7 @@ class TestOpenInverterNodeExtendedFrames(NetworkTestCase):
 
         assert msg.can_id == 0x12345678
         assert msg.is_extended_frame
+        assert type(msg.is_extended_frame) is bool
 
         assert len(msg.params) == 1
         param = msg.params[0]
@@ -160,6 +161,7 @@ class TestOpenInverterNodeExtendedFrames(NetworkTestCase):
 
         assert msg.can_id == 0x101
         assert msg.is_extended_frame
+        assert type(msg.is_extended_frame) is bool
 
         assert len(msg.params) == 1
         param = msg.params[0]

@@ -408,7 +408,7 @@ class OpenInverterNode(BaseNode):
             can_id = self._get_mapped_can_id(can_id_index)
 
             if can_id is not None:
-                is_extended_frame = can_id & oi.MAP_EXTENDED_FRAME_FLAG
+                is_extended_frame = can_id & oi.MAP_EXTENDED_FRAME_FLAG > 0
                 msg = CanMessage(
                     can_id & oi.MAP_EXTENDED_FRAME_MASK,
                     self._get_map_entries(can_id_index),
