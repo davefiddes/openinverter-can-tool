@@ -837,7 +837,9 @@ def cmd_can_remove(
 
 
 @can_map.command("clear")
-@click.argument("direction", required=True, type=click.Choice(["tx", "rx"]))
+@click.argument("direction",
+                required=True, type=click.Choice(["tx", "rx", "all"]),
+                default="all")
 @pass_cli_settings
 @can_action
 def cmd_can_clear(
@@ -850,7 +852,11 @@ def cmd_can_clear(
 
     assert cli_settings.node
     node = cli_settings.node
-    node.clear_map(Direction[direction.upper()])
+    if direction == "all":
+        node.clear_map(Direction.TX)
+        node.clear_map(Direction.RX)
+    else:
+        node.clear_map(Direction[direction.upper()])
 
     click.echo(f"CAN {direction} mapping removed successfully.")
 
