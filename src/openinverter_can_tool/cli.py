@@ -631,7 +631,11 @@ def print_can_map(
     msg_index = 0
     param_index = 0
     for msg in cur_map:
-        click.echo(f"0x{msg.can_id:x}:")
+        if msg.is_extended_frame:
+            click.echo(f"{msg.can_id:#010x}:")
+        else:
+            click.echo(f"{msg.can_id:#x}:")
+
         for entry in msg.params:
             click.echo(
                 f" {direction_str}.{msg_index}.{param_index}" +
@@ -683,6 +687,13 @@ def cmd_can_list(
                 type=click.FloatRange(-8388.608, 8388.607),
                 default=1.0)
 @click.argument("offset", type=click.IntRange(-128, 127), default=0)
+@click.option("--standard", "is_extended_frame", flag_value=False,
+              default=True, show_default=True,
+              help="Use standard format CAN 2.0a frames with 11-bit addresses "
+              "(0-2047) or (0x000-0x7ff)")
+@click.option("--extended", "is_extended_frame", flag_value=True,
+              help="Use extended format CAN 2.0b frames with 29-bit addresses "
+              "(0-536870911) or (0x00000000-0x1fffffff)")
 @pass_cli_settings
 @db_action
 @can_action
@@ -694,12 +705,13 @@ def cmd_can_add(
     position: int,
     length: int,
     gain: float,
-    offset: int
+    offset: int,
+    is_extended_frame: bool
 ) -> None:
     """Add a CAN message mapping for a specific parameter
 
     \b
-    CAN_ID   - A valid CAN ID in decimal (0-2047) or hexadecimal (0x000-0x7ff)
+    CAN_ID   - A valid CAN ID in decimal or hexadecimal (prefix with '0x')
     PARAM    - The parameter name to map
     POSITION - The starting bit position (0-63)
     LENGTH   - The number of bits the value will take up (-32,-1) or (1,32)
@@ -736,13 +748,23 @@ def cmd_can_add(
 
     # Parse both hex as 0x1337 -> 4919 and decimal as 1337 -> 1337
     can_id_int = literal_eval(can_id)
-    if can_id_int < 0 or can_id_int >= 0x800:
-        click.echo(f"can_id: {can_id} out of range. " +
-                   "Expected 0x000-0x7ff or 0-2047")
-        return
+    if is_extended_frame:
+        if can_id_int < 0 or can_id_int >= 0x20000000:
+            click.echo(f"can_id: {can_id} out of range for an extended CAN " +
+                       "frame.\nExpected 0x00000000-0x1fffffff or 0-536870911")
+            return
+    else:
+        if can_id_int < 0 or can_id_int >= 0x800:
+            click.echo(f"can_id: {can_id} out of range for a standard CAN " +
+                       "frame.\nExpected 0x000-0x7ff or 0-2047")
+            return
 
-    click.echo(f"Adding CAN {direction} mapping with " +
-               f"can_id={can_id_int:#x} param='{param}' position={position} " +
+    click.echo(f"Adding CAN {direction} mapping with ", nl=False)
+    if is_extended_frame:
+        click.echo(f"can_id={can_id_int:#010x} ", nl=False)
+    else:
+        click.echo(f"can_id={can_id_int:#x} ", nl=False)
+    click.echo(f"param='{param}' position={position} " +
                f"length={length} gain={gain} offset={offset}")
 
     assert cli_settings.node
@@ -754,7 +776,8 @@ def cmd_can_add(
         position,
         length,
         gain,
-        offset)
+        offset,
+        is_extended_frame)
 
     click.echo("CAN mapping added successfully.")
 
