@@ -1,11 +1,9 @@
 """A simple framework for sending CAN frames to test cases"""
 
 import unittest
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 import canopen
-
-from openinverter_can_tool.oi_node import OpenInverterNode
 
 TX = 1
 RX = 2
@@ -18,6 +16,10 @@ class NetworkTestCase(unittest.TestCase):
     """
     Test the custom openinverter node protocol by example
     """
+
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        self._node_type: Type
 
     def _send_message(self, can_id, data, remote=False):
         """Will be used instead of the usual Network.send_message method.
@@ -38,8 +40,9 @@ class NetworkTestCase(unittest.TestCase):
     def setUp(self):
         network = canopen.Network()
         network.send_message = self._send_message
-        node = OpenInverterNode(network, 2)
-        node.sdo.RESPONSE_TIMEOUT = 0.01
+        node = self._node_type(network, 2)
+        if "sdo" in node.__dict__:
+            node.sdo.RESPONSE_TIMEOUT = 0.01
         self.node = node
         self.network = network
         self.data: List[Tuple[int, bytes]] = []

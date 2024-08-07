@@ -5,7 +5,8 @@ Extended frame specific tests
 
 import unittest
 
-from openinverter_can_tool.oi_node import CanMessage, Direction, MapEntry
+from openinverter_can_tool.oi_node import (CanMessage, Direction, MapEntry,
+                                           OpenInverterNode)
 from openinverter_can_tool.paramdb import OIVariable
 
 from .network_test_case import NetworkTestCase
@@ -21,6 +22,10 @@ class TestOpenInverterNodeExtendedFrames(NetworkTestCase):
     """
     Test the custom openinverter node protocol by example
     """
+
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        self._node_type = OpenInverterNode
 
     def test_map_receive_extended_can_id(self):
         # Manually synthesized packets equivalent to:
