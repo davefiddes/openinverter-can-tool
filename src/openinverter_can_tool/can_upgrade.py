@@ -86,7 +86,7 @@ class CanUpgrader:
         self._network = network
         self._target_serialno = serialno
         self._serialno: Optional[bytes] = None
-        self.pages: List[Page] = []
+        self._pages: List[Page] = []
 
         with open(firmware, "rb") as firmware_file:
             while True:
@@ -135,9 +135,14 @@ class CanUpgrader:
         return self._target_serialno
 
     @property
+    def pages(self) -> List[Page]:
+        """The list of loaded firmware pages to be uploaded to the device"""
+        return self._pages
+
+    @property
     def current_page(self) -> Page:
         """Return the current firmware page. May raise IndexError"""
-        return self.pages[self._current_page]
+        return self._pages[self._current_page]
 
     def advance_page(self) -> None:
         """Move to the next firmware page"""
