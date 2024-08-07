@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import array
+import queue
 import struct
 from abc import ABC, abstractmethod
+from copy import copy
 from enum import IntEnum
 from pathlib import Path
 from typing import List, Optional
@@ -76,7 +78,8 @@ class CanUpgrader:
     """Class to manage upgrading the firmware of open inverter devices over a
     CAN bus connection"""
 
-    _state: State
+    _internal_state: State
+    _state: State  # thread-safe current state
 
     def __init__(
             self,
@@ -100,26 +103,51 @@ class CanUpgrader:
                     break
 
         self._current_page = 0
+        self._status_queue = queue.Queue()
 
         self.transition_to(StartState())
 
-        network.subscribe(DEVICE_CAN_ID, self.process)
+        # Once we subscribe data will start arriving on another thread
+        network.subscribe(DEVICE_CAN_ID, self._process_can_frame)
+
+    def run(self, timeout: float) -> bool:
+        """
+        Run the upgrade process to completion or until the timeout is
+        exceeded.
+
+        :param timeout: The time to wait for the process to timeout in seconds
+
+        :returns: True if the process ran to a final state (CompleteState or
+                  FailureState) or False if the process timed out
+        """
+        try:
+            while True:
+                self._state = self._status_queue.get(True, timeout)
+                if isinstance(self._state, (CompleteState, FailureState)):
+                    return True
+        except queue.Empty:
+            return False
 
     def transition_to(self, state: State) -> None:
         """
         Allow states to transition to a new state
         """
-        self._state = state
-        self._state.upgrader = self
+        self._internal_state = state
+        self._internal_state.upgrader = self
+        self._status_queue.put(copy(state))
 
     @property
     def state(self) -> State:
-        """Retrieve the current state of the upgrade process"""
+        """Retrieve the current state of the upgrade process."""
         return self._state
 
     @property
     def serialno(self) -> Optional[bytes]:
-        """Retrieve the serial number of the current device being upgraded"""
+        """
+        Retrieve the serial number of the current device being upgraded.
+        This is only valid once the HeaderState has been successfully
+        achieved.
+        """
         return self._serialno
 
     @serialno.setter
@@ -130,7 +158,7 @@ class CanUpgrader:
     def target_serialno(self) -> Optional[bytes]:
         """
         Retrieve the target serial number the upgrade process is directed
-        towards
+        towards.
         """
         return self._target_serialno
 
@@ -141,22 +169,26 @@ class CanUpgrader:
 
     @property
     def current_page(self) -> Page:
-        """Return the current firmware page. May raise IndexError"""
+        """Return the current firmware page. May raise IndexError. To be used
+        by State classes only."""
         return self._pages[self._current_page]
 
     def advance_page(self) -> None:
-        """Move to the next firmware page"""
+        """Move to the next firmware page. To be used by State classes only."""
         self._current_page += 1
 
-    def process(self, can_id: int, data: bytearray, timestamp: float) -> None:
-        """Process an incoming CAN packet"""
+    def reply(self, data: bytes) -> None:
+        """Send a reply to the device. To be used by State classes only."""
+        self._network.send_message(UPGRADER_CAN_ID, data)
+
+    def _process_can_frame(self,
+                           can_id: int,
+                           data: bytearray,
+                           timestamp: float) -> None:
+        """Process an incoming CAN frame"""
         assert can_id == DEVICE_CAN_ID
         _ = timestamp
-        self._state.process(bytes(data))
-
-    def reply(self, data: bytes) -> None:
-        """Send a reply to the device"""
-        self._network.send_message(UPGRADER_CAN_ID, data)
+        self._internal_state.process(bytes(data))
 
 
 class State(ABC):
@@ -271,23 +303,6 @@ class CheckCrcState(State):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
 
-class Failure(IntEnum):
-    """Failure code for the upgrade process"""
-    PROTOCOL_ERROR = 1
-    UPGRADE_IN_PROGRESS = 2
-    PAGE_CRC_ERROR = 3
-
-
-class FailureState(State):
-    """The firmware upgrade process has failed"""
-
-    def __init__(self, failure: Failure) -> None:
-        self.failure = failure
-
-    def process(self, data: bytes) -> None:
-        pass
-
-
 class WaitForDoneState(State):
     """Waiting until the device confirms completion of the upgrade"""
 
@@ -304,8 +319,27 @@ class WaitForDoneState(State):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
 
+class Failure(IntEnum):
+    """Failure code for the upgrade process"""
+    PROTOCOL_ERROR = 1
+    UPGRADE_IN_PROGRESS = 2
+    PAGE_CRC_ERROR = 3
+
+
+class FailureState(State):
+    """The firmware upgrade process has failed. This is a final state for the
+    upgrade state machine."""
+
+    def __init__(self, failure: Failure) -> None:
+        self.failure = failure
+
+    def process(self, data: bytes) -> None:
+        pass
+
+
 class CompleteState(State):
-    """The firmware upgrade process is complete"""
+    """The firmware upgrade process is complete. This is a final state for the
+    upgrade state machine."""
 
     def process(self, data: bytes) -> None:
         pass
