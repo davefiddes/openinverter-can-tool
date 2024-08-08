@@ -8,10 +8,7 @@ from typing import List, Tuple
 import canopen
 import pytest
 
-from openinverter_can_tool.can_upgrade import (CanUpgrader, CheckCrcState,
-                                               CompleteState, Failure,
-                                               FailureState, HeaderState,
-                                               StartState, UploadState)
+from openinverter_can_tool.can_upgrade import CanUpgrader, Failure, State
 
 TOOL = 0x7DD
 DEVICE = 0x7DE
@@ -179,7 +176,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, StartState)
+        assert upgrader.state == State.START
         assert upgrader.serialno is None
 
     def test_recognise_specific_device_and_start_upgrade_process(self):
@@ -195,7 +192,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, HeaderState)
+        assert upgrader.state == State.HEADER
         assert upgrader.serialno == b"\x87\x19\x30\x29"
 
     def test_ignore_reserved_bytes_and_start_upgrade_process(self):
@@ -212,7 +209,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, HeaderState)
+        assert upgrader.state == State.HEADER
         assert upgrader.serialno == b"\x87\x19\x30\x29"
 
     def test_start_to_recover_the_next_device_to_boot(self):
@@ -226,7 +223,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, HeaderState)
+        assert upgrader.state == State.HEADER
         assert upgrader.serialno == b"\x87\x19\x30\x29"
 
     def test_recognise_device_in_herd_and_start_upgrade_process(self):
@@ -243,7 +240,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, HeaderState)
+        assert upgrader.state == State.HEADER
         assert upgrader.serialno == b"\x87\x19\x30\x29"
 
     def test_zero_length_data_in_hello_frame_triggers_error_state(self):
@@ -254,8 +251,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_random_data_in_hello_frame_triggers_error_state(self):
         self.data = [(DEVICE, b'\x12\x34\x56')]
@@ -265,8 +262,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_unusually_short_hello_header_triggers_error_state(self):
         self.data = [(DEVICE, b'\x33')]
@@ -276,8 +273,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_start_frame_indicates_upgrade_in_progress_error(self):
         self.data = [(DEVICE, b'\x53')]
@@ -287,8 +284,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.UPGRADE_IN_PROGRESS
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.UPGRADE_IN_PROGRESS
 
     def test_page_frame_indicates_upgrade_in_progress_error(self):
         self.data = [(DEVICE, b'\x50')]
@@ -298,8 +295,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.UPGRADE_IN_PROGRESS
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.UPGRADE_IN_PROGRESS
 
     def test_checksum_frame_indicates_upgrade_in_progress_error(self):
         self.data = [(DEVICE, b'\x43')]
@@ -309,8 +306,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.UPGRADE_IN_PROGRESS
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.UPGRADE_IN_PROGRESS
 
     def test_done_frame_indicates_upgrade_in_progress_error(self):
         self.data = [(DEVICE, b'\x44')]
@@ -320,8 +317,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.UPGRADE_IN_PROGRESS
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.UPGRADE_IN_PROGRESS
 
     def test_specific_device_reports_that_it_has_started(self):
         self.data = [
@@ -336,7 +333,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, UploadState)
+        assert upgrader.state == State.UPLOAD
 
     def test_another_device_starting_during_start_request_is_ignored(self):
         self.data = [
@@ -352,7 +349,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, UploadState)
+        assert upgrader.state == State.UPLOAD
 
     def test_device_send_empty_frame_instead_of_size_request(self):
         self.data = [
@@ -366,8 +363,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_device_receives_first_8_bytes_of_firmware(self):
         self.data = [
@@ -384,7 +381,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, UploadState)
+        assert upgrader.state == State.UPLOAD
 
     def test_another_device_starting_during_page_request_is_ignored(self):
         self.data = [
@@ -402,7 +399,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, UploadState)
+        assert upgrader.state == State.UPLOAD
 
     def test_device_sends_empty_frame_instead_of_page_request(self):
         self.data = [
@@ -418,8 +415,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_device_sends_extra_data_in_page_request(self):
         self.data = [
@@ -437,8 +434,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_device_receives_complete_page_of_firmware(self):
         self.load_capture("minimal-firmware-upload-page.csv")
@@ -448,7 +445,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert not upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CheckCrcState)
+        assert upgrader.state == State.CHECK_CRC
 
     def test_device_receives_an_extra_page_data_request_which_fails(self):
         self.load_capture("minimal-firmware-over-request-page-data.csv")
@@ -458,8 +455,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_device_receives_crc_request_earlier_than_expected(self):
         self.load_capture("minimal-firmware-early-crc-request.csv")
@@ -469,8 +466,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
 
     def test_device_receives_page_of_firmware_but_fails_crc_check(self):
         self.load_capture("minimal-firmware-invalid-page-crc.csv")
@@ -480,8 +477,8 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, FailureState)
-        assert upgrader.state.failure == Failure.PAGE_CRC_ERROR
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PAGE_CRC_ERROR
 
     def test_device_completes_minimal_firmware_upgrade(self):
         self.load_capture("minimal-firmware.csv")
@@ -491,7 +488,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE
 
     def test_another_device_starting_during_checksum_request_is_ignored(self):
         self.load_capture("minimal-firmware-crc-extra-hello.csv")
@@ -501,7 +498,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE
 
     def test_another_device_starting_during_done_request_is_ignored(self):
         self.load_capture("minimal-firmware-done-extra-hello.csv")
@@ -511,7 +508,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE
 
     def test_successful_upgrade_of_device_with_one_page_firmware(self):
         self.load_capture("successful-one-page-upgrade.csv")
@@ -521,7 +518,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE
 
     def test_successful_upgrade_of_device_with_two_page_firmware(self):
         self.load_capture("successful-two-page-upgrade.csv")
@@ -531,7 +528,7 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE
 
     def test_zero_length_firmware_succeeds_and_sends_no_pages(self):
         self.data = [
@@ -547,4 +544,4 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
-        assert isinstance(upgrader.state, CompleteState)
+        assert upgrader.state == State.COMPLETE

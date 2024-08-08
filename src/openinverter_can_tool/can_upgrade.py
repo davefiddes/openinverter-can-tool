@@ -6,8 +6,8 @@ import array
 import queue
 import struct
 from abc import ABC, abstractmethod
-from copy import copy
-from enum import IntEnum
+from collections import namedtuple
+from enum import IntEnum, auto
 from pathlib import Path
 from typing import List, Optional
 
@@ -73,13 +73,27 @@ class Page:
         self.crc = stm_crc(self.data)
 
 
+class State(IntEnum):
+    """List of possible states the upgrade process can be in"""
+    START = auto()
+    HEADER = auto()
+    UPLOAD = auto()
+    CHECK_CRC = auto()
+    WAIT_FOR_DONE = auto()
+    FAILURE = auto()
+    COMPLETE = auto()
+
+
+StateUpdate = namedtuple("StateUpdate", "state failure")
+
+
 class CanUpgrader:
 
     """Class to manage upgrading the firmware of open inverter devices over a
     CAN bus connection"""
 
-    _internal_state: State
-    _state: State  # thread-safe current state
+    _internal_state: InternalState
+    _state: State
 
     def __init__(
             self,
@@ -104,6 +118,7 @@ class CanUpgrader:
 
         self._current_page = 0
         self._status_queue = queue.Queue()
+        self._failure: Optional[Failure] = None
 
         self.transition_to(StartState())
 
@@ -122,24 +137,33 @@ class CanUpgrader:
         """
         try:
             while True:
-                self._state = self._status_queue.get(True, timeout)
-                if isinstance(self._state, (CompleteState, FailureState)):
+                update = self._status_queue.get(True, timeout)
+
+                self._state = update.state
+                self._failure = update.failure
+
+                if self._state in (State.COMPLETE, State.FAILURE):
                     return True
         except queue.Empty:
             return False
 
-    def transition_to(self, state: State) -> None:
+    def transition_to(self, state: InternalState) -> None:
         """
         Allow states to transition to a new state
         """
         self._internal_state = state
         self._internal_state.upgrader = self
-        self._status_queue.put(copy(state))
+        self._status_queue.put(state.details())
 
     @property
     def state(self) -> State:
         """Retrieve the current state of the upgrade process."""
         return self._state
+
+    @property
+    def failure(self) -> Optional[Failure]:
+        """Return the failure details"""
+        return self._failure
 
     @property
     def serialno(self) -> Optional[bytes]:
@@ -191,7 +215,7 @@ class CanUpgrader:
         self._internal_state.process(bytes(data))
 
 
-class State(ABC):
+class InternalState(ABC):
     """
     The base State class declares methods that all concrete states should
     implement and also provides a backreference to the CanUpgrader object,
@@ -204,8 +228,13 @@ class State(ABC):
     def process(self, data: bytes) -> None:
         """Process a new CAN message"""
 
+    @abstractmethod
+    def details(self) -> StateUpdate:
+        """Return the details of the current state suitable for external
+        consumption"""
 
-class StartState(State):
+
+class StartState(InternalState):
     """Waiting for a valid magic frame indicating a device is booting"""
 
     def process(self, data: bytes) -> None:
@@ -232,8 +261,11 @@ class StartState(State):
             # corrupt the upgrade process
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.START, None)
 
-class HeaderState(State):
+
+class HeaderState(InternalState):
     """Wait for the device to request details of the firmware image"""
 
     def process(self, data: bytes) -> None:
@@ -251,8 +283,11 @@ class HeaderState(State):
         else:
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.HEADER, None)
 
-class UploadState(State):
+
+class UploadState(InternalState):
     """Wait for the device to request a new page of firmware data to upload"""
 
     def __init__(self, page: Page) -> None:
@@ -279,8 +314,11 @@ class UploadState(State):
         else:
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.UPLOAD, None)
 
-class CheckCrcState(State):
+
+class CheckCrcState(InternalState):
     """Waiting for the device to validate the CRC of a completed page"""
 
     def __init__(self, crc: int) -> None:
@@ -302,8 +340,11 @@ class CheckCrcState(State):
         else:
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.CHECK_CRC, None)
 
-class WaitForDoneState(State):
+
+class WaitForDoneState(InternalState):
     """Waiting until the device confirms completion of the upgrade"""
 
     def process(self, data: bytes) -> None:
@@ -318,6 +359,9 @@ class WaitForDoneState(State):
         else:
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.WAIT_FOR_DONE, None)
+
 
 class Failure(IntEnum):
     """Failure code for the upgrade process"""
@@ -326,7 +370,7 @@ class Failure(IntEnum):
     PAGE_CRC_ERROR = 3
 
 
-class FailureState(State):
+class FailureState(InternalState):
     """The firmware upgrade process has failed. This is a final state for the
     upgrade state machine."""
 
@@ -336,10 +380,16 @@ class FailureState(State):
     def process(self, data: bytes) -> None:
         pass
 
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.FAILURE, self.failure)
 
-class CompleteState(State):
+
+class CompleteState(InternalState):
     """The firmware upgrade process is complete. This is a final state for the
     upgrade state machine."""
 
     def process(self, data: bytes) -> None:
         pass
+
+    def details(self) -> StateUpdate:
+        return StateUpdate(State.COMPLETE, None)
