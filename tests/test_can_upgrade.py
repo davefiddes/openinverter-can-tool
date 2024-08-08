@@ -4,11 +4,13 @@ import csv
 import unittest
 from pathlib import Path
 from typing import List, Tuple
+from unittest.mock import Mock, call
 
 import canopen
 import pytest
 
-from openinverter_can_tool.can_upgrade import CanUpgrader, Failure, State
+from openinverter_can_tool.can_upgrade import (CanUpgrader, Failure, State,
+                                               StateUpdate)
 
 TOOL = 0x7DD
 DEVICE = 0x7DE
@@ -545,3 +547,34 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+
+    def test_state_transition_notifications_are_sent_during_an_upgrade(self):
+        self.load_capture("successful-one-page-upgrade.csv")
+        callback = Mock()
+
+        upgrader = CanUpgrader(self.network, None, ONE_PAGE_FIRMWARE, callback)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        callback_list = [
+            call(StateUpdate(State.START, None)),
+            call(StateUpdate(State.HEADER, None)),
+            call(StateUpdate(State.UPLOAD, None)),
+            call(StateUpdate(State.CHECK_CRC, None)),
+            call(StateUpdate(State.WAIT_FOR_DONE, None)),
+            call(StateUpdate(State.COMPLETE, None))
+        ]
+        callback.assert_has_calls(callback_list)
+
+    def test_failure_notification_contains_failure_code(self):
+        self.data = [(DEVICE, b'\x43')]
+        callback = Mock()
+
+        upgrader = CanUpgrader(self.network, None, EMPTY_FIRMWARE, callback)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        callback.assert_called_with(
+            StateUpdate(State.FAILURE, Failure.UPGRADE_IN_PROGRESS))

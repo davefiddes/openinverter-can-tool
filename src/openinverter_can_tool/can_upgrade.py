@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import canopen
 
@@ -99,9 +99,11 @@ class CanUpgrader:
             self,
             network: canopen.Network,
             serialno: Optional[bytes],
-            firmware: Path) -> None:
+            firmware: Path,
+            callback: Optional[Callable[[StateUpdate]]] = None) -> None:
         self._network = network
         self._target_serialno = serialno
+        self._callback = callback
         self._serialno: Optional[bytes] = None
         self._pages: List[Page] = []
 
@@ -141,6 +143,9 @@ class CanUpgrader:
 
                 self._state = update.state
                 self._failure = update.failure
+
+                if self._callback:
+                    self._callback(update)
 
                 if self._state in (State.COMPLETE, State.FAILURE):
                     return True
