@@ -448,6 +448,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert not upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.CHECK_CRC
+        assert upgrader.progress == 0.0
 
     def test_device_receives_an_extra_page_data_request_which_fails(self):
         self.load_capture("minimal-firmware-over-request-page-data.csv")
@@ -459,6 +460,7 @@ class TestCANUpgrade(unittest.TestCase):
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.FAILURE
         assert upgrader.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.progress == 0.0
 
     def test_device_receives_crc_request_earlier_than_expected(self):
         self.load_capture("minimal-firmware-early-crc-request.csv")
@@ -470,6 +472,7 @@ class TestCANUpgrade(unittest.TestCase):
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.FAILURE
         assert upgrader.failure == Failure.PROTOCOL_ERROR
+        assert upgrader.progress == 0.0
 
     def test_device_receives_page_of_firmware_but_fails_crc_check(self):
         self.load_capture("minimal-firmware-invalid-page-crc.csv")
@@ -481,6 +484,7 @@ class TestCANUpgrade(unittest.TestCase):
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.FAILURE
         assert upgrader.failure == Failure.PAGE_CRC_ERROR
+        assert upgrader.progress == 0.0
 
     def test_device_completes_minimal_firmware_upgrade(self):
         self.load_capture("minimal-firmware.csv")
@@ -491,6 +495,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_another_device_starting_during_checksum_request_is_ignored(self):
         self.load_capture("minimal-firmware-crc-extra-hello.csv")
@@ -501,6 +506,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_another_device_starting_during_done_request_is_ignored(self):
         self.load_capture("minimal-firmware-done-extra-hello.csv")
@@ -511,6 +517,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_successful_upgrade_of_device_with_one_page_firmware(self):
         self.load_capture("successful-one-page-upgrade.csv")
@@ -521,6 +528,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_successful_upgrade_of_device_with_two_page_firmware(self):
         self.load_capture("successful-two-page-upgrade.csv")
@@ -531,6 +539,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_zero_length_firmware_succeeds_and_sends_no_pages(self):
         self.data = [
@@ -547,6 +556,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
 
     def test_state_transition_notifications_are_sent_during_an_upgrade(self):
         self.load_capture("successful-one-page-upgrade.csv")
@@ -558,12 +568,12 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         callback_list = [
-            call(StateUpdate(State.START, None)),
-            call(StateUpdate(State.HEADER, None)),
-            call(StateUpdate(State.UPLOAD, None)),
-            call(StateUpdate(State.CHECK_CRC, None)),
-            call(StateUpdate(State.WAIT_FOR_DONE, None)),
-            call(StateUpdate(State.COMPLETE, None))
+            call(StateUpdate(State.START, None, 0.0)),
+            call(StateUpdate(State.HEADER, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, None, 0.0)),
+            call(StateUpdate(State.WAIT_FOR_DONE, None, 0.0)),
+            call(StateUpdate(State.COMPLETE, None, 100.0))
         ]
         callback.assert_has_calls(callback_list)
 
@@ -577,4 +587,29 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         callback.assert_called_with(
-            StateUpdate(State.FAILURE, Failure.UPGRADE_IN_PROGRESS))
+            StateUpdate(State.FAILURE, Failure.UPGRADE_IN_PROGRESS, 0.0))
+
+    def test_progress_of_during_upgrade_with_two_page_firmware(self):
+        self.load_capture("successful-two-page-upgrade.csv")
+
+        callback = Mock()
+
+        upgrader = CanUpgrader(self.network, None, TWO_PAGE_FIRMWARE, callback)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
+
+        callback_list = [
+            call(StateUpdate(State.START, None, 0.0)),
+            call(StateUpdate(State.HEADER, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, None, 50.0)),
+            call(StateUpdate(State.WAIT_FOR_DONE, None, 50.0)),
+            call(StateUpdate(State.COMPLETE, None, 100.0))
+        ]
+        callback.assert_has_calls(callback_list)

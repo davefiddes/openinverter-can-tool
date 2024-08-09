@@ -84,7 +84,7 @@ class State(IntEnum):
     COMPLETE = auto()
 
 
-StateUpdate = namedtuple("StateUpdate", "state failure")
+StateUpdate = namedtuple("StateUpdate", "state failure progress")
 
 
 class CanUpgrader:
@@ -119,8 +119,10 @@ class CanUpgrader:
                     break
 
         self._current_page = 0
+        self._confirmed_page = -1
         self._status_queue = queue.Queue()
         self._failure: Optional[Failure] = None
+        self._progress: float = 0.0
 
         self.transition_to(StartState())
 
@@ -143,6 +145,7 @@ class CanUpgrader:
 
                 self._state = update.state
                 self._failure = update.failure
+                self._progress = update.progress
 
                 if self._callback:
                     self._callback(update)
@@ -169,6 +172,11 @@ class CanUpgrader:
     def failure(self) -> Optional[Failure]:
         """Return the failure details"""
         return self._failure
+
+    @property
+    def progress(self) -> float:
+        """Return the percentage progress through the upgrade process"""
+        return self._progress
 
     @property
     def serialno(self) -> Optional[bytes]:
@@ -205,6 +213,22 @@ class CanUpgrader:
     def advance_page(self) -> None:
         """Move to the next firmware page. To be used by State classes only."""
         self._current_page += 1
+
+    def confirm_page(self) -> None:
+        """Confirm correct reception of a previous firmware page. To be used
+        by State classes only."""
+        self._confirmed_page += 1
+
+    def internal_progress(self) -> float:
+        """Compute the internal upgrade progress percentage. To be used by
+        State classes only."""
+        if self._confirmed_page < 0:
+            return 0.0
+
+        if len(self._pages) > 0:
+            return (self._confirmed_page * 100.0) / len(self._pages)
+        else:
+            return 100.0
 
     def reply(self, data: bytes) -> None:
         """Send a reply to the device. To be used by State classes only."""
@@ -267,7 +291,7 @@ class StartState(InternalState):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.START, None)
+        return StateUpdate(State.START, None, 0)
 
 
 class HeaderState(InternalState):
@@ -289,7 +313,7 @@ class HeaderState(InternalState):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.HEADER, None)
+        return StateUpdate(State.HEADER, None, 0)
 
 
 class UploadState(InternalState):
@@ -301,6 +325,9 @@ class UploadState(InternalState):
 
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.PAGE:
+            if self.pos == 0:
+                self.upgrader.confirm_page()
+
             if self.pos < PAGE_SIZE:
                 self.upgrader.reply(self.page.data[self.pos:self.pos+8])
                 self.pos += 8
@@ -320,7 +347,10 @@ class UploadState(InternalState):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.UPLOAD, None)
+        return StateUpdate(
+            State.UPLOAD,
+            None,
+            self.upgrader.internal_progress())
 
 
 class CheckCrcState(InternalState):
@@ -346,7 +376,10 @@ class CheckCrcState(InternalState):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.CHECK_CRC, None)
+        return StateUpdate(
+            State.CHECK_CRC,
+            None,
+            self.upgrader.internal_progress())
 
 
 class WaitForDoneState(InternalState):
@@ -354,6 +387,7 @@ class WaitForDoneState(InternalState):
 
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.DONE:
+            self.upgrader.confirm_page()
             self.upgrader.transition_to(CompleteState())
 
         elif len(data) == 1 and data[0] == DevicePacket.ERROR:
@@ -365,7 +399,10 @@ class WaitForDoneState(InternalState):
             self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.WAIT_FOR_DONE, None)
+        return StateUpdate(
+            State.WAIT_FOR_DONE,
+            None,
+            self.upgrader.internal_progress())
 
 
 class Failure(IntEnum):
@@ -386,7 +423,10 @@ class FailureState(InternalState):
         pass
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.FAILURE, self.failure)
+        return StateUpdate(
+            State.FAILURE,
+            self.failure,
+            self.upgrader.internal_progress())
 
 
 class CompleteState(InternalState):
@@ -397,4 +437,7 @@ class CompleteState(InternalState):
         pass
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.COMPLETE, None)
+        return StateUpdate(
+            State.COMPLETE,
+            None,
+            self.upgrader.internal_progress())
