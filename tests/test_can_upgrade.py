@@ -567,13 +567,14 @@ class TestCANUpgrade(unittest.TestCase):
         self.send_device_frames()
 
         assert upgrader.run(QUICK_TIMEOUT)
+        serialno = b"\x87\x19\x30\x29"
         callback_list = [
-            call(StateUpdate(State.START, None, 0.0)),
-            call(StateUpdate(State.HEADER, None, 0.0)),
-            call(StateUpdate(State.UPLOAD, None, 0.0)),
-            call(StateUpdate(State.CHECK_CRC, None, 0.0)),
-            call(StateUpdate(State.WAIT_FOR_DONE, None, 0.0)),
-            call(StateUpdate(State.COMPLETE, None, 100.0))
+            call(StateUpdate(State.START, None, None, 0.0)),
+            call(StateUpdate(State.HEADER, serialno, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, serialno, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, serialno, None, 0.0)),
+            call(StateUpdate(State.WAIT_FOR_DONE, serialno, None, 0.0)),
+            call(StateUpdate(State.COMPLETE, serialno, None, 100.0))
         ]
         callback.assert_has_calls(callback_list)
 
@@ -587,7 +588,7 @@ class TestCANUpgrade(unittest.TestCase):
 
         assert upgrader.run(QUICK_TIMEOUT)
         callback.assert_called_with(
-            StateUpdate(State.FAILURE, Failure.UPGRADE_IN_PROGRESS, 0.0))
+            StateUpdate(State.FAILURE, None, Failure.UPGRADE_IN_PROGRESS, 0.0))
 
     def test_progress_of_during_upgrade_with_two_page_firmware(self):
         self.load_capture("successful-two-page-upgrade.csv")
@@ -602,14 +603,15 @@ class TestCANUpgrade(unittest.TestCase):
         assert upgrader.state == State.COMPLETE
         assert upgrader.progress == 100.0
 
+        serialno = b"\x87\x19\x30\x29"
         callback_list = [
-            call(StateUpdate(State.START, None, 0.0)),
-            call(StateUpdate(State.HEADER, None, 0.0)),
-            call(StateUpdate(State.UPLOAD, None, 0.0)),
-            call(StateUpdate(State.CHECK_CRC, None, 0.0)),
-            call(StateUpdate(State.UPLOAD, None, 0.0)),
-            call(StateUpdate(State.CHECK_CRC, None, 50.0)),
-            call(StateUpdate(State.WAIT_FOR_DONE, None, 50.0)),
-            call(StateUpdate(State.COMPLETE, None, 100.0))
+            call(StateUpdate(State.START, None, None, 0.0)),
+            call(StateUpdate(State.HEADER, serialno, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, serialno, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, serialno, None, 0.0)),
+            call(StateUpdate(State.UPLOAD, serialno, None, 0.0)),
+            call(StateUpdate(State.CHECK_CRC, serialno, None, 50.0)),
+            call(StateUpdate(State.WAIT_FOR_DONE, serialno, None, 50.0)),
+            call(StateUpdate(State.COMPLETE, serialno, None, 100.0))
         ]
         callback.assert_has_calls(callback_list)

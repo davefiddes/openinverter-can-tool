@@ -84,27 +84,29 @@ class State(IntEnum):
     COMPLETE = auto()
 
 
-StateUpdate = namedtuple("StateUpdate", "state failure progress")
+StateUpdate = namedtuple("StateUpdate", "state serialno failure progress")
 
 
 class CanUpgrader:
 
-    """Class to manage upgrading the firmware of open inverter devices over a
-    CAN bus connection"""
+    """
+    Class to manage upgrading the firmware of open inverter devices over a
+    CAN bus connection.
 
-    _internal_state: InternalState
-    _state: State
+    :param network: The canopen.Network used to communicate with the device.
+    :param serialno: The serial number of the device to look for booting. If
+                     not specified the next device to boot will be upgraded.
+    :param firmware: Path to the firmware file to upload.
+    :param callback: Optional callback function to receive state changes.
+    """
 
     def __init__(
             self,
             network: canopen.Network,
             serialno: Optional[bytes],
             firmware: Path,
-            callback: Optional[Callable[[StateUpdate]]] = None) -> None:
-        self._network = network
-        self._target_serialno = serialno
+            callback: Optional[Callable[[StateUpdate]]] = None):
         self._callback = callback
-        self._serialno: Optional[bytes] = None
         self._pages: List[Page] = []
 
         with open(firmware, "rb") as firmware_file:
@@ -118,16 +120,17 @@ class CanUpgrader:
                 else:
                     break
 
-        self._current_page = 0
-        self._confirmed_page = -1
         self._status_queue = queue.Queue()
+
+        self._state: State = State.START
+        self._serialno: Optional[bytes] = None
         self._failure: Optional[Failure] = None
         self._progress: float = 0.0
 
-        self.transition_to(StartState())
-
-        # Once we subscribe data will start arriving on another thread
-        network.subscribe(DEVICE_CAN_ID, self._process_can_frame)
+        self._state_machine = StateMachine(network,
+                                           serialno,
+                                           self._pages,
+                                           self._status_queue)
 
     def run(self, timeout: float) -> bool:
         """
@@ -144,6 +147,7 @@ class CanUpgrader:
                 update = self._status_queue.get(True, timeout)
 
                 self._state = update.state
+                self._serialno = update.serialno
                 self._failure = update.failure
                 self._progress = update.progress
 
@@ -154,14 +158,6 @@ class CanUpgrader:
                     return True
         except queue.Empty:
             return False
-
-    def transition_to(self, state: InternalState) -> None:
-        """
-        Allow states to transition to a new state
-        """
-        self._internal_state = state
-        self._internal_state.upgrader = self
-        self._status_queue.put(state.details())
 
     @property
     def state(self) -> State:
@@ -177,6 +173,61 @@ class CanUpgrader:
     def progress(self) -> float:
         """Return the percentage progress through the upgrade process"""
         return self._progress
+
+    @property
+    def serialno(self) -> Optional[bytes]:
+        """
+        Retrieve the serial number of the current device being upgraded.
+        This is only valid once the HEADER has been successfully achieved.
+        """
+        return self._serialno
+
+    @property
+    def pages(self) -> List[Page]:
+        """The list of loaded firmware pages to be uploaded to the device"""
+        return self._pages
+
+
+class StateMachine:
+    """
+    Internal state-machine managing the upgrade process. After
+    initialisation this assumed to be called from a separate notification
+    from the CAN interface.
+    :param network: The canopen.Network to communicate with the device
+    :param serialno: The optional serial number to match
+    :param pages: The list of firmware pages to upload to the device
+    :param status_queue: The queue to send status updates back to CanUpgrader
+    """
+
+    _state: InternalState
+
+    def __init__(
+            self,
+            network: canopen.Network,
+            serialno: Optional[bytes],
+            pages: List[Page],
+            status_queue: queue.Queue) -> None:
+        self._network = network
+        self._target_serialno = serialno
+        self._serialno: Optional[bytes] = None
+        self._pages = pages
+
+        self._current_page = 0
+        self._confirmed_page = -1
+        self._status_queue = status_queue
+
+        self.transition_to(StartState())
+
+        # Once we subscribe data will start arriving on another thread
+        network.subscribe(DEVICE_CAN_ID, self._process_can_frame)
+
+    def transition_to(self, state: InternalState) -> None:
+        """
+        Allow states to transition to a new state
+        """
+        self._state = state
+        self._state.sm = self
+        self._status_queue.put(state.details())
 
     @property
     def serialno(self) -> Optional[bytes]:
@@ -206,22 +257,19 @@ class CanUpgrader:
 
     @property
     def current_page(self) -> Page:
-        """Return the current firmware page. May raise IndexError. To be used
-        by State classes only."""
+        """Return the current firmware page. May raise IndexError."""
         return self._pages[self._current_page]
 
     def advance_page(self) -> None:
-        """Move to the next firmware page. To be used by State classes only."""
+        """Move to the next firmware page."""
         self._current_page += 1
 
     def confirm_page(self) -> None:
-        """Confirm correct reception of a previous firmware page. To be used
-        by State classes only."""
+        """Confirm correct reception of a previous firmware page."""
         self._confirmed_page += 1
 
-    def internal_progress(self) -> float:
-        """Compute the internal upgrade progress percentage. To be used by
-        State classes only."""
+    def progress(self) -> float:
+        """Compute the internal upgrade progress percentage."""
         if self._confirmed_page < 0:
             return 0.0
 
@@ -231,7 +279,7 @@ class CanUpgrader:
             return 100.0
 
     def reply(self, data: bytes) -> None:
-        """Send a reply to the device. To be used by State classes only."""
+        """Send a reply to the device."""
         self._network.send_message(UPGRADER_CAN_ID, data)
 
     def _process_can_frame(self,
@@ -241,17 +289,17 @@ class CanUpgrader:
         """Process an incoming CAN frame"""
         assert can_id == DEVICE_CAN_ID
         _ = timestamp
-        self._internal_state.process(bytes(data))
+        self._state.process(bytes(data))
 
 
 class InternalState(ABC):
     """
     The base State class declares methods that all concrete states should
-    implement and also provides a backreference to the CanUpgrader object,
+    implement and also provides a backreference to the StateMachine object,
     associated with the State. This backreference can be used by States to
-    transition the CanUpgrader to another State.
+    transition the StateMachine to another State.
     """
-    upgrader: CanUpgrader
+    sm: StateMachine
 
     @abstractmethod
     def process(self, data: bytes) -> None:
@@ -271,11 +319,11 @@ class StartState(InternalState):
         if len(data) == 8 and data[0] == DevicePacket.HELLO:
             # Reverse the bytes on the wire before
             device_serialno = data[7:3:-1]
-            if (self.upgrader.target_serialno is None or
-                    device_serialno == self.upgrader.target_serialno):
-                self.upgrader.serialno = device_serialno
-                self.upgrader.transition_to(HeaderState())
-                self.upgrader.reply(data[4:8])
+            if (self.sm.target_serialno is None or
+                    device_serialno == self.sm.target_serialno):
+                self.sm.serialno = device_serialno
+                self.sm.transition_to(HeaderState())
+                self.sm.reply(data[4:8])
 
         # Explicitly reject any frames that could come from a device in the
         # middle of an upgrade process
@@ -283,15 +331,15 @@ class StartState(InternalState):
                                             DevicePacket.PAGE,
                                             DevicePacket.CRC,
                                             DevicePacket.DONE):
-            self.upgrader.transition_to(
+            self.sm.transition_to(
                 FailureState(Failure.UPGRADE_IN_PROGRESS))
         else:
             # Any other data on this CAN ID indicates a device which might
             # corrupt the upgrade process
-            self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
+            self.sm.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.START, None, 0)
+        return StateUpdate(State.START, self.sm.serialno, None, 0)
 
 
 class HeaderState(InternalState):
@@ -300,20 +348,20 @@ class HeaderState(InternalState):
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.START:
             try:
-                self.upgrader.transition_to(
-                    UploadState(self.upgrader.current_page))
+                self.sm.transition_to(
+                    UploadState(self.sm.current_page))
             except IndexError:
-                self.upgrader.transition_to(WaitForDoneState())
+                self.sm.transition_to(WaitForDoneState())
 
-            self.upgrader.reply(
-                struct.pack("B", len(self.upgrader.pages)))
+            self.sm.reply(
+                struct.pack("B", len(self.sm.pages)))
         elif len(data) == 8 and data[0] == DevicePacket.HELLO:
             pass
         else:
-            self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
+            self.sm.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
-        return StateUpdate(State.HEADER, None, 0)
+        return StateUpdate(State.HEADER, self.sm.serialno, None, 0)
 
 
 class UploadState(InternalState):
@@ -326,31 +374,32 @@ class UploadState(InternalState):
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.PAGE:
             if self.pos == 0:
-                self.upgrader.confirm_page()
+                self.sm.confirm_page()
 
             if self.pos < PAGE_SIZE:
-                self.upgrader.reply(self.page.data[self.pos:self.pos+8])
+                self.sm.reply(self.page.data[self.pos:self.pos+8])
                 self.pos += 8
 
                 if self.pos == PAGE_SIZE:
-                    self.upgrader.transition_to(CheckCrcState(self.page.crc))
+                    self.sm.transition_to(CheckCrcState(self.page.crc))
             else:
-                self.upgrader.transition_to(
+                self.sm.transition_to(
                     FailureState(Failure.PROTOCOL_ERROR))
 
         elif len(data) == 1 and data[0] == DevicePacket.ERROR:
-            self.upgrader.transition_to(FailureState(Failure.PAGE_CRC_ERROR))
+            self.sm.transition_to(FailureState(Failure.PAGE_CRC_ERROR))
 
         elif len(data) == 8 and data[0] == DevicePacket.HELLO:
             pass
         else:
-            self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
+            self.sm.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
         return StateUpdate(
             State.UPLOAD,
+            self.sm.serialno,
             None,
-            self.upgrader.internal_progress())
+            self.sm.progress())
 
 
 class CheckCrcState(InternalState):
@@ -361,25 +410,26 @@ class CheckCrcState(InternalState):
 
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.CRC:
-            self.upgrader.reply(struct.pack("<I", self.crc))
+            self.sm.reply(struct.pack("<I", self.crc))
 
-            self.upgrader.advance_page()
+            self.sm.advance_page()
             try:
-                self.upgrader.transition_to(
-                    UploadState(self.upgrader.current_page))
+                self.sm.transition_to(
+                    UploadState(self.sm.current_page))
             except IndexError:
-                self.upgrader.transition_to(WaitForDoneState())
+                self.sm.transition_to(WaitForDoneState())
 
         elif len(data) == 8 and data[0] == DevicePacket.HELLO:
             pass
         else:
-            self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
+            self.sm.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
         return StateUpdate(
             State.CHECK_CRC,
+            self.sm.serialno,
             None,
-            self.upgrader.internal_progress())
+            self.sm.progress())
 
 
 class WaitForDoneState(InternalState):
@@ -387,22 +437,23 @@ class WaitForDoneState(InternalState):
 
     def process(self, data: bytes) -> None:
         if len(data) == 1 and data[0] == DevicePacket.DONE:
-            self.upgrader.confirm_page()
-            self.upgrader.transition_to(CompleteState())
+            self.sm.confirm_page()
+            self.sm.transition_to(CompleteState())
 
         elif len(data) == 1 and data[0] == DevicePacket.ERROR:
-            self.upgrader.transition_to(FailureState(Failure.PAGE_CRC_ERROR))
+            self.sm.transition_to(FailureState(Failure.PAGE_CRC_ERROR))
 
         elif len(data) == 8 and data[0] == DevicePacket.HELLO:
             pass
         else:
-            self.upgrader.transition_to(FailureState(Failure.PROTOCOL_ERROR))
+            self.sm.transition_to(FailureState(Failure.PROTOCOL_ERROR))
 
     def details(self) -> StateUpdate:
         return StateUpdate(
             State.WAIT_FOR_DONE,
+            self.sm.serialno,
             None,
-            self.upgrader.internal_progress())
+            self.sm.progress())
 
 
 class Failure(IntEnum):
@@ -425,8 +476,9 @@ class FailureState(InternalState):
     def details(self) -> StateUpdate:
         return StateUpdate(
             State.FAILURE,
+            self.sm.serialno,
             self.failure,
-            self.upgrader.internal_progress())
+            self.sm.progress())
 
 
 class CompleteState(InternalState):
@@ -439,5 +491,6 @@ class CompleteState(InternalState):
     def details(self) -> StateUpdate:
         return StateUpdate(
             State.COMPLETE,
+            self.sm.serialno,
             None,
-            self.upgrader.internal_progress())
+            self.sm.progress())
