@@ -7,6 +7,7 @@ import datetime
 import functools
 import glob
 import json
+import logging
 import os
 import re
 import time
@@ -21,8 +22,9 @@ import canopen.objectdictionary
 import click
 
 from . import constants as oi
+from .can_upgrade import CanUpgrader, Failure, State, StateUpdate
 from .fpfloat import fixed_from_float, fixed_to_float
-from .map_persistence import export_json_map, import_json_map, export_dbc_map
+from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
 from .paramdb import OIVariable, import_cached_database, import_database
 
@@ -968,6 +970,126 @@ def scan(cli_settings: CliSettings) -> None:
             click.echo(f"Found possible openinverter node: {node_id}")
     else:
         click.echo("No nodes found")
+
+
+@cli.command()
+@pass_cli_settings
+@can_action
+@click.argument("firmware_file",
+                type=click.Path(
+                    file_okay=True,
+                    dir_okay=False,
+                    writable=False,
+                    path_type=Path))
+@click.option("-s", "--serial",
+              default=None,
+              type=click.STRING,
+              help="The serial number of a specific device to recover. "
+              "Only the first 8 digits of the serial number are required.")
+@click.option("--recover",
+              is_flag=True,
+              help="Recover a device as it starts up.")
+@click.option("--wait",
+              default=5.0,
+              show_default=True,
+              type=click.FLOAT,
+              help="Time to wait for a device to reset and start the upgrade "
+              " process in seconds")
+def upgrade(
+        cli_settings: CliSettings,
+        firmware_file: Path,
+        serial: str,
+        recover: bool,
+        wait: float) -> None:
+    """
+    Upgrade the device firmware.
+
+    For devices that are operating normally the process is fully automatic.
+
+    It is possible to recover a faulty device. The upgrade process will wait
+    until the device boots before starting the upgrade process. It is up to
+    the user to boot the device, typically by powering it on.
+
+    On a CAN network with more than one device it is recommended to specify
+    the device serial number. The upgrade process will ensure that only this
+    device is upgraded. If no serial number is provided the first device to
+    boot will be upgraded.
+    """
+
+    failure_messages = {
+        Failure.PROTOCOL_ERROR:
+        "Unexpected CAN frame received from device",
+
+        Failure.UPGRADE_IN_PROGRESS:
+        "An upgrade is already in progress on the CAN bus",
+
+        Failure.PAGE_CRC_ERROR:
+        "Firmware upload data corruption detected"
+    }
+
+    def _print_progress(update: StateUpdate) -> None:
+        if update.state == State.START:
+            click.echo("Waiting for device to connect...", nl=False)
+
+        elif update.state == State.HEADER:
+            serialno_str = "".join(format(x, "02x") for x in update.serialno)
+            click.echo(f"\rDevice upgrade started for {serialno_str}")
+
+        elif update.state in (State.UPLOAD, State.CHECK_CRC):
+            progress = update.progress
+            click.echo(f"\rUpgrading: {progress:.1f}% complete", nl=False)
+
+        elif update.state == State.WAIT_FOR_DONE:
+            click.echo(
+                "\rWaiting for device to complete upgrade", nl=False)
+
+        elif update.state == State.FAILURE:
+            if update.failure in failure_messages:
+                click.echo(
+                    f"Upgrade failed: {failure_messages[update.failure]}")
+            else:
+                click.echo(
+                    f"Upgrade failed: Unknown failure - {update.failure}")
+
+        elif update.state == State.COMPLETE:
+            click.echo("\rUpgrade completed successfully!".ljust(40))
+
+    if recover:
+        if serial and len(serial) != 8:
+            click.echo("Device serial numbers should be 8 hexadecimal digits")
+            return
+
+        if serial:
+            recovery_serialno = bytes.fromhex(serial)
+        else:
+            recovery_serialno = None
+
+        upgrader = CanUpgrader(cli_settings.network, recovery_serialno,
+                               firmware_file, _print_progress)
+
+    else:
+        if serial:
+            click.echo("Serial numbers do not need to be provided for normal "
+                       "upgrades")
+            return
+
+        assert cli_settings.node
+        node_serialno = cli_settings.node.serial_no()
+
+        upgrader = CanUpgrader(cli_settings.network, node_serialno[:4],
+                               firmware_file, _print_progress)
+
+        try:
+            # suppress logging errors from the canopen library if the device
+            # doesn't respond when asked to reset
+            logging.disable(logging.ERROR)
+
+            cli_settings.node.reset()
+        except canopen.SdoCommunicationError:
+            pass
+
+    if not upgrader.run(wait):
+        click.echo("\r\nUpgrade timed out")
 
 
 @cli.group()
