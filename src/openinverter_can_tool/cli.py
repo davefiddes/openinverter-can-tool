@@ -506,8 +506,12 @@ def serialno(cli_settings: CliSettings) -> None:
 
     assert cli_settings.node
     serialno_data = cli_settings.node.serial_no()
-    serialno_str = "".join(format(x, "02x") for x in serialno_data)
-    click.echo(f"Serial Number: {serialno_str}")
+    part_str = []
+    for part in range(0, 12, 4):
+        part = serialno_data[part:part+4]
+        part_str.append("".join(format(x, "02X") for x in part))
+
+    click.echo(f"Serial Number: {part_str[0]}:{part_str[1]}:{part_str[2]}")
 
 
 @cli.group()
