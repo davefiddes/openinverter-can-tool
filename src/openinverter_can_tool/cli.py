@@ -501,8 +501,8 @@ def load(cli_settings: CliSettings, in_file: click.File) -> None:
 @pass_cli_settings
 @can_action
 def serialno(cli_settings: CliSettings) -> None:
-    """Read the device serial number. This is required to load firmware over
-    CAN"""
+    """Read the device serial number. This can be useful to recover failed
+    devices using the 'upgrade' command."""
 
     assert cli_settings.node
     serialno_data = cli_settings.node.serial_no()

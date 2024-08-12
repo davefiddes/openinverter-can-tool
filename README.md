@@ -15,11 +15,12 @@ electric vehicles over a CAN connection.
 * Display the current value of each parameter/value on a given device
 * Log a list of parameters to a CSV file at regular intervals
 * Save and load all parameters to and from a JSON file
-* Manage parameter to custom [CAN message mappings](docs/can-mapping.md):
+* Manage parameter to custom [CAN message mappings](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/can-mapping.md):
   * Create, remove and list parameter mappings on a device
   * Support maps with standard CAN 2.0a and extended CAN 2.0b frames
   * Export and import mappings to a local JSON file
   * Export mappings to DBC allowing easier debugging with [SavvyCAN](https://savvycan.com/)
+* Upgrade firmware or recover devices over CAN
 * Display the inverter serial number
 * Command the inverter to:
   * Start
@@ -30,7 +31,7 @@ electric vehicles over a CAN connection.
   * Reset
 * Scan a CAN bus for possible nodes
 * Runs on Linux, Windows and MacOS with python 3.8+
-* Support [shell completion](docs/shell-completion.md) for commands and options for bash, zsh and fish shells
+* Support [shell completion](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/shell-completion.md) for commands and options for bash, zsh and fish shells
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
 * Automatic parameter database download and caching (requires stm32-sine 5.27.R or later)
@@ -137,6 +138,7 @@ To get the usage information for the tool run the `oic` command with no paramete
     save        Save all parameters in json to OUT_FILE
     scan        Scan the CAN bus for available nodes
     serialno    Read the device serial number.
+    upgrade     Upgrade the device firmware.
     write       Write the value to the parameter PARAM on the device
 ```
 

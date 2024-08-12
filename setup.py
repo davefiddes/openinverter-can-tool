@@ -21,7 +21,7 @@ long_description = re.sub(r'\[!\[Build status.*\)\n\n', '', long_description)
 
 setup(
     name="openinverter-can-tool",
-    version="0.1.0",
+    version="0.2.0",
     description="Tool to configure and operate openinverter systems over CAN",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -75,7 +75,7 @@ setup(
     # No data files are expected within the package
     package_data={},
 
-    # Pull in all our example parameter databases
+    # Pull in all our example parameter databases and documentation
     data_files=[("parameter-databases",
                  glob("parameter-databases/*.json")),
                 ("docs",
