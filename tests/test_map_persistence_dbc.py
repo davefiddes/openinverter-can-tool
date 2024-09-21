@@ -248,6 +248,44 @@ class TestDBCMaps:
         with open(map_file_path, "wt", encoding="utf-8") as map_file:
             export_json_map(tx_map, [], db, map_file)
 
+    def test_export_tx_map_with_enum_param_with_offset_and_gain(
+            self, tmp_path: Path):
+
+        tx_map = [
+            # Map an enum param to the first 8 bits of a frame
+            # Add an offset and gain to muddle the actual transmitted values
+            CanMessage(1, [
+                MapEntry(95, 0, 8, 5.0, 13),
+            ]),
+        ]
+
+        db = import_database(DB_DIR / "mapable-params.json")
+
+        dbc_path = tmp_path / "tx_map_with_enum_param_and_offset.dbc"
+        export_dbc_map(None, tx_map, [], db, dbc_path)
+
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
+            verify(dbc_file.read())
+
+    def test_export_tx_map_with_bitfield_spot_value_and_offset_and_gain(
+            self, tmp_path: Path):
+
+        tx_map = [
+            # Map a bitfield spot value param to the first 8 bits of a frame
+            # add an offset and gain to muddle the actual transmitted values
+            CanMessage(1, [
+                MapEntry(2044, 0, 16, 4.0, 1),
+            ]),
+        ]
+
+        db = import_database(DB_DIR / "mapable-params.json")
+
+        dbc_path = tmp_path / "tx_map_with_bitfield_spot_value_and_offset.dbc"
+        export_dbc_map(None, tx_map, [], db, dbc_path)
+
+        with open(dbc_path, "rt", encoding="utf-8") as dbc_file:
+            verify(dbc_file.read())
+
 
 if __name__ == '__main__':
     unittest.main()

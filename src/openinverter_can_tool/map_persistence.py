@@ -184,14 +184,14 @@ def transform_map_to_canopen_db(
         if param.value_descriptions:
             values = OrderedDict()
             for value, description in param.value_descriptions.items():
-                values[value] = description
+                values[int(value*entry.gain+entry.offset)] = description
             signal.choices = values
             signal.is_signed = False
 
         elif param.bit_definitions:
             bits = OrderedDict()
             for value, description in param.bit_definitions.items():
-                bits[value] = description
+                bits[int(value*entry.gain+entry.offset)] = description
             signal.choices = bits
             signal.is_signed = False
 
