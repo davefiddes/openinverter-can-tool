@@ -17,7 +17,7 @@ This document describes the CAN protocol used by the openinverter CAN tool to up
 
 #### HELLO
 
-Sent by the device on each startup. MAY be sent by any device at any time.
+Sent by the device on each startup. MAY be sent by any device at any time. The device should wait 100ms for a reply before continuing the normal boot process.
 
 | Position | Purpose |
 | -------- | ------- |
