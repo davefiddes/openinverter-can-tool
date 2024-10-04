@@ -376,15 +376,11 @@ class UploadState(InternalState):
             if self.pos == 0:
                 self.sm.confirm_page()
 
-            if self.pos < PAGE_SIZE:
-                self.sm.reply(self.page.data[self.pos:self.pos+8])
-                self.pos += 8
+            self.sm.reply(self.page.data[self.pos:self.pos+8])
+            self.pos += 8
 
-                if self.pos == PAGE_SIZE:
-                    self.sm.transition_to(CheckCrcState(self.page.crc))
-            else:
-                self.sm.transition_to(
-                    FailureState(Failure.PROTOCOL_ERROR))
+            if self.pos == PAGE_SIZE:
+                self.sm.transition_to(CheckCrcState(self.page.crc))
 
         elif len(data) == 1 and data[0] == DevicePacket.ERROR:
             self.sm.transition_to(FailureState(Failure.PAGE_CRC_ERROR))

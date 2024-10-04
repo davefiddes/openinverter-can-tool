@@ -615,3 +615,64 @@ class TestCANUpgrade(unittest.TestCase):
             call(StateUpdate(State.COMPLETE, serialno, None, 100.0))
         ]
         callback.assert_has_calls(callback_list)
+
+    def test_extra_data_sent_after_completion_is_ignored(self):
+        self.data = [
+            (DEVICE, b'\x33\x00\x00\x00\x29\x30\x19\x87'),
+            (TOOL, b'\x29\x30\x19\x87'),
+            (DEVICE, b'S'),
+            (TOOL, b'\x00'),
+            (DEVICE, b'D'),
+            (DEVICE, b'\x33\x00\x00\x00\x29\x30\x19\x87')
+        ]
+
+        upgrader = CanUpgrader(self.network, None, EMPTY_FIRMWARE)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        assert upgrader.state == State.COMPLETE
+        assert upgrader.progress == 100.0
+
+    def test_extra_data_after_failure_is_ignored(self):
+        self.data = [
+            (DEVICE, b'\x12\x34\x56'),
+            (DEVICE, b'S')
+        ]
+
+        upgrader = CanUpgrader(self.network, None, EMPTY_FIRMWARE)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
+
+    def test_device_sending_invalid_response_instead_of_done_fails(self):
+        self.data = [
+            (DEVICE, b'\x33\x00\x00\x00\x29\x30\x19\x87'),
+            (TOOL, b'\x29\x30\x19\x87'),
+            (DEVICE, b'S'),
+            (TOOL, b'\x00'),
+            (DEVICE, b'')  # This is an invalid response from the device
+        ]
+
+        upgrader = CanUpgrader(self.network, None, EMPTY_FIRMWARE)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PROTOCOL_ERROR
+
+    def test_two_page_firmware_fails_with_crc_error_on_first_page(self):
+        self.load_capture("two-page-upgrade-fails-crc-after-first-page.csv")
+
+        upgrader = CanUpgrader(self.network, None, TWO_PAGE_FIRMWARE)
+
+        self.send_device_frames()
+
+        assert upgrader.run(QUICK_TIMEOUT)
+        assert upgrader.state == State.FAILURE
+        assert upgrader.failure == Failure.PAGE_CRC_ERROR
+        assert upgrader.progress == 0.0
