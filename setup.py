@@ -68,7 +68,8 @@ setup(
             "coverage",
             "pytest",
             "approvaltests",
-            "pytest-approvaltests"
+            "pytest-approvaltests",
+            "pytest-cov"
         ],
     },
 
