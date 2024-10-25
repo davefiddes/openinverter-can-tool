@@ -166,4 +166,4 @@ The list of allowed values for a given parameter can be found using the `listpar
 
 ## Development and Contributing
 
-If you are interested in contributing to the tool please check the [contributing guidelines](https://github.com/davefiddes/openinverter-can-tool/blob/main/CONTRIBUTING.md).
+If you are interested in contributing to the tool please check the [contributing guidelines](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/CONTRIBUTING.md).
