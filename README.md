@@ -164,28 +164,6 @@ Values may be changed using symbolic names:
 
 The list of allowed values for a given parameter can be found using the `listparams` command.
 
-## Development
+## Development and Contributing
 
-If you want to be able to change the code while using it, clone it then install
-it in development mode:
-
-```text
-    git clone https://github.com/davefiddes/openinverter_can_tool.git
-    cd openinverter_can_tool
-    virtualenv venv
-    . venv/bin/activate
-    pip install -e .[dev,test]
-    pre-commit install
-```
-
-To exit the virtualenv environment use use the system installed `oic` run `dectivate`. To resume development operation the virtualenv can be restarted by running:
-
-```text
-    . venv/bin/activate
-```
-
-Unit tests and python code linting can be run on all supported python versions using the `tox` test framework.
-
-Code is written to conform to PEP8 conventions and enforced by `pylint` and `flake8` linting.
-
-Contributions are most welcome. Before raising a pull request please install and use the pre-commit git hooks provided to ensure code conforms to the project style. Thanks!
+If you are interested in contributing to the tool please check the [contributing guidelines](https://github.com/davefiddes/openinverter-can-tool/blob/main/CONTRIBUTING.md).
