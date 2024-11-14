@@ -66,7 +66,7 @@ Linux users may reduce the potential of package conflicts by installing python d
 #### Ubuntu/Debian
 
 ```text
-    sudo apt install python3-setuptools python3-pip python3-click python3-can python3-appsdirs
+    sudo apt install python3-setuptools python3-pip python3-click python3-can python3-appdirs
 ```
 
 ## Configuration
