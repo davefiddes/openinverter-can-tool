@@ -4,6 +4,7 @@ openinverter parameter database functions
 
 
 import json
+import re
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -120,8 +121,11 @@ def import_database_json(
                 # Some parameters like "lasterr" have trailing commas
                 unit = unit.rstrip(",")
 
-                values = {int(value): description for value, description in [
-                    item.split('=') for item in unit.split(',')]}
+                values = {
+                    int(value): description for value, description in [
+                        item.split('=') for item in
+                        re.split(r'[,\s]', unit) if item]
+                }
 
                 # Infer if this a bitfield or an enumeration and store the
                 # description in the appropriate dictionary

@@ -515,8 +515,8 @@ class DatabaseImport(unittest.TestCase):
                     item.bit_definitions[value], description)
 
     def test_badly_punctuated_enum_missing_comma(self):
-        """Extracted from issue #4 a badly punctuated enum should fail
-        gracefully
+        """Extracted from issue #4 a badly punctuated enum should try
+        to fix up the list in the same way as esp8266-web-interface
         """
 
         raw_json = {
@@ -536,17 +536,21 @@ class DatabaseImport(unittest.TestCase):
 
         database = import_database_json(raw_json)
 
+        expected_enums = {
+            0: "None", 1: "Leaf_Gen1", 2: "GS450H", 3: "UserCAN", 4: "OpenI",
+            5: "Prius_Gen3", 6: "Outlander", 7: "GS300H",  8: "RearOutlander"
+        }
+
         assert len(database) == 1
         item = database["Inverter"]
-        assert item.unit == ("0=None, 1=Leaf_Gen1, 2=GS450H, 3=UserCAN, "
-                             "4=OpenI, 5=Prius_Gen3, 6=Outlander, "
-                             "7=GS300H 8=RearOutlander"
-                             " [DB FORMAT ERROR]")
-        assert len(item.value_descriptions) == 0
+        self.assertEqual(len(item.value_descriptions), len(expected_enums))
+        for value, description in expected_enums.items():
+            self.assertEqual(
+                item.value_descriptions[value], description)
 
     def test_badly_punctuated_enum_full_stop_rather_than_comma(self):
-        """Extracted from issue #4 a badly punctuated enum should fail
-        gracefully
+        """Extracted from issue #4 a badly punctuated enum should try
+        to fix up the list in the same way as esp8266-web-interface
         """
 
         raw_json = {
@@ -564,10 +568,17 @@ class DatabaseImport(unittest.TestCase):
 
         database = import_database_json(raw_json)
 
+        expected_enums = {
+            0: "k33.3", 1: "k500.", 2: "k100"
+        }
+
         assert len(database) == 1
         item = database["CAN3Speed"]
-        assert item.unit == ("0=k33.3, 1=k500. 2=k100 [DB FORMAT ERROR]")
-        assert len(item.value_descriptions) == 0
+
+        self.assertEqual(len(item.value_descriptions), len(expected_enums))
+        for value, description in expected_enums.items():
+            self.assertEqual(
+                item.value_descriptions[value], description)
 
     def test_badly_punctuated_enum_with_no_spaces(self):
         """Extracted from issue #4 a badly punctuated enum without any spaces
@@ -600,6 +611,29 @@ class DatabaseImport(unittest.TestCase):
         assert item.value_descriptions[13] == "BrakeVacPump"
         assert item.value_descriptions[14] == "PwmTim3"
         assert len(item.value_descriptions) == 15
+
+    def test_badly_punctuated_enum_with_no_value_name(self):
+        """Verify that a massively poorly formatted enum fails gracefully"""
+
+        raw_json = {
+            "Option": {
+                "unit": "0=starts-ok, 1, 2=ends-well",
+                "id": 77,
+                "value": 0.00,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 2.00,
+                "default": 0.00,
+                "category": "Communication",
+                "i": 53
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["Option"]
+        assert item.unit == ("0=starts-ok, 1, 2=ends-well [DB FORMAT ERROR]")
+        assert len(item.value_descriptions) == 0
 
 
 class TestCachedDatabases:
