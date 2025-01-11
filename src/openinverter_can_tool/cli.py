@@ -37,7 +37,8 @@ class CliSettings:
             database_path: str,
             context: str,
             node_number: int,
-            timeout: float) -> None:
+            timeout: float,
+            debug: bool) -> None:
         self.database_path = database_path
         self.context = context
         self.node_number = node_number
@@ -45,6 +46,7 @@ class CliSettings:
         self.database = canopen.objectdictionary.ObjectDictionary()
         self.node: Optional[OpenInverterNode] = None
         self.timeout = timeout
+        self.debug = debug
 
 
 pass_cli_settings = click.make_pass_decorator(CliSettings)
@@ -169,6 +171,10 @@ def can_action(func):
               show_default=True,
               type=click.FLOAT,
               help="Response timeout in seconds")
+@click.option("--debug",
+              is_flag=True,
+              default=False,
+              help="Enable detailed debugging messages")
 @click.version_option()
 @click.pass_context
 def cli(ctx: click.Context,
@@ -1084,9 +1090,10 @@ def upgrade(
                                firmware_file, _print_progress)
 
         try:
-            # suppress logging errors from the canopen library if the device
-            # doesn't respond when asked to reset
-            logging.disable(logging.ERROR)
+            if not cli_settings.debug:
+                # suppress logging errors from the canopen library if the
+                # device doesn't respond when asked to reset
+                logging.disable(logging.ERROR)
 
             cli_settings.node.reset()
         except canopen.SdoCommunicationError:
