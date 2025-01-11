@@ -66,11 +66,9 @@ def db_action(func):
         if cli_settings.database_path:
             device_db = import_database(Path(cli_settings.database_path))
         else:
-            network = None
-            try:
-                # Fire up the CAN network just to grab the node parameter
-                # database from the device
-                network = canopen.Network()
+            # Fire up the CAN network just to grab the node parameter
+            # database from the device
+            with canopen.Network() as network:
                 network.connect(context=cli_settings.context)
                 network.check()
 
@@ -78,9 +76,6 @@ def db_action(func):
                     network,
                     cli_settings.node_number,
                     Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
-            finally:
-                if network:
-                    network.disconnect()
 
         cli_settings.database = device_db
 
@@ -103,28 +98,26 @@ def can_action(func):
         # Ensure we always have something to return
         return_value = None
 
-        network = None
         try:
             # Start with creating a network representing one CAN bus
-            network = canopen.Network()
+            with canopen.Network() as network:
+                # Connect to the CAN bus
+                network.connect(context=cli_settings.context)
 
-            # Connect to the CAN bus
-            network.connect(context=cli_settings.context)
+                network.check()
 
-            network.check()
+                node = OpenInverterNode(
+                    network,
+                    cli_settings.node_number,
+                    cli_settings.database)
+                node.sdo.RESPONSE_TIMEOUT = cli_settings.timeout
 
-            node = OpenInverterNode(
-                network,
-                cli_settings.node_number,
-                cli_settings.database)
-            node.sdo.RESPONSE_TIMEOUT = cli_settings.timeout
+                # store the network and node objects in the context
+                cli_settings.network = network
+                cli_settings.node = node
 
-            # store the network and node objects in the context
-            cli_settings.network = network
-            cli_settings.node = node
-
-            # Call the command handler function
-            return_value = func(*args, **kwargs)
+                # Call the command handler function
+                return_value = func(*args, **kwargs)
 
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
@@ -140,10 +133,6 @@ def can_action(func):
 
         except OSError as err:
             click.echo(f"OS error: {err}")
-
-        finally:
-            if network:
-                network.disconnect()
 
         return return_value
 
@@ -181,11 +170,15 @@ def cli(ctx: click.Context,
         database: str,
         context: str,
         node: int,
-        timeout: float) -> None:
+        timeout: float,
+        debug: bool) -> None:
     """openinverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
-    ctx.obj = CliSettings(database, context, node, timeout)
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+
+    ctx.obj = CliSettings(database, context, node, timeout, debug)
 
 
 @cli.command()
