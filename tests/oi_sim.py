@@ -45,7 +45,7 @@ class OISimulatedNode:
 
     def __del__(self):
         """Always ensure we disconnect from the two networks. Failing to do
-        this results in communications failures when mulitple instances of the
+        this results in communications failures when multiple instances of the
         class are used in succession."""
         self.network.disconnect()
         self.server_network.disconnect()
