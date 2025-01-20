@@ -181,25 +181,45 @@ def cli(ctx: click.Context,
     ctx.obj = CliSettings(database, context, node, timeout, debug)
 
 
+def print_param_def(item: OIVariable) -> None:
+    """Output the definition of a single parameter definition"""
+    click.echo(f"{item.name} [{item.unit}]", nl=False)
+
+    if item.isparam:
+        assert item.min is not None
+        assert item.max is not None
+        assert item.default is not None
+        click.echo(
+            f" - min: {fixed_to_float(item.min):g} "
+            f"max: {fixed_to_float(item.max):g} "
+            f"default: {fixed_to_float(item.default):g}")
+    else:
+        click.echo(" - read-only value")
+
+
+@cli.command()
+@click.argument("param", required=True)
+@pass_cli_settings
+@db_action
+def listparam(cli_settings: CliSettings, param: str) -> None:
+    """List the definition of PARAM"""
+
+    if param in cli_settings.database.names:
+        print_param_def(cli_settings.database.names[param])
+    else:
+        click.echo(f"Unknown parameter: {param}")
+
+
 @cli.command()
 @pass_cli_settings
 @db_action
 def listparams(cli_settings: CliSettings) -> None:
     """List all available parameters and values"""
     for item in cli_settings.database.names.values():
-        print(
-            f"{item.name} [{item.unit}]", end="")
-
-        if item.isparam:
-            print(
-                f" - min: {fixed_to_float(item.min):g} "
-                f"max: {fixed_to_float(item.max):g} "
-                f"default: {fixed_to_float(item.default):g}")
-        else:
-            print(" - read-only value")
+        print_param_def(item)
 
 
-def print_param(variable: OIVariable, value: float) -> None:
+def print_param_value(variable: OIVariable, value: float) -> None:
     """Print out the value of a parameter or outputs the enumeration value or
     bits in a bitfield"""
 
@@ -236,7 +256,7 @@ def dumpall(cli_settings: CliSettings) -> None:
 
     node = cli_settings.node
     for item in cli_settings.database.names.values():
-        print_param(item, fixed_to_float(node.sdo[item.name].raw))
+        print_param_value(item, fixed_to_float(node.sdo[item.name].raw))
 
 
 @cli.command()
@@ -249,7 +269,7 @@ def read(cli_settings: CliSettings, param: str) -> None:
 
     if param in cli_settings.database.names:
         node = cli_settings.node
-        print_param(
+        print_param_value(
             cli_settings.database.names[param],
             fixed_to_float(node.sdo[param].raw))
     else:
