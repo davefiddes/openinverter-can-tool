@@ -268,6 +268,11 @@ def read(cli_settings: CliSettings, param: str) -> None:
               show_default=True,
               default=True,
               help="Include a timestamp on each row of the log")
+@click.option("--symbolic/--numeric",
+              show_default=True,
+              default=True,
+              help="Convert bit-field and enumerations to symbolic "
+              "text values or leave as numbers")
 @pass_cli_settings
 @db_action
 @can_action
@@ -275,7 +280,8 @@ def log(cli_settings: CliSettings,
         params: tuple,
         out_file: click.File,
         step: int,
-        timestamp: bool) -> None:
+        timestamp: bool,
+        symbolic: bool) -> None:
     """
     Log the value of PARAMS from the device periodically in CSV
     format. Multiple parameters may be specified separated by a space.
@@ -291,37 +297,35 @@ def log(cli_settings: CliSettings,
     The wildcards are case-sensitive.
     """
 
-    query_list = []
+    query_list: List[OIVariable] = []
+    avail_names = cli_settings.database.names
 
     # special case wildcard parameter names
     if "ALL" in params:
-        for param in cli_settings.database.names:
-            query_list.append(param)
+        query_list = list(avail_names.values())
 
     elif "PARAMS" in params:
-        for param in cli_settings.database.names.values():
-            if param.isparam:
-                query_list.append(param.name)
+        query_list = [p for p in avail_names.values() if p.isparam]
 
     elif "VALUES" in params:
-        for param in cli_settings.database.names.values():
-            if not param.isparam:
-                query_list.append(param.name)
+        query_list = [p for p in avail_names.values() if not p.isparam]
 
     else:
         # Validate the list of supplied parameters
         for param in params:
-            if param in cli_settings.database.names:
-                query_list.append(param)
+            if param in avail_names:
+                query_list.append(avail_names[param])
             else:
-                click.echo(f"Unknown parameter: {param}")
+                click.echo(f"Ignoring unknown parameter: {param}")
 
     # create a CSV writer to control the output in a format that LibreOffice
     # can open and graph easily
     if timestamp:
-        header_list = ["timestamp"] + query_list
+        header_list = ["timestamp"]
     else:
-        header_list = query_list
+        header_list = []
+    header_list += [p.name for p in query_list]
+
     writer = csv.DictWriter(
         out_file, fieldnames=header_list, quoting=csv.QUOTE_ALL)
     writer.writeheader()
@@ -333,7 +337,25 @@ def log(cli_settings: CliSettings,
         if timestamp:
             row["timestamp"] = str(datetime.datetime.now())
         for param in query_list:
-            row[param] = f"{fixed_to_float(node.sdo[param].raw):g}"
+            value = fixed_to_float(node.sdo[param.name].raw)
+            if symbolic and param.value_descriptions:
+                if value in param.value_descriptions:
+                    row_str = f"{param.value_descriptions[value]}"
+                else:
+                    row_str = f"{value:g} (Unknown value)"
+            elif symbolic and param.bit_definitions:
+                value = int(value)
+                row_str = ""
+                for bit, description in param.bit_definitions.items():
+                    if bit & value:
+                        row_str = row_str + description + ", "
+                row_str = row_str.removesuffix(", ")
+
+                if len(row_str) == 0:
+                    row_str = "0"
+            else:
+                row_str = f"{value:g}"
+            row[param.name] = row_str
         writer.writerow(row)
         out_file.flush()
 
