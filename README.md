@@ -69,6 +69,14 @@ Linux users may reduce the potential of package conflicts by installing python d
     sudo apt install python3-setuptools python3-pip python3-click python3-can python3-appdirs
 ```
 
+### Upgrading
+
+Upgrading to the most recent release is carried out using pip:
+
+```text
+    pip install -U openinverter_can_tool
+```
+
 ## Configuration
 
 Before the tool can be used the CAN interface adapter needs to be configured. To do this create `~/.canrc` on Linux or `%USERPROFILE%/can.conf` on Windows. Details on interfaces supported and the configuration file format can be found in the [python-can](https://python-can.readthedocs.io/en/stable/installation.html) documentation.
@@ -97,12 +105,19 @@ channel = COM8
 bitrate = 500000
 ```
 
-Tested interfaces:
+### Tested interfaces
 
-* [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux.
+* [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux using `socketcan`
 * [GVRET](https://github.com/collin80/GVRET) CAN interface using `slcan` in Linux
+* [MKS CANable V2.0 Pro](https://github.com/makerbase-mks/CANable-MKS) using `slcan` in Windows and Linux
 
 Let me know if you have used a particular CAN interface successfully and I can expand this list.
+
+### Incompatible interfaces
+
+These python-can drivers are known to have problems with openinverter_can_tool:
+
+* [Geschwister Schneider and candleLight](https://python-can.readthedocs.io/en/stable/interfaces/gs_usb.html) using `gs_usb` on Windows or Linux. This prevents Innomaker USB2CAN from working with Windows.
 
 ## Usage
 
