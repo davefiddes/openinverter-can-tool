@@ -28,6 +28,7 @@ setup(
     url="https://github.com/davefiddes/openinverter-can-tool",
     author="David J. Fiddes",
     author_email="D.J@fiddes.net",
+    license="MIT License",
 
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[
@@ -35,7 +36,6 @@ setup(
         "Environment :: Console",
         "Intended Audience :: End Users/Desktop",
         "Topic :: Scientific/Engineering",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
