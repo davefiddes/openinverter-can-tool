@@ -12,3 +12,4 @@ venv
 # due to using tox and pytest
 .tox
 .cache
+.approval_tests_temp
