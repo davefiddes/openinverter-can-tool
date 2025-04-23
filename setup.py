@@ -56,7 +56,7 @@ setup(
         "click",
         "canopen",
         "appdirs",
-        "python-can",
+        "python-can[serial]",
         "cantools"],
 
     extras_require={
