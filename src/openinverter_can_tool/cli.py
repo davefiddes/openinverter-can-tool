@@ -227,7 +227,7 @@ def print_param_value(variable: OIVariable, value: float) -> None:
 
     if variable.value_descriptions:
         if value in variable.value_descriptions:
-            click.echo(f"{variable.value_descriptions[value]}")
+            click.echo(f"{variable.value_descriptions[int(value)]}")
         else:
             click.echo(f"{value:g} (Unknown value)")
     elif variable.bit_definitions:
@@ -239,7 +239,10 @@ def print_param_value(variable: OIVariable, value: float) -> None:
         bit_str = bit_str.removesuffix(", ")
 
         if len(bit_str) == 0:
-            bit_str = "0"
+            if value in variable.bit_definitions:
+                bit_str = variable.bit_definitions[value]
+            else:
+                bit_str = "0"
 
         click.echo(f"{bit_str}")
     else:
