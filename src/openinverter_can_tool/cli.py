@@ -375,7 +375,10 @@ def log(cli_settings: CliSettings,
                 row_str = row_str.removesuffix(", ")
 
                 if len(row_str) == 0:
-                    row_str = "0"
+                    if value in param.bit_definitions:
+                        row_str = param.bit_definitions[value]
+                    else:
+                        row_str = "0"
             else:
                 row_str = f"{value:g}"
             row[param.name] = row_str
