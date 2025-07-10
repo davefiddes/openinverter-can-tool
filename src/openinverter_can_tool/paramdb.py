@@ -238,3 +238,35 @@ def import_cached_database(
             param_db_file.write(param_db_str)
 
     return dictionary
+
+
+def value_to_str(
+        param: OIVariable,
+        value: float,
+        symbolic: bool = True
+        ) -> str:
+    """Convert a raw value retrieved from a device into a string"""
+
+    assert param
+    if symbolic and param.value_descriptions:
+        if value in param.value_descriptions:
+            result = f"{param.value_descriptions[int(value)]}"
+        else:
+            result = f"{value:g} (Unknown value)"
+    elif symbolic and param.bit_definitions:
+        value = int(value)
+        result = ""
+        for bit, description in param.bit_definitions.items():
+            if bit & value:
+                result += description + ", "
+        result = result.removesuffix(", ")
+
+        if len(result) == 0:
+            if value in param.bit_definitions:
+                result = param.bit_definitions[value]
+            else:
+                result = "0"
+    else:
+        result = f"{value:g}"
+
+    return result

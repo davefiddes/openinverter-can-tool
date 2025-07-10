@@ -15,7 +15,8 @@ from openinverter_can_tool.paramdb import (OIVariable,
                                            import_cached_database,
                                            import_database,
                                            import_database_json,
-                                           import_remote_database)
+                                           import_remote_database,
+                                           value_to_str)
 
 from .oi_sim import OISimulatedNode
 
@@ -813,6 +814,100 @@ class TestCachedDatabases:
         cache_files = list(cache.iterdir())
         assert len(cache_files) == 2
         assert filecmp.cmp(cache_files[0], cache_files[1], shallow=False)
+
+
+class ValueToString(unittest.TestCase):
+    """
+    Unit test the conversion of numeric values to user-facing strings using a
+    OIVariable instance.
+    """
+
+    def test_numeric_value_is_converted_to_simple_string(self):
+        param = OIVariable("numeric",  0)
+
+        output = value_to_str(param, 123.45, symbolic=False)
+
+        self.assertEqual(output, "123.45")
+
+    def test_symbolic_doesnt_affect_numeric_value(self):
+        param = OIVariable("numeric",  0)
+
+        output = value_to_str(param, 123.45)
+
+        self.assertEqual(output, "123.45")
+
+    def test_simple_enum_value(self):
+        param = OIVariable("enum",  0)
+        param.value_descriptions = {0: "Off", 1: "On"}
+
+        output = value_to_str(param, 1)
+
+        self.assertEqual(output, "On")
+
+    def test_enum_value_without_symbolic_display_returns_a_number(self):
+        param = OIVariable("enum",  0)
+        param.value_descriptions = {0: "Off", 1: "On"}
+
+        output = value_to_str(param, 1, symbolic=False)
+
+        self.assertEqual(output, "1")
+
+    def test_enum_with_unknown_value_is_returned_with_annotation(self):
+        param = OIVariable("enum",  0)
+        param.value_descriptions = {0: "Off", 1: "On"}
+
+        output = value_to_str(param, 2)
+
+        self.assertEqual(output, "2 (Unknown value)")
+
+    def test_bitfield_with_single_bit_set(self):
+        param = OIVariable("canio",  2022)
+        param.bit_definitions = {1: "Cruise", 2: "Start", 4: "Brake", 8: "Fwd",
+                                 16: "Rev", 32: "Bms"}
+
+        output = value_to_str(param, 4)
+
+        self.assertEqual(output, "Brake")
+
+    def test_bitfield_with_multiple_bits_set(self):
+        param = OIVariable("canio",  2022)
+        param.bit_definitions = {1: "Cruise", 2: "Start", 4: "Brake", 8: "Fwd",
+                                 16: "Rev", 32: "Bms"}
+
+        output = value_to_str(param, 21)
+
+        self.assertEqual(output, "Cruise, Brake, Rev")
+
+    def test_bitfield_with_zero_value_but_param_doesnt_define(self):
+        param = OIVariable("canio",  2022)
+        param.bit_definitions = {1: "Cruise", 2: "Start", 4: "Brake", 8: "Fwd",
+                                 16: "Rev", 32: "Bms"}
+
+        output = value_to_str(param, 0)
+
+        self.assertEqual(output, "0")
+
+    def test_bitfield_with_zero_value_where_param_defines_symbol(self):
+        param = OIVariable("status",  2044)
+        param.bit_definitions = {
+            0: "None", 1: "UdcLow", 2: "UdcHigh",
+            4: "UdcBelowUdcSw", 8: "UdcLim"
+        }
+
+        output = value_to_str(param, 0)
+
+        self.assertEqual(output, "None")
+
+    def test_bitfield_value_without_symbolic_display_returns_a_number(self):
+        param = OIVariable("status",  2044)
+        param.bit_definitions = {
+            0: "None", 1: "UdcLow", 2: "UdcHigh",
+            4: "UdcBelowUdcSw", 8: "UdcLim"
+        }
+
+        output = value_to_str(param, 15, symbolic=False)
+
+        self.assertEqual(output, "15")
 
 
 if __name__ == '__main__':

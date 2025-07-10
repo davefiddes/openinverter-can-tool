@@ -26,7 +26,8 @@ from .can_upgrade import CanUpgrader, Failure, State, StateUpdate
 from .fpfloat import fixed_from_float, fixed_to_float
 from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
-from .paramdb import OIVariable, import_cached_database, import_database
+from .paramdb import (OIVariable, import_cached_database, import_database,
+                      value_to_str)
 
 
 class CliSettings:
@@ -219,37 +220,6 @@ def listparams(cli_settings: CliSettings) -> None:
         print_param_def(item)
 
 
-def print_param_value(variable: OIVariable, value: float) -> None:
-    """Print out the value of a parameter or outputs the enumeration value or
-    bits in a bitfield"""
-
-    click.echo(f"{variable.name:20}: ", nl=False)
-
-    if variable.value_descriptions:
-        if value in variable.value_descriptions:
-            click.echo(f"{variable.value_descriptions[int(value)]}")
-        else:
-            click.echo(f"{value:g} (Unknown value)")
-    elif variable.bit_definitions:
-        value = int(value)
-        bit_str = ""
-        for bit, description in variable.bit_definitions.items():
-            if bit & value:
-                bit_str = bit_str + description + ", "
-        bit_str = bit_str.removesuffix(", ")
-
-        if len(bit_str) == 0:
-            if value in variable.bit_definitions:
-                bit_str = variable.bit_definitions[value]
-            else:
-                bit_str = "0"
-
-        click.echo(f"{bit_str}")
-    else:
-        click.echo(
-            f"{value:g} [{variable.unit}]")
-
-
 @cli.command()
 @pass_cli_settings
 @db_action
@@ -258,8 +228,12 @@ def dumpall(cli_settings: CliSettings) -> None:
     """Dump the values of all available parameters and values"""
 
     node = cli_settings.node
-    for item in cli_settings.database.names.values():
-        print_param_value(item, fixed_to_float(node.sdo[item.name].raw))
+    assert node
+    for variable in cli_settings.database.names.values():
+        value_str = value_to_str(
+            variable,
+            fixed_to_float(node.sdo[variable.name].raw))
+        click.echo(f"{variable.name:20}: {value_str}")
 
 
 @cli.command()
@@ -272,9 +246,11 @@ def read(cli_settings: CliSettings, param: str) -> None:
 
     if param in cli_settings.database.names:
         node = cli_settings.node
-        print_param_value(
+        assert node
+        value_str = value_to_str(
             cli_settings.database.names[param],
             fixed_to_float(node.sdo[param].raw))
+        click.echo(f"{param:20}: {value_str}")
     else:
         click.echo(f"Unknown parameter: {param}")
 
@@ -355,33 +331,16 @@ def log(cli_settings: CliSettings,
 
     # Loop forever logging
     node = cli_settings.node
+    assert node
     while True:
         row = {}
         if timestamp:
             row["timestamp"] = str(datetime.datetime.now())
         for param in query_list:
-            value = fixed_to_float(node.sdo[param.name].raw)
-            if symbolic and param.value_descriptions:
-                if value in param.value_descriptions:
-                    row_str = f"{param.value_descriptions[value]}"
-                else:
-                    row_str = f"{value:g} (Unknown value)"
-            elif symbolic and param.bit_definitions:
-                value = int(value)
-                row_str = ""
-                for bit, description in param.bit_definitions.items():
-                    if bit & value:
-                        row_str = row_str + description + ", "
-                row_str = row_str.removesuffix(", ")
-
-                if len(row_str) == 0:
-                    if value in param.bit_definitions:
-                        row_str = param.bit_definitions[value]
-                    else:
-                        row_str = "0"
-            else:
-                row_str = f"{value:g}"
-            row[param.name] = row_str
+            row[param.name] = value_to_str(
+                param,
+                fixed_to_float(node.sdo[param.name].raw),
+                symbolic)
         writer.writerow(row)
         out_file.flush()
 
