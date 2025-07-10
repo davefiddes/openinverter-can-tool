@@ -37,7 +37,6 @@ setup(
         "Intended Audience :: End Users/Desktop",
         "Topic :: Scientific/Engineering",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
@@ -50,7 +49,7 @@ setup(
 
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.9, <4",
 
     install_requires=[
         "click",
