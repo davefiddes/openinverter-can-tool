@@ -2,6 +2,8 @@
 
 import unittest
 
+import canopen
+
 from openinverter_can_tool import constants as oi
 from openinverter_can_tool.oi_node import (CanMessage, Direction, MapEntry,
                                            OpenInverterNode)
@@ -458,6 +460,60 @@ class TestOpenInverterNode(NetworkTestCase):
         assert param.gain == -1.0
         assert param.offset == 0
 
+    def test_list_tx_map_single_can_id_failed_to_get_id(self):
+        # Manually synthesised can packets
+        self.data = [
+            # First CAN ID
+            # General Failure
+            (TX, b'\x40\x00\x31\x00\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x00\x00\x00\x00\x08'),
+        ]
+
+        with self.assertRaises(canopen.SdoAbortedError) as cm:
+            self.node.list_can_map(Direction.TX)
+
+        assert cm.exception.code == oi.SDO_ABORT_GENERAL_FAILURE
+
+    def test_list_tx_map_single_can_id_failed_first_param_id(self):
+        # Manually synthesised can packets
+        self.data = [
+            # First CAN ID
+            (TX, b'\x40\x00\x31\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x00\x01\x01\x00\x00'),
+
+            # First CAN ID - first param: id, position and length
+            # General Failure
+            (TX, b'\x40\x00\x31\x01\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x01\x00\x00\x00\x08'),
+        ]
+
+        with self.assertRaises(canopen.SdoAbortedError) as cm:
+            self.node.list_can_map(Direction.TX)
+
+        assert cm.exception.code == oi.SDO_ABORT_GENERAL_FAILURE
+
+    def test_list_tx_map_single_can_id_failed_first_param_gain(self):
+        # Manually synthesised can packets
+        self.data = [
+            # First CAN ID
+            (TX, b'\x40\x00\x31\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x00\x01\x01\x00\x00'),
+
+            # First CAN ID - first param: id, position and length
+            (TX, b'\x40\x00\x31\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x00\x31\x01\xE3\x07\x18\x08'),
+
+            # First CAN ID - first param: gain and offset
+            # General Failure
+            (TX, b'\x40\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x31\x02\x00\x00\x00\x08'),
+        ]
+
+        with self.assertRaises(canopen.SdoAbortedError) as cm:
+            self.node.list_can_map(Direction.TX)
+
+        assert cm.exception.code == oi.SDO_ABORT_GENERAL_FAILURE
+
     def test_map_transmit_parameter_successfully(self):
         # from a capture of the command:
         # oic can add tx 0x101 tmpm 0 8 1.0 0
@@ -797,6 +853,19 @@ class TestOpenInverterNode(NetworkTestCase):
             (RX, b'\x80\x85\x31\x0C\x00\x00\x02\x06')
         ]
         assert not self.node.remove_can_map_entry(Direction.RX, 5, 5)
+
+    def test_remove_general_failure(self):
+        # Manually synthesised can packets equivalent to a general failure
+        # running:
+        # oic can remove rx.5.5
+        self.data = [
+            (TX, b'\x23\x85\x31\x0C\x00\x00\x00\x00'),
+            (RX, b'\x80\x85\x31\x0C\x00\x00\x00\x08')
+        ]
+        with self.assertRaises(canopen.SdoAbortedError) as cm:
+            self.node.remove_can_map_entry(Direction.RX, 5, 5)
+
+        assert cm.exception.code == oi.SDO_ABORT_GENERAL_FAILURE
 
     def test_clear_map_tx_no_mappings_present(self):
         # From a capture of running:

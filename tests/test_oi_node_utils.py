@@ -36,6 +36,10 @@ class TestCanMessages(unittest.TestCase):
         assert msg.can_id == 0x12345678
         assert msg.is_extended_frame
 
+    def test_can_message_compared_with_invalid_type_reports_false(self):
+        msg = CanMessage(0x123, [])
+        assert msg != str()
+
 
 class TestMapEntry(unittest.TestCase):
     """Verify the creation of MapEntry instances"""
@@ -119,6 +123,17 @@ class TestMapEntry(unittest.TestCase):
                 gain=1,
                 offset=-129
             )
+
+    def test_map_entry_compared_with_invalid_type_reports_false(self):
+        map_entry = MapEntry(
+            param_id=1,
+            position=0,
+            length=1,
+            gain=1,
+            offset=0
+        )
+
+        assert map_entry != str()
 
 
 if __name__ == "__main__":

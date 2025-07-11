@@ -7,7 +7,6 @@ from enum import IntEnum
 from typing import List, Optional
 
 import canopen
-import canopen.objectdictionary
 from canopen.node.base import BaseNode
 from canopen.sdo import SdoClient
 

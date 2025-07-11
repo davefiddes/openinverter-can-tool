@@ -47,6 +47,7 @@ START_MODE_ACHEAT = 6
 
 # SDO abort error codes - Not defined by canopen for some reason
 SDO_ABORT_OBJECT_NOT_AVAILABLE = 0x06020000
+SDO_ABORT_GENERAL_FAILURE = 0x08000000
 
 # Names for common directories
 APPNAME = "openinverter_can_tool"
