@@ -56,7 +56,8 @@ setup(
         "canopen",
         "appdirs",
         "python-can[serial]",
-        "cantools"],
+        "cantools",
+        "pyside6"],
 
     extras_require={
         "dev": [
@@ -86,6 +87,9 @@ setup(
     entry_points={
         "console_scripts": [
             "oic=openinverter_can_tool.__main__:cli"
+        ],
+        "gui_scripts": [
+            "oi-gui=openinverter_can_tool.gui.app:main"
         ],
     },
 
