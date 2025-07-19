@@ -132,20 +132,22 @@ To get the usage information for the tool run the `oic` command with no paramete
     parameters over a CAN connection
 
     Options:
-    -d, --database FILE  Override the openinverter JSON parameter database to
-                        use
-    -c, --context TEXT   Which python-can configuration context to use
-    -n, --node INTEGER   The CAN SDO node ID to communicate with  [env var:
-                        OIC_NODE; default: 1]
-    -t, --timeout FLOAT  Response timeout in seconds  [default: 1.0]
-    --version            Show the version and exit.
-    --help               Show this message and exit.
+    -d, --database FILE       Override the openinverter JSON parameter database
+                                to use
+    -c, --context TEXT        Which python-can configuration context to use
+    -n, --node INTEGER RANGE  The CAN SDO node ID to communicate with  [env var:
+                                OIC_NODE; default: 1; 1<=x<=127]
+    -t, --timeout FLOAT       Response timeout in seconds  [default: 1.0]
+    --debug                   Enable detailed debugging messages
+    --version                 Show the version and exit.
+    --help                    Show this message and exit.
 
     Commands:
     cache       Parameter database cache management commands
     can         Manage parameter to CAN message mappings on a device
     cmd         Execute a command on a device
     dumpall     Dump the values of all available parameters and values
+    listparam   List the definition of PARAM
     listparams  List all available parameters and values
     load        Load all parameters from json IN_FILE
     log         Log the value of PARAMS from the device periodically in CSV...
