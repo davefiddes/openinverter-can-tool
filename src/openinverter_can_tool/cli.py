@@ -152,7 +152,7 @@ def can_action(func):
 @click.option("-n", "--node",
               default=1,
               show_default=True,
-              type=click.INT,
+              type=click.IntRange(1, 127),
               envvar="OIC_NODE",
               show_envvar=True,
               help="The CAN SDO node ID to communicate with")
