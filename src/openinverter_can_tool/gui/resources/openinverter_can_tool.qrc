@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file>icons/document-open.png</file>
+        <file>icons/document-save-as.png</file>
+        <file>icons/go-up.png</file>
+        <file>icons/view-refresh.png</file>
+        <file>icons/window-new.png</file>
+    </qresource>
+</RCC>

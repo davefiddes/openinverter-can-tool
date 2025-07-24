@@ -5,6 +5,8 @@ from .controllers.main_ctrl import MainController
 from .model.model import Model
 from .views.main_view import MainView
 
+from .resources import openinverter_can_tool_rc  # noqa: F401
+
 
 class App(QApplication):
     """openinverter CAN Tool application which owns the data model, main

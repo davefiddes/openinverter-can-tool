@@ -1,6 +1,7 @@
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QLabel, QMainWindow, QPushButton, QSpinBox,
-                               QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget, QMessageBox)
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
@@ -20,6 +21,11 @@ class MainView(QMainWindow):
 
         widget = QWidget()
         self.setCentralWidget(widget)
+
+        self.create_actions()
+        self.create_menus()
+        self.create_tool_bars()
+        self.create_status_bar()
 
         layout = QVBoxLayout(widget)
 
@@ -57,3 +63,110 @@ class MainView(QMainWindow):
     @Slot(bool)
     def on_enable_reset_changed(self, value: bool):
         self._pushButton_reset.setEnabled(value)
+
+    @Slot()
+    def _on_about(self) -> None:
+        QMessageBox.about(
+            self,
+            "About openinverter CAN Tool",
+            "A tool to allow configuration and operating of openinverter "
+            "systems for electric vehicles over a CAN connection.")
+
+    @Slot()
+    def _on_not_implemented(self) -> None:
+        QMessageBox.critical(self, "Unimplemented Error",
+                             "This function has not been implemented yet")
+
+    def create_actions(self):
+        icon = QIcon(':/icons/window-new.png')
+        self._new_act = QAction(
+            icon, "&New Session...", self,
+            statusTip="Start a new configuration session with a device",
+            shortcut=QKeySequence(QKeySequence.StandardKey.New)
+        )
+        self._new_act.triggered.connect(self._on_not_implemented)
+
+        icon = QIcon(':/icons/document-open.png')
+        self._load_act = QAction(
+            icon, "&Load Parameters...", self,
+            statusTip="Load a set of parameters onto a device",
+            shortcut=QKeySequence(QKeySequence.StandardKey.Open)
+        )
+        self._load_act.triggered.connect(self._on_not_implemented)
+
+        icon = QIcon(':/icons/document-save-as.png')
+        self._save_act = QAction(
+            icon, "&Save Parameters...", self,
+            statusTip="Save the current parameters to disk",
+            shortcut=QKeySequence(QKeySequence.StandardKey.Save)
+        )
+        self._save_act.triggered.connect(self._on_not_implemented)
+
+        icon = QIcon(':/icons/go-up.png')
+        self._upgrade_act = QAction(
+            icon, "&Upgrade Firmware...", self,
+            statusTip="Upgrade the firmware on a device to a new version",
+            shortcut=QKeySequence(
+                Qt.Modifier.CTRL | Qt.Key.Key_U)  # type: ignore
+        )
+        self._upgrade_act.triggered.connect(self._on_not_implemented)
+
+        self._exit_act = QAction(
+            "E&xit", self,
+            statusTip="Exit the application",
+            shortcut=QKeySequence(QKeySequence.StandardKey.Quit)
+        )
+        self._exit_act.triggered.connect(self.close)
+
+        icon = QIcon(':/icons/view-refresh.png')
+        self._refresh_act = QAction(
+            icon, "&Refresh", self,
+            statusTip="Refresh the parameters downloaded from the device",
+            shortcut=QKeySequence(QKeySequence.StandardKey.Refresh)
+        )
+        self._refresh_act.triggered.connect(self._on_not_implemented)
+
+        self._auto_refresh_act = QAction(
+            "&Auto Refresh", self, checkable=True, checked=False,
+            statusTip="Enable or disable the automatic refresh of parameters "
+            "and spot values"
+        )
+        self._auto_refresh_act.triggered.connect(self._on_not_implemented)
+
+        self._about_act = QAction(
+            "&About", self,
+            statusTip="Show the application's About box"
+        )
+        self._about_act.triggered.connect(self._on_about)
+
+    def create_menus(self):
+        self._file_menu = self.menuBar().addMenu("&File")
+        self._file_menu.addAction(self._new_act)
+        self._file_menu.addSeparator()
+        self._file_menu.addAction(self._load_act)
+        self._file_menu.addAction(self._save_act)
+        self._file_menu.addAction(self._upgrade_act)
+        self._file_menu.addSeparator()
+        self._file_menu.addAction(self._exit_act)
+
+        self._device_menu = self.menuBar().addMenu("&View")
+        self._device_menu.addAction(self._refresh_act)
+        self._device_menu.addAction(self._auto_refresh_act)
+
+        self.menuBar().addSeparator()
+
+        self._help_menu = self.menuBar().addMenu("&Help")
+        self._help_menu.addAction(self._about_act)
+
+    def create_tool_bars(self):
+        self._file_tool_bar = self.addToolBar("File")
+        self._file_tool_bar.addAction(self._new_act)
+        self._file_tool_bar.addAction(self._load_act)
+        self._file_tool_bar.addAction(self._save_act)
+        self._file_tool_bar.addAction(self._upgrade_act)
+
+        self._device_tool_bar = self.addToolBar("View")
+        self._device_tool_bar.addAction(self._refresh_act)
+
+    def create_status_bar(self):
+        self.statusBar().showMessage("Ready")
