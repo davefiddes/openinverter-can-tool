@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QIcon, QKeySequence
-from PySide6.QtWidgets import (QLabel, QMainWindow, QPushButton, QSpinBox,
-                               QVBoxLayout, QWidget, QMessageBox)
+from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
+                               QPushButton, QSpinBox, QVBoxLayout, QWidget)
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
@@ -17,8 +17,6 @@ class MainView(QMainWindow):
         self._main_controller = main_controller
 
         # construct the UI
-        self.setWindowTitle("openinverter CAN Tool")
-
         widget = QWidget()
         self.setCentralWidget(widget)
 
@@ -48,9 +46,18 @@ class MainView(QMainWindow):
         self._model.amount_changed.connect(self.on_amount_changed)
         self._model.even_odd_changed.connect(self.on_even_odd_changed)
         self._model.enable_reset_changed.connect(self.on_enable_reset_changed)
+        self._model.node_id_changed.connect(self.on_node_id_changed)
 
         # set a default value
         self._main_controller.change_amount(42)
+        self.on_node_id_changed(0)
+
+    def closeEvent(self, event):
+        """
+        Handle the close event to ensure any ongoing CAN session is properly
+        cleaned up.
+        """
+        self._main_controller.stop_session()
 
     @Slot(int)
     def on_amount_changed(self, value: int):
@@ -63,6 +70,18 @@ class MainView(QMainWindow):
     @Slot(bool)
     def on_enable_reset_changed(self, value: bool):
         self._pushButton_reset.setEnabled(value)
+
+    @Slot(int)
+    def on_node_id_changed(self, value: int):
+        if value > 0:
+            self.setWindowTitle(f"openinverter CAN Tool - Node ID: {value}")
+        else:
+            self.setWindowTitle("openinverter CAN Tool")
+
+        self._load_act.setEnabled(value > 0)
+        self._save_act.setEnabled(value > 0)
+        self._upgrade_act.setEnabled(value > 0)
+        self._refresh_act.setEnabled(value > 0)
 
     @Slot()
     def _on_about(self) -> None:
@@ -77,6 +96,22 @@ class MainView(QMainWindow):
         QMessageBox.critical(self, "Unimplemented Error",
                              "This function has not been implemented yet")
 
+    @Slot()
+    def _on_new_session(self) -> None:
+        node_id, ok = QInputDialog.getInt(
+            self, "New Session", "Enter the node ID for the new session:",
+            value=1, minValue=1, maxValue=127)
+
+        if ok:
+            try:
+                self._main_controller.start_new_session(node_id)
+            except Exception as err:
+                self._main_controller.stop_session()
+                QMessageBox.critical(
+                    self,
+                    "Session Error",
+                    f"{type(err).__name__}: {err}")
+
     def create_actions(self):
         icon = QIcon(':/icons/window-new.png')
         self._new_act = QAction(
@@ -84,7 +119,7 @@ class MainView(QMainWindow):
             statusTip="Start a new configuration session with a device",
             shortcut=QKeySequence(QKeySequence.StandardKey.New)
         )
-        self._new_act.triggered.connect(self._on_not_implemented)
+        self._new_act.triggered.connect(self._on_new_session)
 
         icon = QIcon(':/icons/document-open.png')
         self._load_act = QAction(
