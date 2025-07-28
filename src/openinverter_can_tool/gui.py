@@ -233,13 +233,6 @@ class OICGui:
         options_frame = ttk.Frame(upgrade_frame)
         options_frame.pack(fill='x', pady=5)
         
-        self.recover_var = tk.BooleanVar()
-        ttk.Checkbutton(options_frame, text="Recovery Mode", variable=self.recover_var).pack(side='left', padx=5)
-        
-        ttk.Label(options_frame, text="Serial (for recovery):").pack(side='left', padx=5)
-        self.upgrade_serial_var = tk.StringVar()
-        ttk.Entry(options_frame, textvariable=self.upgrade_serial_var, width=15).pack(side='left', padx=5)
-        
         # Upgrade button
         ttk.Button(upgrade_frame, text="Start Upgrade", command=self.start_upgrade).pack(pady=10)
         
