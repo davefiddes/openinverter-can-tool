@@ -7,6 +7,7 @@ A graphical interface for the oic tool functionality
 import json
 import os
 import threading
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
@@ -14,15 +15,33 @@ from typing import Optional
 
 import appdirs
 import canopen
+from can.exceptions import CanOperationError
+from canopen import SdoAbortedError, SdoCommunicationError
 
 from . import constants as oi
-from .cli import CliSettings
+from .can_upgrade import CanUpgrader, State
+from .cli import CliSettings, write_impl
 from .fpfloat import fixed_to_float
+from .map_persistence import export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
 from .paramdb import import_cached_database, import_database, value_to_str
 
+# Define a constant for connection exceptions which we want to handle
+# in lots of places
+CONNECTION_EXCEPTIONS = (
+    SdoAbortedError,
+    SdoCommunicationError,
+    CanOperationError,
+    OSError)
+
+# Disable docstring warnings as it would make the OICGui too verbose
+# for little gain.
+# pylint: disable=missing-function-docstring
+
 
 class OICGui:
+    """Main GUI class for the OpenInverter CAN Tool"""
+
     def __init__(self, root):
         self.root = root
         self.root.title("OpenInverter CAN Tool GUI")
@@ -377,7 +396,7 @@ class OICGui:
             self.log_output(f"Connected to node {node_id}")
             self.refresh_parameters()
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Connection Error", str(e))
             self.log_output(f"Connection failed: {e}")
 
@@ -397,7 +416,7 @@ class OICGui:
             self.param_tree.delete(*self.param_tree.get_children())
             self.log_output("Disconnected")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Disconnect Error", str(e))
 
     def scan_nodes(self):
@@ -409,7 +428,6 @@ class OICGui:
 
                 self.log_output("Scanning for nodes...")
 
-                import time
                 sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
 
                 for node_id in range(1, 128):
@@ -429,7 +447,7 @@ class OICGui:
 
                 network.disconnect()
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 self.log_output(f"Scan failed: {e}")
 
         threading.Thread(target=scan_thread, daemon=True).start()
@@ -457,14 +475,14 @@ class OICGui:
                             '', 'end', text=item.name,
                             values=(value_str, item.unit, range_str))
 
-                    except Exception as e:
+                    except CONNECTION_EXCEPTIONS as e:
                         self.param_tree.insert(
                             '', 'end', text=item.name,
                             values=(f"Error: {e}", item.unit, ""))
 
                 self.log_output("Parameters refreshed")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 self.log_output(f"Failed to refresh parameters: {e}")
 
         threading.Thread(target=refresh_thread, daemon=True).start()
@@ -492,7 +510,7 @@ class OICGui:
                 messagebox.showerror(
                     "Error", f"Unknown parameter: {param_name}")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to read parameter: {e}")
 
     def write_parameter(self):
@@ -509,11 +527,10 @@ class OICGui:
             return
 
         try:
-            from .cli import write_impl
             write_impl(self.cli_settings, param_name, param_value)
             self.log_output(f"Written {param_name} = {param_value}")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to write parameter: {e}")
 
     def load_parameters(self):
@@ -523,11 +540,10 @@ class OICGui:
         )
         if filename and self.cli_settings:
             try:
-                with open(filename, 'r') as f:
+                with open(filename, 'r', encoding='utf-8') as f:
                     doc = json.load(f)
 
                 count = 0
-                from .cli import write_impl
                 for param_name, value in doc.items():
                     if isinstance(value, str):
                         value = float(value)
@@ -536,7 +552,7 @@ class OICGui:
 
                 self.log_output(f"Loaded {count} parameters from {filename}")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror(
                     "Error", f"Failed to load parameters: {e}")
 
@@ -556,12 +572,12 @@ class OICGui:
                             self.node.sdo[item.name].raw)
                         count += 1
 
-                with open(filename, 'w') as f:
+                with open(filename, 'w', encoding='utf-8') as f:
                     json.dump(doc, f, indent=4)
 
                 self.log_output(f"Saved {count} parameters to {filename}")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror(
                     "Error", f"Failed to save parameters: {e}")
 
@@ -584,7 +600,7 @@ class OICGui:
             self.node.start(mode_map[mode])
             self.log_output(f"Device started in {mode} mode")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to start device: {e}")
 
     def stop_device(self):
@@ -596,7 +612,7 @@ class OICGui:
             self.node.stop()
             self.log_output("Device stopped")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to stop device: {e}")
 
     def save_device(self):
@@ -608,7 +624,7 @@ class OICGui:
             self.node.save()
             self.log_output("Device parameters saved to flash")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to save to flash: {e}")
 
     def load_device(self):
@@ -620,7 +636,7 @@ class OICGui:
             self.node.load()
             self.log_output("Device parameters loaded from flash")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to load from flash: {e}")
 
     def load_defaults(self):
@@ -632,7 +648,7 @@ class OICGui:
             self.node.load_defaults()
             self.log_output("Device parameters reset to defaults")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to load defaults: {e}")
 
     def reset_device(self):
@@ -647,7 +663,7 @@ class OICGui:
                 self.node.reset()
                 self.log_output("Device reset command sent")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror("Error", f"Failed to reset device: {e}")
 
     def get_serial(self):
@@ -666,7 +682,7 @@ class OICGui:
             self.serial_var.set(serial)
             self.log_output(f"Serial Number: {serial}")
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to get serial number: {e}")
 
     def list_mappings(self):
@@ -686,7 +702,7 @@ class OICGui:
                 self._print_can_map("tx", tx_map)
                 self._print_can_map("rx", rx_map)
 
-        except Exception as e:
+        except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to list mappings: {e}")
 
     def _print_can_map(self, direction_str, can_map):
@@ -732,7 +748,7 @@ class OICGui:
                 self.log_output("All CAN mappings cleared")
                 self.list_mappings()
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror("Error", f"Failed to clear mappings: {e}")
 
     def import_mappings(self):
@@ -742,9 +758,7 @@ class OICGui:
         )
         if filename and self.node and self.cli_settings:
             try:
-                from .map_persistence import import_json_map
-
-                with open(filename, 'r') as f:
+                with open(filename, 'r', encoding='utf-8') as f:
                     tx_map, rx_map = import_json_map(
                         f, self.cli_settings.database)
 
@@ -754,7 +768,7 @@ class OICGui:
                 self.log_output(f"CAN mappings imported from {filename}")
                 self.list_mappings()
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror(
                     "Error", f"Failed to import mappings: {e}")
 
@@ -766,18 +780,16 @@ class OICGui:
         )
         if filename and self.node and self.cli_settings:
             try:
-                from .map_persistence import export_json_map
-
                 tx_map = self.node.list_can_map(Direction.TX)
                 rx_map = self.node.list_can_map(Direction.RX)
 
-                with open(filename, 'w') as f:
+                with open(filename, 'w', encoding='utf-8') as f:
                     export_json_map(
                         tx_map, rx_map, self.cli_settings.database, f)
 
                 self.log_output(f"CAN mappings exported to {filename}")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror(
                     "Error", f"Failed to export mappings: {e}")
 
@@ -793,8 +805,6 @@ class OICGui:
 
         def upgrade_thread():
             try:
-                from .can_upgrade import CanUpgrader, State
-
                 def progress_callback(update):
                     if update.state == State.START:
                         self.progress_var.set("Waiting for device...")
@@ -851,7 +861,7 @@ class OICGui:
                 if not success:
                     self.progress_var.set("Upgrade timed out")
 
-            except Exception as e:
+            except CONNECTION_EXCEPTIONS as e:
                 self.progress_var.set(f"Upgrade error: {e}")
                 messagebox.showerror("Error", f"Upgrade failed: {e}")
 
