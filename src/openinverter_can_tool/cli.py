@@ -64,24 +64,45 @@ def db_action(func):
         # Assume that the first argument exists and is a CliSettings
         cli_settings: CliSettings = args[0]
 
-        if cli_settings.database_path:
-            device_db = import_database(Path(cli_settings.database_path))
-        else:
-            # Fire up the CAN network just to grab the node parameter
-            # database from the device
-            with canopen.Network() as network:
-                network.connect(context=cli_settings.context)
-                network.check()
+        # Ensure we always have something to return
+        return_value = None
 
-                device_db = import_cached_database(
-                    network,
-                    cli_settings.node_number,
-                    Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
+        try:
+            if cli_settings.database_path:
+                device_db = import_database(Path(cli_settings.database_path))
+            else:
+                # Fire up the CAN network just to grab the node parameter
+                # database from the device
+                with canopen.Network() as network:
+                    network.connect(context=cli_settings.context)
+                    network.check()
 
-        cli_settings.database = device_db
+                    device_db = import_cached_database(
+                        network,
+                        cli_settings.node_number,
+                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
 
-        # Call the command handler function
-        return func(*args, **kwargs)
+            cli_settings.database = device_db
+
+            # Return the command handler function if we've been successful
+            return_value = func(*args, **kwargs)
+
+        except canopen.SdoAbortedError as err:
+            if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
+                click.echo("Command or parameter not supported")
+            else:
+                click.echo(f"Unexpected SDO Abort: {err}")
+
+        except canopen.SdoCommunicationError as err:
+            click.echo(f"SDO communication error: {err}")
+
+        except can.exceptions.CanOperationError as err:
+            click.echo(f"CAN error: {err}")
+
+        except OSError as err:
+            click.echo(f"OS error: {err}")
+
+        return return_value
 
     return wrapper_db_action
 
