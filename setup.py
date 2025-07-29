@@ -85,9 +85,11 @@ setup(
     # The main command-line tool
     entry_points={
         "console_scripts": [
-            "oic=openinverter_can_tool.__main__:cli",
-            "oic-gui=openinverter_can_tool.gui:main"
+            "oic=openinverter_can_tool.__main__:cli"
         ],
+        "gui_scripts": [
+            "oic-gui=openinverter_can_tool.gui:main"
+        ]
     },
 
     project_urls={
