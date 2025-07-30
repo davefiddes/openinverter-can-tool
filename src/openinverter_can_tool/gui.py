@@ -11,7 +11,7 @@ import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Optional
+from typing import Optional, Union
 
 import appdirs
 import canopen
@@ -20,7 +20,7 @@ from canopen import SdoAbortedError, SdoCommunicationError
 
 from . import constants as oi
 from .can_upgrade import CanUpgrader, State
-from .cli import CliSettings, write_impl
+from .cli import set_float_value, set_enum_value, set_bitfield_value
 from .fpfloat import fixed_to_float
 from .map_persistence import export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
@@ -39,6 +39,19 @@ CONNECTION_EXCEPTIONS = (
 # pylint: disable=missing-function-docstring
 
 
+def require_connection(func):
+    """
+    Decorator to ensure the node is connected before executing a function.
+    """
+
+    def wrapper(self, *args, **kwargs):
+        if self.node is None:
+            messagebox.showerror("Error", "Not connected")
+            return
+        return func(self, *args, **kwargs)
+    return wrapper
+
+
 class OICGui:
     """Main GUI class for the OpenInverter CAN Tool"""
 
@@ -48,9 +61,9 @@ class OICGui:
         self.root.geometry("800x600")
 
         # Settings
-        self.cli_settings: Optional[CliSettings] = None
-        self.network: Optional[canopen.Network] = None
+        self.network = canopen.Network()
         self.node: Optional[OpenInverterNode] = None
+        self.device_db: Optional[canopen.ObjectDictionary] = None
 
         # Create notebook for tabs
         self.notebook = ttk.Notebook(root)
@@ -352,42 +365,32 @@ class OICGui:
             self.firmware_var.set(filename)
 
     def connect(self):
+        assert self.network is not None
+        assert self.node is None
+        assert self.device_db is None
+
         try:
             context = self.context_var.get() or None
             node_id = int(self.node_id_var.get())
             timeout = float(self.timeout_var.get())
             database_path = self.database_var.get() or None
 
-            self.cli_settings = CliSettings(
-                database_path, context, node_id, timeout, False)
+            # Connect to CAN
+            self.network.connect(context=context)
+            self.network.check()
 
             # Load database
             if database_path:
-                device_db = import_database(Path(database_path))
+                self.device_db = import_database(Path(database_path))
             else:
-                self.network = canopen.Network()
-                self.network.connect(context=context)
-                self.network.check()
-
-                device_db = import_cached_database(
+                self.device_db = import_cached_database(
                     self.network,
                     node_id,
                     Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR))
                 )
 
-            self.cli_settings.database = device_db
-
-            # Connect to CAN
-            if not self.network:
-                self.network = canopen.Network()
-                self.network.connect(context=context)
-                self.network.check()
-
-            self.node = OpenInverterNode(self.network, node_id, device_db)
+            self.node = OpenInverterNode(self.network, node_id, self.device_db)
             self.node.sdo.RESPONSE_TIMEOUT = timeout
-
-            self.cli_settings.network = self.network
-            self.cli_settings.node = self.node
 
             self.status_var.set(f"Connected to node {node_id}")
             self.connect_btn.config(state='disabled')
@@ -401,13 +404,14 @@ class OICGui:
             self.log_output(f"Connection failed: {e}")
 
     def disconnect(self):
-        try:
-            if self.network:
-                self.network.disconnect()
-                self.network = None
+        assert self.network is not None
+        assert self.node is not None
+        assert self.device_db is not None
 
+        try:
+            self.network.disconnect()
             self.node = None
-            self.cli_settings = None
+            self.device_db = None
 
             self.status_var.set("Not connected")
             self.connect_btn.config(state='normal')
@@ -418,6 +422,11 @@ class OICGui:
 
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Disconnect Error", str(e))
+
+    def on_closing(self):
+        """Handle window close event."""
+        self.network.disconnect()
+        self.root.destroy()
 
     def scan_nodes(self):
         def scan_thread():
@@ -452,15 +461,14 @@ class OICGui:
 
         threading.Thread(target=scan_thread, daemon=True).start()
 
+    @require_connection
     def refresh_parameters(self):
-        if not self.node or not self.cli_settings:
-            return
 
         def refresh_thread():
             try:
                 self.param_tree.delete(*self.param_tree.get_children())
 
-                for item in self.cli_settings.database.names.values():
+                for item in self.device_db.names.values():
                     try:
                         value_str = value_to_str(
                             item, fixed_to_float(self.node.sdo[item.name].raw))
@@ -487,10 +495,8 @@ class OICGui:
 
         threading.Thread(target=refresh_thread, daemon=True).start()
 
+    @require_connection
     def read_parameter(self):
-        if not self.node or not self.cli_settings:
-            messagebox.showerror("Error", "Not connected")
-            return
 
         param_name = self.param_name_var.get()
         if not param_name:
@@ -498,8 +504,8 @@ class OICGui:
             return
 
         try:
-            if param_name in self.cli_settings.database.names:
-                param = self.cli_settings.database.names[param_name]
+            if param_name in self.device_db.names:
+                param = self.device_db.names[param_name]
                 value = fixed_to_float(self.node.sdo[param_name].raw)
 
                 value_str = value_to_str(param, value)
@@ -513,11 +519,43 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to read parameter: {e}")
 
-    def write_parameter(self):
-        if not self.node or not self.cli_settings:
-            messagebox.showerror("Error", "Not connected")
-            return
+    def _write_impl(self, param: str, value: Union[float, str]) -> None:
+        """Implementation of the single parameter write command. Separated from
+        the command so the logic can be shared with loading all parameters from
+        json."""
 
+        if param in self.device_db.names:
+            param_item = self.device_db.names[param]
+
+            # Check if we are a modifiable parameter
+            if param_item.isparam:
+                if isinstance(value, float):
+                    set_float_value(self.node, param_item, value)
+                else:
+                    # Assume the value is a float to start with
+                    try:
+                        set_float_value(
+                            self.node,
+                            param_item,
+                            float(value))
+                    except ValueError:
+                        if param_item.value_descriptions:
+                            set_enum_value(self.node, param_item, value)
+                        elif param_item.bit_definitions:
+                            set_bitfield_value(
+                                self.node, param_item, value)
+                        else:
+                            self.log_output(
+                                f"Invalid value: '{value}' "
+                                f"for parameter: {param}")
+            else:
+                self.log_output(f"{param} is a spot value parameter. "
+                                "Spot values are read-only.")
+        else:
+            self.log_output(f"Unknown parameter: {param}")
+
+    @require_connection
+    def write_parameter(self):
         param_name = self.param_name_var.get()
         param_value = self.param_value_var.get()
 
@@ -527,18 +565,19 @@ class OICGui:
             return
 
         try:
-            write_impl(self.cli_settings, param_name, param_value)
+            self._write_impl(param_name, param_value)
             self.log_output(f"Written {param_name} = {param_value}")
 
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to write parameter: {e}")
 
+    @require_connection
     def load_parameters(self):
         filename = filedialog.askopenfilename(
             title="Load Parameters",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
-        if filename and self.cli_settings:
+        if filename:
             try:
                 with open(filename, 'r', encoding='utf-8') as f:
                     doc = json.load(f)
@@ -547,7 +586,7 @@ class OICGui:
                 for param_name, value in doc.items():
                     if isinstance(value, str):
                         value = float(value)
-                    write_impl(self.cli_settings, param_name, value)
+                    self._write_impl(param_name, value)
                     count += 1
 
                 self.log_output(f"Loaded {count} parameters from {filename}")
@@ -556,17 +595,18 @@ class OICGui:
                 messagebox.showerror(
                     "Error", f"Failed to load parameters: {e}")
 
+    @require_connection
     def save_parameters(self):
         filename = filedialog.asksaveasfilename(
             title="Save Parameters",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
             defaultextension=".json"
         )
-        if filename and self.node and self.cli_settings:
+        if filename:
             try:
                 doc = {}
                 count = 0
-                for item in self.cli_settings.database.names.values():
+                for item in self.device_db.names.values():
                     if item.isparam:
                         doc[item.name] = fixed_to_float(
                             self.node.sdo[item.name].raw)
@@ -581,11 +621,8 @@ class OICGui:
                 messagebox.showerror(
                     "Error", f"Failed to save parameters: {e}")
 
+    @require_connection
     def start_device(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             mode_map = {
                 "Normal": oi.START_MODE_NORMAL,
@@ -603,11 +640,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to start device: {e}")
 
+    @require_connection
     def stop_device(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             self.node.stop()
             self.log_output("Device stopped")
@@ -615,11 +649,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to stop device: {e}")
 
+    @require_connection
     def save_device(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             self.node.save()
             self.log_output("Device parameters saved to flash")
@@ -627,11 +658,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to save to flash: {e}")
 
+    @require_connection
     def load_device(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             self.node.load()
             self.log_output("Device parameters loaded from flash")
@@ -639,11 +667,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to load from flash: {e}")
 
+    @require_connection
     def load_defaults(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             self.node.load_defaults()
             self.log_output("Device parameters reset to defaults")
@@ -651,11 +676,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to load defaults: {e}")
 
+    @require_connection
     def reset_device(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         if messagebox.askyesno(
             "Confirm",
                 "Are you sure you want to reset the device?"):
@@ -666,11 +688,8 @@ class OICGui:
             except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror("Error", f"Failed to reset device: {e}")
 
+    @require_connection
     def get_serial(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             serialno_data = self.node.serial_no()
             part_str = []
@@ -685,11 +704,8 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to get serial number: {e}")
 
+    @require_connection
     def list_mappings(self):
-        if not self.node or not self.cli_settings:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         try:
             tx_map = self.node.list_can_map(Direction.TX)
             rx_map = self.node.list_can_map(Direction.RX)
@@ -728,19 +744,13 @@ class OICGui:
             msg_index += 1
 
     def _param_name_from_id(self, param_id):
-        if not self.cli_settings:
-            return str(param_id)
-
-        for item in self.cli_settings.database.names.values():
+        for item in self.device_db.names.values():
             if hasattr(item, 'id') and item.id == param_id:
                 return item.name
         return str(param_id)
 
+    @require_connection
     def clear_mappings(self):
-        if not self.node:
-            messagebox.showerror("Error", "Not connected")
-            return
-
         if messagebox.askyesno("Confirm", "Clear all CAN mappings?"):
             try:
                 self.node.clear_map(Direction.TX)
@@ -751,16 +761,16 @@ class OICGui:
             except CONNECTION_EXCEPTIONS as e:
                 messagebox.showerror("Error", f"Failed to clear mappings: {e}")
 
+    @require_connection
     def import_mappings(self):
         filename = filedialog.askopenfilename(
             title="Import CAN Mappings",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
-        if filename and self.node and self.cli_settings:
+        if filename:
             try:
                 with open(filename, 'r', encoding='utf-8') as f:
-                    tx_map, rx_map = import_json_map(
-                        f, self.cli_settings.database)
+                    tx_map, rx_map = import_json_map(f, self.device_db)
 
                 self.node.add_can_map(Direction.TX, tx_map)
                 self.node.add_can_map(Direction.RX, rx_map)
@@ -772,20 +782,21 @@ class OICGui:
                 messagebox.showerror(
                     "Error", f"Failed to import mappings: {e}")
 
+    @require_connection
     def export_mappings(self):
         filename = filedialog.asksaveasfilename(
             title="Export CAN Mappings",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
             defaultextension=".json"
         )
-        if filename and self.node and self.cli_settings:
+        if filename:
             try:
                 tx_map = self.node.list_can_map(Direction.TX)
                 rx_map = self.node.list_can_map(Direction.RX)
 
                 with open(filename, 'w', encoding='utf-8') as f:
                     export_json_map(
-                        tx_map, rx_map, self.cli_settings.database, f)
+                        tx_map, rx_map, self.device_db, f)
 
                 self.log_output(f"CAN mappings exported to {filename}")
 
@@ -793,6 +804,7 @@ class OICGui:
                 messagebox.showerror(
                     "Error", f"Failed to export mappings: {e}")
 
+    @require_connection
     def start_upgrade(self):
         firmware_file = self.firmware_var.get()
         if not firmware_file:
@@ -870,7 +882,8 @@ class OICGui:
 
 def main():
     root = tk.Tk()
-    _ = OICGui(root)
+    app = OICGui(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
 
 
