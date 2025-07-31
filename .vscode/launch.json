@@ -66,6 +66,14 @@
                 "remove",
                 "tx.0.0"
             ]
+        },
+        {
+            "name": "GUI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "openinverter_can_tool.gui",
+            "justMyCode": true,
+            "args": []
         }
     ]
 }
