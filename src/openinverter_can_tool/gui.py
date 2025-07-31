@@ -409,9 +409,9 @@ class OICGui:
         assert self.device_db is not None
 
         try:
-            self.network.disconnect()
             self.node = None
             self.device_db = None
+            self.network.disconnect()
 
             self.status_var.set("Not connected")
             self.connect_btn.config(state='normal')
@@ -424,8 +424,14 @@ class OICGui:
             messagebox.showerror("Disconnect Error", str(e))
 
     def on_closing(self):
-        """Handle window close event."""
-        self.network.disconnect()
+        """Disconnect cleanly when the window closes."""
+        try:
+            self.node = None
+            self.device_db = None
+            self.network.disconnect()
+        except CanOperationError:
+            pass
+
         self.root.destroy()
 
     def scan_nodes(self):
