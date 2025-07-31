@@ -28,6 +28,7 @@ from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
 from .paramdb import (OIVariable, import_cached_database, import_database,
                       value_to_str)
+from .scanner import scan_network
 
 
 class CliSettings:
@@ -973,28 +974,9 @@ def scan(cli_settings: CliSettings) -> None:
 
     assert cli_settings.network is not None
 
-    # Maximum number of devices we are going to scan for
-    limit = 127
-
-    # Canned SDO request we use to scan the bus with to find something
-    # we can talk to
-    sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
-
     click.echo("Scanning for devices. Please wait...\n")
 
-    # Implement our own scanner rather than use
-    # canopen.network.scanner.search() as this lets us rate limit the scan to
-    # avoid exhausting local CAN network queues
-    for node_id in range(1, limit + 1):
-        cli_settings.network.send_message(0x600 + node_id, sdo_req)
-        time.sleep(0.01)
-
-    # Wait for any responses to show up
-    time.sleep(5)
-
-    # filter out weird canopen internal node IDs that show up here and
-    # nowhere else
-    node_list = [id for id in cli_settings.network.scanner.nodes if id < limit]
+    node_list = scan_network(cli_settings.network)
 
     if node_list:
         for node_id in node_list:

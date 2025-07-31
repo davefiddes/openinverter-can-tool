@@ -7,7 +7,6 @@ A graphical interface for the oic tool functionality
 import json
 import os
 import threading
-import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
@@ -25,6 +24,7 @@ from .fpfloat import fixed_to_float
 from .map_persistence import export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
 from .paramdb import import_cached_database, import_database, value_to_str
+from .scanner import scan_network
 
 # Define a constant for connection exceptions which we want to handle
 # in lots of places
@@ -437,21 +437,15 @@ class OICGui:
     def scan_nodes(self):
         def scan_thread():
             try:
-                network = canopen.Network()
-                network.connect(context=self.context_var.get() or None)
-                network.check()
+                # If we are not connected the temporarily connect
+                if self.node is None:
+                    self.network.connect(
+                        context=self.context_var.get() or None
+                        )
 
                 self.log_output("Scanning for nodes...")
 
-                sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
-
-                for node_id in range(1, 128):
-                    network.send_message(0x600 + node_id, sdo_req)
-                    time.sleep(0.01)
-
-                time.sleep(5)
-
-                node_list = [id for id in network.scanner.nodes if id < 127]
+                node_list = scan_network(self.network)
 
                 if node_list:
                     for node_id in node_list:
@@ -460,10 +454,15 @@ class OICGui:
                 else:
                     self.log_output("No nodes found")
 
-                network.disconnect()
+                # If we are not connected, disconnect now
+                # to avoid leaving the network in an inconsistent state
+                if self.node is None:
+                    self.network.disconnect()
 
             except CONNECTION_EXCEPTIONS as e:
                 self.log_output(f"Scan failed: {e}")
+                if self.node is None:
+                    self.network.disconnect()
 
         threading.Thread(target=scan_thread, daemon=True).start()
 
