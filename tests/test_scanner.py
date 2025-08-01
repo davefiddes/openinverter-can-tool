@@ -1,10 +1,16 @@
 """openinverter network scanner unit tests"""
 
+import canopen
 import pytest
+
 from openinverter_can_tool.scanner import scan_network
 from tests.oi_sim import OISimulatedNode
 
-import canopen
+# Reduce test verbosity
+# pylint: disable=missing-function-docstring
+
+# Stop pytest fixtures from tripping up pylint
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -32,4 +38,4 @@ def test_scan_network_empty():
 
 def test_scan_network_asserts_on_no_network():
     with pytest.raises(AssertionError):
-        scan_network(None)
+        scan_network(None)  # type: ignore
