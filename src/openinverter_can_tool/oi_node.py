@@ -142,9 +142,6 @@ class OpenInverterNode(BaseNode):
         self.sdo.network = network  # type: ignore
         network.subscribe(0x580 + node_id, self.sdo.on_response)
 
-    def __del__(self) -> None:
-        self.network.unsubscribe(0x580 + self.node_id)
-
     def serial_no(self) -> bytes:
         """Device unique serial number"""
 

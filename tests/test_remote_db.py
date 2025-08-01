@@ -35,7 +35,8 @@ class TestRemoteDatabaseNode(NetworkTestCase):
             (TX, b'\x40\x00\x50\x03\x00\x00\x00\x00'),
             (RX, b'\x43\x00\x50\x03\x12\x70\x01\x00')
         ]
-        checksum = self.node.param_db_checksum()
+        with self.node:
+            checksum = self.node.param_db_checksum()
         assert checksum == 94226
 
     def load_capture(self, capture: str, tx_id: int, rx_id: int) -> None:
@@ -68,15 +69,15 @@ class TestRemoteDatabaseNode(NetworkTestCase):
             "zombieverter-node3-query-paramdb.csv",
             0x603,
             0x583)
-        self.node.node_id = 3
 
-        checksum = self.node.param_db_checksum()
+        with self.node:
+            checksum = self.node.param_db_checksum()
 
-        with tempfile.NamedTemporaryFile(delete_on_close=False) as db_file:
-            db_file.write(self.node.param_db())
-            db_file.close()
+            with tempfile.NamedTemporaryFile(delete_on_close=False) as db_file:
+                db_file.write(self.node.param_db())
+                db_file.close()
 
-            db = import_database(Path(db_file.name))
+                db = import_database(Path(db_file.name))
 
         assert checksum == 181129
         assert len(db.names) == 194

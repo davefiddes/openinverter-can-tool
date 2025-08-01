@@ -188,8 +188,9 @@ def import_remote_database(
     """
     node = RemoteDatabaseNode(network, node_id)
 
-    return import_database_json(
-        json.loads(filter_zero_bytes(node.param_db())))
+    with node:
+        return import_database_json(
+            json.loads(filter_zero_bytes(node.param_db())))
 
 
 def import_cached_database(
@@ -221,21 +222,22 @@ def import_cached_database(
 
     node = RemoteDatabaseNode(network, node_id)
 
-    checksum = node.param_db_checksum()
+    with node:
+        checksum = node.param_db_checksum()
 
-    cache_file = cache_location / f"{node_id}-{checksum}.json"
+        cache_file = cache_location / f"{node_id}-{checksum}.json"
 
-    if cache_file.exists():
-        dictionary = import_database(cache_file)
-    else:
-        param_db_str = filter_zero_bytes(node.param_db())
+        if cache_file.exists():
+            dictionary = import_database(cache_file)
+        else:
+            param_db_str = filter_zero_bytes(node.param_db())
 
-        dictionary = import_database_json(json.loads(param_db_str))
+            dictionary = import_database_json(json.loads(param_db_str))
 
-        # Only save the database in the cache when we have successfully
-        # imported it
-        with open(cache_file, "wt", encoding="utf-8") as param_db_file:
-            param_db_file.write(param_db_str)
+            # Only save the database in the cache when we have successfully
+            # imported it
+            with open(cache_file, "wt", encoding="utf-8") as param_db_file:
+                param_db_file.write(param_db_str)
 
     return dictionary
 
@@ -244,7 +246,7 @@ def value_to_str(
         param: OIVariable,
         value: float,
         symbolic: bool = True
-        ) -> str:
+) -> str:
     """Convert a raw value retrieved from a device into a string"""
 
     assert param
