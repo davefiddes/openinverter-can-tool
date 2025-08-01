@@ -13,7 +13,7 @@ import re
 import time
 from ast import literal_eval
 from pathlib import Path
-from typing import List, Optional, Union, cast
+from typing import List, Optional, cast
 
 import appdirs
 import can
@@ -23,9 +23,10 @@ import click
 
 from . import constants as oi
 from .can_upgrade import CanUpgrader, Failure, State, StateUpdate
-from .fpfloat import fixed_from_float, fixed_to_float
+from .fpfloat import fixed_to_float
 from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
+from .param_utils import ParamWriter
 from .paramdb import (OIVariable, import_cached_database, import_database,
                       value_to_str)
 from .scanner import scan_network
@@ -390,105 +391,6 @@ def save(cli_settings: CliSettings, out_file: click.File) -> None:
     click.echo(f"Saved {count} parameters")
 
 
-def set_enum_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: str) -> None:
-    """Set a enumeration parameter over SDO by looking up its symbolic value"""
-
-    result = None
-    for key, description in param.value_descriptions.items():
-        if description.lower() == value.lower():
-            result = key
-
-    if result is not None:
-        node.sdo[param.name].raw = fixed_from_float(result)
-    else:
-        click.echo(f"Unable to find value: '{value}' for parameter: "
-                   f"{param.name}. Valid values are "
-                   f"{param.value_descriptions}")
-
-
-def set_bitfield_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: str) -> None:
-    """Set a bitfield parameter over SDO by looking up its symbolic values. The
-      value should be a comma separated list"""
-
-    result = 0
-    for bit_name in value.split(','):
-        bit_name = bit_name.strip()
-        for key, description in param.bit_definitions.items():
-            if description.lower() == bit_name.lower():
-                result |= key
-
-    node.sdo[param.name].raw = fixed_from_float(result)
-
-
-def set_float_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: float) -> None:
-    """Set a parameter with a floating point value over SDO"""
-
-    # pre-conditions that should always be
-    assert param.isparam
-    assert param.min is not None
-    assert param.max is not None
-
-    fixed_value = fixed_from_float(value)
-
-    if fixed_value < param.min:
-        click.echo(f"Value {value:g} is smaller than the minimum "
-                   f"value {fixed_to_float(param.min):g} allowed "
-                   f"for {param.name}")
-    elif fixed_value > param.max:
-        click.echo(f"Value {value:g} is larger than the maximum value "
-                   f"{fixed_to_float(param.max):g} allowed for "
-                   f"{param.name}")
-    else:
-        node.sdo[param.name].raw = fixed_value
-
-
-def write_impl(
-        cli_settings: CliSettings,
-        param: str,
-        value: Union[float, str]) -> None:
-    """Implementation of the single parameter write command. Separated from
-    the command so the logic can be shared with loading all parameters from
-    json."""
-
-    if param in cli_settings.database.names:
-        param_item = cli_settings.database.names[param]
-
-        # Check if we are a modifiable parameter
-        if param_item.isparam:
-            if isinstance(value, float):
-                set_float_value(cli_settings.node, param_item, value)
-            else:
-                # Assume the value is a float to start with
-                try:
-                    set_float_value(
-                        cli_settings.node,
-                        param_item,
-                        float(value))
-                except ValueError:
-                    if param_item.value_descriptions:
-                        set_enum_value(cli_settings.node, param_item, value)
-                    elif param_item.bit_definitions:
-                        set_bitfield_value(
-                            cli_settings.node, param_item, value)
-                    else:
-                        click.echo(f"Invalid value: '{value}' for parameter: "
-                                   f"{param}")
-        else:
-            click.echo(f"{param} is a spot value parameter. "
-                       "Spot values are read-only.")
-    else:
-        click.echo(f"Unknown parameter: {param}")
-
-
 @cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("param")
 @click.argument("value")
@@ -498,7 +400,10 @@ def write_impl(
 def write(cli_settings: CliSettings, param: str, value: str) -> None:
     """Write the value to the parameter PARAM on the device"""
 
-    write_impl(cli_settings, param, value)
+    assert cli_settings.node
+
+    writer = ParamWriter(cli_settings.node, cli_settings.database, click.echo)
+    writer.write(param, value)
 
 
 @cli.command()
@@ -509,6 +414,8 @@ def write(cli_settings: CliSettings, param: str, value: str) -> None:
 def load(cli_settings: CliSettings, in_file: click.File) -> None:
     """Load all parameters from json IN_FILE"""
 
+    assert cli_settings.node
+    writer = ParamWriter(cli_settings.node, cli_settings.database, click.echo)
     doc = json.load(in_file)
     count = 0
     for param_name in doc:
@@ -519,7 +426,7 @@ def load(cli_settings: CliSettings, in_file: click.File) -> None:
         if isinstance(value, str):
             value = float(value)
 
-        write_impl(cli_settings, param_name, value)
+        writer.write(param_name, value)
         count += 1
 
     click.echo(f"Loaded {count} parameters")

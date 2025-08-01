@@ -10,7 +10,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Optional, Union
+from typing import Optional
 
 import appdirs
 import canopen
@@ -19,10 +19,10 @@ from canopen import SdoAbortedError, SdoCommunicationError
 
 from . import constants as oi
 from .can_upgrade import CanUpgrader, State
-from .cli import set_float_value, set_enum_value, set_bitfield_value
 from .fpfloat import fixed_to_float
 from .map_persistence import export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
+from .param_utils import ParamWriter
 from .paramdb import import_cached_database, import_database, value_to_str
 from .scanner import scan_network
 
@@ -441,7 +441,7 @@ class OICGui:
                 if self.node is None:
                     self.network.connect(
                         context=self.context_var.get() or None
-                        )
+                    )
 
                 self.log_output("Scanning for nodes...")
 
@@ -524,41 +524,6 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to read parameter: {e}")
 
-    def _write_impl(self, param: str, value: Union[float, str]) -> None:
-        """Implementation of the single parameter write command. Separated from
-        the command so the logic can be shared with loading all parameters from
-        json."""
-
-        if param in self.device_db.names:
-            param_item = self.device_db.names[param]
-
-            # Check if we are a modifiable parameter
-            if param_item.isparam:
-                if isinstance(value, float):
-                    set_float_value(self.node, param_item, value)
-                else:
-                    # Assume the value is a float to start with
-                    try:
-                        set_float_value(
-                            self.node,
-                            param_item,
-                            float(value))
-                    except ValueError:
-                        if param_item.value_descriptions:
-                            set_enum_value(self.node, param_item, value)
-                        elif param_item.bit_definitions:
-                            set_bitfield_value(
-                                self.node, param_item, value)
-                        else:
-                            self.log_output(
-                                f"Invalid value: '{value}' "
-                                f"for parameter: {param}")
-            else:
-                self.log_output(f"{param} is a spot value parameter. "
-                                "Spot values are read-only.")
-        else:
-            self.log_output(f"Unknown parameter: {param}")
-
     @require_connection
     def write_parameter(self):
         param_name = self.param_name_var.get()
@@ -570,7 +535,9 @@ class OICGui:
             return
 
         try:
-            self._write_impl(param_name, param_value)
+            assert self.node
+            writer = ParamWriter(self.node, self.device_db, self.log_output)
+            writer.write(param_name, param_value)
             self.log_output(f"Written {param_name} = {param_value}")
 
         except CONNECTION_EXCEPTIONS as e:
@@ -587,11 +554,15 @@ class OICGui:
                 with open(filename, 'r', encoding='utf-8') as f:
                     doc = json.load(f)
 
+                assert self.node
+                writer = ParamWriter(
+                    self.node, self.device_db, self.log_output)
+
                 count = 0
                 for param_name, value in doc.items():
                     if isinstance(value, str):
                         value = float(value)
-                    self._write_impl(param_name, value)
+                    writer.write(param_name, value)
                     count += 1
 
                 self.log_output(f"Loaded {count} parameters from {filename}")
