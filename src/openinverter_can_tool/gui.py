@@ -515,8 +515,9 @@ class OICGui:
 
                 value_str = value_to_str(param, value)
 
-                self.log_output(f"{param_name}: {value_str} [{param.unit}]")
-                self.param_value_var.set(str(value))
+                self.log_output(
+                    f"{param_name}: {value_str}({value}) [{param.unit}]")
+                self.param_value_var.set(value_str)
             else:
                 messagebox.showerror(
                     "Error", f"Unknown parameter: {param_name}")
