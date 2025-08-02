@@ -23,7 +23,8 @@ from .fpfloat import fixed_to_float
 from .map_persistence import CanMessage, export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
 from .param_utils import ParamWriter
-from .paramdb import import_cached_database, import_database, value_to_str
+from .paramdb import (import_cached_database, import_database,
+                      param_name_from_id, value_to_str)
 from .scanner import scan_network
 
 # Define a constant for connection exceptions which we want to handle
@@ -712,7 +713,7 @@ class OICGui:
                 self.mapping_text.insert(tk.END, f"{msg.can_id:#x}:\n")
 
             for entry in msg.params:
-                param_name = self._param_name_from_id(entry.param_id)
+                param_name = param_name_from_id(entry.param_id, self.device_db)
                 self.mapping_text.insert(
                     tk.END,
                     f" {direction_str}.{msg_index}.{param_index} "
@@ -722,12 +723,6 @@ class OICGui:
                 param_index += 1
             param_index = 0
             msg_index += 1
-
-    def _param_name_from_id(self, param_id):
-        for item in self.device_db.names.values():
-            if hasattr(item, 'id') and item.id == param_id:
-                return item.name
-        return str(param_id)
 
     @require_connection
     def clear_mappings(self):

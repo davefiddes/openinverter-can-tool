@@ -11,12 +11,11 @@ import canopen.objectdictionary
 import pytest
 
 from openinverter_can_tool.fpfloat import fixed_from_float
-from openinverter_can_tool.paramdb import (OIVariable,
-                                           import_cached_database,
+from openinverter_can_tool.paramdb import (OIVariable, import_cached_database,
                                            import_database,
                                            import_database_json,
                                            import_remote_database,
-                                           value_to_str)
+                                           param_name_from_id, value_to_str)
 
 from .oi_sim import OISimulatedNode
 
@@ -908,6 +907,46 @@ class ValueToString(unittest.TestCase):
         output = value_to_str(param, 15, symbolic=False)
 
         self.assertEqual(output, "15")
+
+
+class TestParamNameFromId(unittest.TestCase):
+    """
+    Unit tests for param_name_from_id function.
+    """
+
+    def setUp(self):
+        # Create a dummy ObjectDictionary and add OIVariables
+        self.db = canopen.ObjectDictionary()
+        self.var1 = OIVariable("param1", 100)
+        self.var2 = OIVariable("param2", 200)
+        self.var3 = OIVariable("param3", 300)
+        self.db.add_object(self.var1)
+        self.db.add_object(self.var2)
+        self.db.add_object(self.var3)
+
+    def test_existing_param_id_returns_name(self):
+        # Should return the correct name for existing param IDs
+        self.assertEqual(param_name_from_id(100, self.db), "param1")
+        self.assertEqual(param_name_from_id(200, self.db), "param2")
+        self.assertEqual(param_name_from_id(300, self.db), "param3")
+
+    def test_nonexistent_param_id_returns_id_as_string(self):
+        # Should return the param_id as string if not found
+        self.assertEqual(param_name_from_id(999, self.db), "999")
+        self.assertEqual(param_name_from_id(-1, self.db), "-1")
+
+    def test_empty_database_returns_id_as_string(self):
+        # Should return the param_id as string if db is empty
+        empty_db = canopen.ObjectDictionary()
+        self.assertEqual(param_name_from_id(100, empty_db), "100")
+
+    def test_database_with_non_oivariable_objects(self):
+        # Should ignore non-OIVariable objects in db.names
+        self.db.add_object(
+            canopen.objectdictionary.ODVariable(
+                "not_an_oi_param", 123, 456))
+        self.assertEqual(param_name_from_id(100, self.db), "param1")
+        self.assertEqual(param_name_from_id(999, self.db), "999")
 
 
 if __name__ == '__main__':

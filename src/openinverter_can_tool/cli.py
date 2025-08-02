@@ -28,7 +28,7 @@ from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
 from .param_utils import ParamWriter
 from .paramdb import (OIVariable, import_cached_database, import_database,
-                      value_to_str)
+                      param_name_from_id, value_to_str)
 from .scanner import scan_network
 
 
@@ -544,23 +544,6 @@ def can_map(cli_settings: CliSettings) -> None:
     # We have to have cli_settings to allow the command hierarchy to work but
     # it is unused here so just pretend to use it
     _ = cli_settings
-
-
-def param_name_from_id(param_id: int, db: canopen.ObjectDictionary) -> str:
-    """Return the name of a parameter based on the OpenInverter parameter ID.
-    If it is not in the database the number is returned."""
-
-    # This is not evenly remotely efficient
-    param_name = None
-    for item in db.names.values():
-        if isinstance(item, OIVariable) and item.id == param_id:
-            param_name = item.name
-            break
-
-    if param_name is None:
-        return f"{param_id}"
-    else:
-        return f"{param_name}"
 
 
 def print_can_map(

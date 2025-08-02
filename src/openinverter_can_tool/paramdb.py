@@ -247,7 +247,19 @@ def value_to_str(
         value: float,
         symbolic: bool = True
 ) -> str:
-    """Convert a raw value retrieved from a device into a string"""
+    """Convert a raw value retrieved from a device into a string
+
+    :param param:
+        The OIVariable parameter to convert the value for
+    :param value:
+        The raw value to convert
+    :param symbolic:
+        If True, convert the value to a symbolic string if possible.
+        If False, convert the value to a float string.
+    :returns:
+        A string representation of the value.
+    :rtype: str
+    """
 
     assert param
     if symbolic and param.value_descriptions:
@@ -272,3 +284,26 @@ def value_to_str(
         result = f"{value:g}"
 
     return result
+
+
+def param_name_from_id(param_id: int, db: canopen.ObjectDictionary) -> str:
+    """Return the name of a parameter based on the OpenInverter parameter ID.
+    If it is not in the database the number is returned.
+
+    :param param_id:
+        The OpenInverter parameter ID to look up.
+    :param db:
+        The canopen ObjectDictionary to search for the parameter.
+    :type db: canopen.ObjectDictionary
+    :returns:
+        The name of the parameter if found, otherwise the parameter ID as a
+        string.
+    :rtype: str
+    """
+
+    # This is not evenly remotely efficient
+    for item in db.names.values():
+        if isinstance(item, OIVariable) and item.id == param_id:
+            return item.name
+
+    return str(param_id)
