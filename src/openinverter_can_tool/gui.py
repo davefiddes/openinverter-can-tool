@@ -10,7 +10,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Optional
+from typing import List, Optional
 
 import appdirs
 import canopen
@@ -20,7 +20,7 @@ from canopen import SdoAbortedError, SdoCommunicationError
 from . import constants as oi
 from .can_upgrade import CanUpgrader, State
 from .fpfloat import fixed_to_float
-from .map_persistence import export_json_map, import_json_map
+from .map_persistence import CanMessage, export_json_map, import_json_map
 from .oi_node import Direction, OpenInverterNode
 from .param_utils import ParamWriter
 from .paramdb import import_cached_database, import_database, value_to_str
@@ -55,10 +55,9 @@ def require_connection(func):
 class OICGui:
     """Main GUI class for the OpenInverter CAN Tool"""
 
-    def __init__(self, root):
+    def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("OpenInverter CAN Tool GUI")
-        self.root.geometry("800x600")
+        self.root.title("OpenInverter CAN Tool")
 
         # Settings
         self.network = canopen.Network()
@@ -698,7 +697,11 @@ class OICGui:
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Error", f"Failed to list mappings: {e}")
 
-    def _print_can_map(self, direction_str, can_map):
+    def _print_can_map(
+        self,
+        direction_str: str,
+        can_map: List[CanMessage]
+    ):
         msg_index = 0
         param_index = 0
 
