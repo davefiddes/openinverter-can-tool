@@ -1,10 +1,10 @@
-# openinverter CAN tool
+# OpenInverter CAN tool
 
 [![Build status](../../actions/workflows/test.yml/badge.svg)](../../actions/workflows/test.yml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/openinverter-can-tool)
 ![PyPI - License](https://img.shields.io/pypi/l/openinverter-can-tool)
 
-A tool to allow configuration and operating of openinverter systems for
+A tool to allow configuration and operating of OpenInverter systems for
 electric vehicles over a CAN connection.
 
 ## Features
@@ -121,18 +121,18 @@ These python-can drivers are known to have problems with openinverter_can_tool:
 
 ## Usage
 
-The parameters and values supported by a given openinverter firmware will often vary from release to release and by firmware type (e.g. Sine to Field Oriented Control(FOC)). The tool comes with a small collection of  parameter databases for recent openinverter releases. These can be found in the parameter-databases directory in the install location. Versions of stm32-sine from 5.25.R and onwards support automatic download of parameter databases and the database option does not need to be specified.
+The parameters and values supported by a given OpenInverter firmware will often vary from release to release and by firmware type (e.g. Sine to Field Oriented Control(FOC)). The tool comes with a small collection of  parameter databases for recent OpenInverter releases. These can be found in the parameter-databases directory in the install location. Versions of stm32-sine from 5.25.R and onwards support automatic download of parameter databases and the database option does not need to be specified.
 
 To get the usage information for the tool run the `oic` command with no parameters:
 
 ```text
     Usage: oic [OPTIONS] COMMAND [ARGS]...
 
-    openinverter CAN Tool allows querying and setting configuration of inverter
+    OpenInverter CAN Tool allows querying and setting configuration of inverter
     parameters over a CAN connection
 
     Options:
-    -d, --database FILE       Override the openinverter JSON parameter database
+    -d, --database FILE       Override the OpenInverter JSON parameter database
                                 to use
     -c, --context TEXT        Which python-can configuration context to use
     -n, --node INTEGER RANGE  The CAN SDO node ID to communicate with  [env var:

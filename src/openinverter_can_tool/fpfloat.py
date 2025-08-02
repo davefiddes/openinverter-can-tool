@@ -1,5 +1,5 @@
 """
-Functions to manipulate openinverter fixed point values
+Functions to manipulate OpenInverter fixed point values
 """
 
 FACTOR = int(2**5)

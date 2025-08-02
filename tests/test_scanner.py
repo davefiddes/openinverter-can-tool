@@ -1,4 +1,4 @@
-"""openinverter network scanner unit tests"""
+"""OpenInverter network scanner unit tests"""
 
 import canopen
 import pytest

@@ -29,11 +29,11 @@ TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
 class OpeninverterVariable(unittest.TestCase):
     """
     Unit test the OIVariable class used to represent the not quite CANopen
-    variable representation method used by openinverter
+    variable representation method used by OpenInverter
     """
 
     def test_zero_id(self):
-        """ openinverter parameters all start with an index of 0x2100"""
+        """ OpenInverter parameters all start with an index of 0x2100"""
         var = OIVariable("zero_id",  0)
         self.assertEqual(var.index, 0x2100)
         self.assertEqual(var.subindex, 0)
@@ -59,7 +59,7 @@ class OpeninverterVariable(unittest.TestCase):
         self.assertEqual(var.subindex, 0xdf)
 
     def test_return_id(self):
-        """ Check that the openinverter ID is stored as well as the CANopen
+        """ Check that the OpenInverter ID is stored as well as the CANopen
         index and sub-index. """
         var = OIVariable("id",  2015)
         self.assertEqual(var.id, 2015)
@@ -309,7 +309,7 @@ class DatabaseImport(unittest.TestCase):
                 item.data_type, canopen.objectdictionary.INTEGER32)
 
     def test_remote_db_with_zero_bytes(self):
-        """Due to a race condition in openinverter firmware the database can
+        """Due to a race condition in OpenInverter firmware the database can
         contain additional 0x00 bytes interspersed with the expected byte
         stream. Verify that these databases can be loaded correctly from a
         remote node."""
@@ -372,7 +372,7 @@ class DatabaseImport(unittest.TestCase):
                 item.data_type, canopen.objectdictionary.INTEGER32)
 
     def test_remote_unicode_db_with_zero_bytes(self):
-        """Due to a race condition in openinverter firmware the database can
+        """Due to a race condition in OpenInverter firmware the database can
         contain additional NUL or 0x00 bytes. Verify that a databases with
         unicode utf-8 sequences with extra zero bytes can be loaded correctly
         from a remote node."""

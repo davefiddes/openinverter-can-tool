@@ -1,5 +1,5 @@
 """
-openinverter custom SDO protocol unit tests
+OpenInverter custom SDO protocol unit tests
 Extended frame specific tests
 """
 
@@ -20,7 +20,7 @@ RX = 2
 
 class TestOpenInverterNodeExtendedFrames(NetworkTestCase):
     """
-    Test the custom openinverter node protocol by example
+    Test the custom OpenInverter node protocol by example
     """
 
     def __init__(self, methodName: str = "runTest") -> None:

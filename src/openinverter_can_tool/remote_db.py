@@ -1,5 +1,5 @@
 """
-openinverter remote database access
+OpenInverter remote database access
 """
 
 import struct

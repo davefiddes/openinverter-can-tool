@@ -1,5 +1,5 @@
 """
-openinverter parameter database functions
+OpenInverter parameter database functions
 """
 
 
@@ -40,7 +40,7 @@ def is_bitfield(values: Dict[int, str]) -> bool:
 
 def filter_zero_bytes(database_bytes: bytes) -> str:
     """Remove any zero bytes before decoding as utf-8. This can be used to
-    deal with erroneous data that can be sent by heavily loaded openinverter
+    deal with erroneous data that can be sent by heavily loaded OpenInverter
     firmware."""
     database_bytes = database_bytes.replace(b"\x00", b"")
     database_str = database_bytes.decode(encoding="utf-8", errors="ignore")
@@ -48,7 +48,7 @@ def filter_zero_bytes(database_bytes: bytes) -> str:
 
 
 class OIVariable(canopen.objectdictionary.Variable):
-    """An openinverter parameter variable has several differences from a
+    """An OpenInverter parameter variable has several differences from a
     standard CANopen variable. This class wraps up those differences allowing
     parameters to be specified in an object database."""
 
@@ -60,7 +60,7 @@ class OIVariable(canopen.objectdictionary.Variable):
         # Assign the id to set the index and subindex
         self.id = param_id
 
-        # All openinverter params are 32-bit fixed float values
+        # All OpenInverter params are 32-bit fixed float values
         # we will convert to float on presentation as required
         # but work with them as integers to keep the canopen
         # library happy
@@ -75,7 +75,7 @@ class OIVariable(canopen.objectdictionary.Variable):
 
     @property
     def id(self) -> int:
-        """The openinverter parameter identifier for this parameter or spot
+        """The OpenInverter parameter identifier for this parameter or spot
         value"""
         return ((self.index & ~0x2100) << 8) + self.subindex
 
@@ -87,10 +87,10 @@ class OIVariable(canopen.objectdictionary.Variable):
 
 def import_database_json(
         paramdb_json: dict) -> canopen.ObjectDictionary:
-    """Import an openinverter parameter database JSON.
+    """Import an OpenInverter parameter database JSON.
 
     :param paramdb_json:
-        A dictionary containing an openinverter parameter database
+        A dictionary containing an OpenInverter parameter database
 
     :returns:
         The Object Dictionary.
@@ -154,10 +154,10 @@ def import_database_json(
 
 
 def import_database(paramdb: Path) -> canopen.ObjectDictionary:
-    """Import an openinverter parameter database file.
+    """Import an OpenInverter parameter database file.
 
     :param paramdb:
-        A path to an openinverter parameter database file
+        A path to an OpenInverter parameter database file
 
     :returns:
         The Object Dictionary.
@@ -173,14 +173,14 @@ def import_database(paramdb: Path) -> canopen.ObjectDictionary:
 def import_remote_database(
         network: canopen.Network,
         node_id: int) -> canopen.ObjectDictionary:
-    """Import an openinverter parameter database from a remote node.
+    """Import an OpenInverter parameter database from a remote node.
 
     :param network:
         The configured and started canopen.Network to use to communicate with
         the node.
 
     :param node_id:
-        The openinverter node we wish to obtain the parameter database from.
+        The OpenInverter node we wish to obtain the parameter database from.
 
     :returns:
         The Object Dictionary.
@@ -198,7 +198,7 @@ def import_cached_database(
         node_id: int,
         cache_location: Path
 ) -> canopen.ObjectDictionary:
-    """Import an openinverter parameter database from a remote node and cache
+    """Import an OpenInverter parameter database from a remote node and cache
     it for quicker access in future.
 
     :param network:
@@ -206,7 +206,7 @@ def import_cached_database(
         the node.
 
     :param node_id:
-        The openinverter node we wish to obtain the parameter database from.
+        The OpenInverter node we wish to obtain the parameter database from.
 
     :param cache_location:
         A directory containing the parameter database cache.

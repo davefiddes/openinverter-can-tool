@@ -1,5 +1,5 @@
 """
-openinverter custom SDO protocol unit tests
+OpenInverter custom SDO protocol unit tests
 Utility structure tests
 """
 

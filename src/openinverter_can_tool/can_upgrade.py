@@ -1,4 +1,4 @@
-"""openinverter CAN upgrade module"""
+"""OpenInverter CAN upgrade module"""
 
 from __future__ import annotations
 

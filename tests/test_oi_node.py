@@ -1,4 +1,4 @@
-"""openinverter custom SDO protocol unit tests"""
+"""OpenInverter custom SDO protocol unit tests"""
 
 import unittest
 
@@ -20,7 +20,7 @@ RX = 2
 
 class TestOpenInverterNode(NetworkTestCase):
     """
-    Test the custom openinverter node protocol by example
+    Test the custom OpenInverter node protocol by example
     """
 
     def __init__(self, methodName: str = "runTest") -> None:

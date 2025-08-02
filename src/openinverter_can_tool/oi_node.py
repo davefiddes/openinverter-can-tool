@@ -1,5 +1,5 @@
 """
-openinverter specific CANopen API
+OpenInverter specific CANopen API
 """
 
 import struct
@@ -45,7 +45,7 @@ def _validate_map_entry_parameters(
 
 
 class MapEntry:
-    """Describe a openinverter parameter to CAN message mapping"""
+    """Describe a OpenInverter parameter to CAN message mapping"""
 
     def __init__(
             self,
@@ -92,7 +92,7 @@ def _validate_can_message_parameters(
 
 class CanMessage:
     """
-    A custom CAN message that maps openinverter parameters to a specific CAN ID
+    A custom CAN message that maps OpenInverter parameters to a specific CAN ID
     """
 
     def __init__(
@@ -119,7 +119,7 @@ class CanMessage:
 
 class OpenInverterNode(BaseNode):
     """
-    openinverter lightly abuses the CANopen SDO protocol to implement a series
+    OpenInverter lightly abuses the CANopen SDO protocol to implement a series
     of command and control API end-points to manipulate and manage devices.
     This class wraps the raw protocol in a python API that masks the underlying
     complexities.
@@ -216,7 +216,7 @@ class OpenInverterNode(BaseNode):
                           [0,0x1fffffff] for extended frames
         :param direction: The direction the parameter will be mapped, either
                           transmit or receive.
-        :param param_id:  The openinverter parameter id to be mapped.
+        :param param_id:  The OpenInverter parameter id to be mapped.
         :param position:  The bit position the parameter will start at. [0, 63]
         :param length:    The bit length the parameter will occupy. Positive
                           lengths indicate a little-endian length and negative

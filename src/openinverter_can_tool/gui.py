@@ -450,7 +450,7 @@ class OICGui:
                 if node_list:
                     for node_id in node_list:
                         self.log_output(
-                            f"Found possible openinverter node: {node_id}")
+                            f"Found possible OpenInverter node: {node_id}")
                 else:
                     self.log_output("No nodes found")
 

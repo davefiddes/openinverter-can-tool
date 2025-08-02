@@ -1,4 +1,4 @@
-"""Helper functions to write parameter values to openinverter nodes"""
+"""Helper functions to write parameter values to OpenInverter nodes"""
 
 from typing import Union, Callable
 
@@ -11,7 +11,7 @@ from .paramdb import OIVariable
 
 class ParamWriter:
     """
-    Encapsulate the logic to write a parameter value to an openinverter node
+    Encapsulate the logic to write a parameter value to an OpenInverter node
     """
 
     def __init__(

@@ -1,4 +1,4 @@
-"""openinverter remote database unit tests"""
+"""OpenInverter remote database unit tests"""
 import csv
 import sys
 import tempfile
@@ -23,7 +23,7 @@ CAPTURE_DATA_DIR = Path(__file__).parent / "test_data" / "captures"
 
 class TestRemoteDatabaseNode(NetworkTestCase):
     """
-    Test the openinverter specific database access SDO indices
+    Test the OpenInverter specific database access SDO indices
     """
 
     def __init__(self, methodName: str = "runTest") -> None:

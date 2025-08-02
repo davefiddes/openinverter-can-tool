@@ -12,7 +12,7 @@ from openinverter_can_tool import constants as oi
 
 class OISimulatedNode:
     """
-    Simulate an openinverter node with the various custom SDO interfaces it
+    Simulate an OpenInverter node with the various custom SDO interfaces it
     would export.
     """
 

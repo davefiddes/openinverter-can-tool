@@ -1,5 +1,5 @@
 """
-openinverter CAN Tools main program
+OpenInverter CAN Tools main program
 """
 
 import csv
@@ -166,7 +166,7 @@ def can_action(func):
 @click.group()
 @click.option("-d", "--database",
               type=click.Path(exists=True, file_okay=True, dir_okay=False),
-              help="Override the openinverter JSON parameter database to use")
+              help="Override the OpenInverter JSON parameter database to use")
 @click.option("-c", "--context",
               default=None,
               show_default=True,
@@ -196,7 +196,7 @@ def cli(ctx: click.Context,
         node: int,
         timeout: float,
         debug: bool) -> None:
-    """openinverter CAN Tool allows querying and setting configuration of
+    """OpenInverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
     if debug:
@@ -547,7 +547,7 @@ def can_map(cli_settings: CliSettings) -> None:
 
 
 def param_name_from_id(param_id: int, db: canopen.ObjectDictionary) -> str:
-    """Return the name of a parameter based on the openinverter parameter ID.
+    """Return the name of a parameter based on the OpenInverter parameter ID.
     If it is not in the database the number is returned."""
 
     # This is not evenly remotely efficient
@@ -887,7 +887,7 @@ def scan(cli_settings: CliSettings) -> None:
 
     if node_list:
         for node_id in node_list:
-            click.echo(f"Found possible openinverter node: {node_id}")
+            click.echo(f"Found possible OpenInverter node: {node_id}")
     else:
         click.echo("No nodes found")
 

@@ -149,7 +149,7 @@ def transform_map_to_canopen_db(
     """
 
     def _find_param(param_id: int) -> OIVariable:
-        """Search inefficiently for the parameter given the openinverter
+        """Search inefficiently for the parameter given the OpenInverter
         internal id"""
 
         for item in db.names.values():
@@ -196,7 +196,7 @@ def transform_map_to_canopen_db(
             signal.is_signed = False
 
         else:
-            # dbc files scale and offset are the inverse of openinverter
+            # dbc files scale and offset are the inverse of OpenInverter
             # gain and offset
             signal.scale = 1.0 / entry.gain
             signal.offset = -entry.offset
