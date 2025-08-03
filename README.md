@@ -39,34 +39,14 @@ electric vehicles over a CAN connection.
 
 ## Installation
 
-The most recent release may be installed using pip:
+To avoid any clashes with other software the tool is best is best installed using the [pipx](https://pipx.pypa.io/) package manager. Install this following the [pipx installation guide](https://pipx.pypa.io/stable/installation/) for your platform.
+
+### Initial Install
+
+The most recent release may be installed using:
 
 ```text
-    pip install openinverter_can_tool
-```
-
-To install directly from github:
-
-```text
-    git clone https://github.com/davefiddes/openinverter_can_tool.git
-    cd openinverter_can_tool
-    pip install -e .
-```
-
-### Linux
-
-Linux users may reduce the potential of package conflicts by installing python dependencies from their package manager. This should be done before running `pip`.
-
-#### Fedora
-
-```text
-    sudo dnf install python3-setuptools python3-pip python3-click python3-can python3-appdirs
-```
-
-#### Ubuntu/Debian
-
-```text
-    sudo apt install python3-setuptools python3-pip python3-click python3-can python3-appdirs
+    pipx install openinverter_can_tool
 ```
 
 ### Upgrading
@@ -74,12 +54,12 @@ Linux users may reduce the potential of package conflicts by installing python d
 Upgrading to the most recent release is carried out using pip:
 
 ```text
-    pip install -U openinverter_can_tool
+    pipx upgrade openinverter_can_tool
 ```
 
 ## Configuration
 
-Before the tool can be used the CAN interface adapter needs to be configured. To do this create `~/.canrc` on Linux or `%USERPROFILE%/can.conf` on Windows. Details on interfaces supported and the configuration file format can be found in the [python-can](https://python-can.readthedocs.io/en/stable/installation.html) documentation.
+Before the tool can be used the CAN interface adapter needs to be configured. To do this create `~/.canrc` on Linux and MacOS or `%USERPROFILE%/can.conf` on Windows. Details on interfaces supported and the configuration file format can be found in the [python-can](https://python-can.readthedocs.io/en/stable/configuration.html) documentation.
 
 An example configuration file for a [SocketCAN](https://python-can.readthedocs.io/en/stable/interfaces/socketcan.html) compatible adapter on Linux would look like:
 
@@ -110,8 +90,11 @@ bitrate = 500000
 * [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux using `socketcan`
 * [GVRET](https://github.com/collin80/GVRET) CAN interface using `slcan` in Linux
 * [MKS CANable V2.0 Pro](https://github.com/makerbase-mks/CANable-MKS) using `slcan` in Windows and Linux
+* [FYSETC UCAN](https://www.ebay.co.uk/itm/267167770235) using `slcan` in MacOS
 
 Let me know if you have used a particular CAN interface successfully and I can expand this list.
+
+The many CANable clone devices on eBay or AliExpress can be swapped from `socketcan` to `slcan` firmware (or vice versa) using the [web firmware updater](https://canable.io/updater/canable1.html).
 
 ### Incompatible interfaces
 
@@ -119,9 +102,7 @@ These python-can drivers are known to have problems with openinverter_can_tool:
 
 * [Geschwister Schneider and candleLight](https://python-can.readthedocs.io/en/stable/interfaces/gs_usb.html) using `gs_usb` on Windows or Linux. This prevents Innomaker USB2CAN from working with Windows.
 
-## Usage
-
-The parameters and values supported by a given OpenInverter firmware will often vary from release to release and by firmware type (e.g. Sine to Field Oriented Control(FOC)). The tool comes with a small collection of  parameter databases for recent OpenInverter releases. These can be found in the parameter-databases directory in the install location. Versions of stm32-sine from 5.25.R and onwards support automatic download of parameter databases and the database option does not need to be specified.
+## Command Line Usage
 
 To get the usage information for the tool run the `oic` command with no parameters:
 
@@ -159,17 +140,21 @@ To get the usage information for the tool run the `oic` command with no paramete
     write       Write the value to the parameter PARAM on the device
 ```
 
-To read a specific parameter from 5.24.R firmware:
+To scan for OpenInverter devices on a CAN network:
 
 ```text
-    $ oic -d parameter-databases/stm32-sine.5.24.R-foc.json read brakeregen
-    brakeregen: -13 [%]
+    $ oic scan
+    Scanning for devices. Please wait...
+
+    Found possible OpenInverter node: 1
+    Found possible OpenInverter node: 3
 ```
 
-To write a new value to a parameter with 5.27.R or later firmware with automatic database download:
+To read the current value of a parameter:
 
 ```text
-    oic write brakeregen -30.5
+    $ oic read brakeregen
+    brakeregen          : -50
 ```
 
 Values may be changed using symbolic names:
@@ -179,7 +164,21 @@ Values may be changed using symbolic names:
     oic write pinswap PWMOutput13,PWMOutput23
 ```
 
-The list of allowed values for a given parameter can be found using the `listparams` command.
+Firmware on devices may be easily upgraded:
+
+```text
+    $ oic upgrade stm32_sine.bin
+    Device upgrade started for 87193029
+    Upgrading: 15.3% complete
+```
+
+## Experimental GUI
+
+An experimental GUI version of the tool exists which can be started by running the `oic-gui` command:
+
+![Screenshot of the OpenInverter CAN Tool showing the Parameters tab on a Linux GNOME desktop](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/openinverter_can_tool_tkinter_gui_parameters.png)
+
+Further details can be found in the [user documentation](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/gui-readme.md).
 
 ## Development and Contributing
 
