@@ -74,9 +74,9 @@ class MainView(QMainWindow):
     @Slot(int)
     def on_node_id_changed(self, value: int):
         if value > 0:
-            self.setWindowTitle(f"openinverter CAN Tool - Node ID: {value}")
+            self.setWindowTitle(f"OpenInverter CAN Tool - Node ID: {value}")
         else:
-            self.setWindowTitle("openinverter CAN Tool")
+            self.setWindowTitle("OpenInverter CAN Tool")
 
         self._load_act.setEnabled(value > 0)
         self._save_act.setEnabled(value > 0)
@@ -87,8 +87,8 @@ class MainView(QMainWindow):
     def _on_about(self) -> None:
         QMessageBox.about(
             self,
-            "About openinverter CAN Tool",
-            "A tool to allow configuration and operating of openinverter "
+            "About OpenInverter CAN Tool",
+            "A tool to allow configuration and operating of OpenInverter "
             "systems for electric vehicles over a CAN connection.")
 
     @Slot()

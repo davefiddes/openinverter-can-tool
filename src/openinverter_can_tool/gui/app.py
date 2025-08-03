@@ -9,7 +9,7 @@ from .resources import openinverter_can_tool_rc  # noqa: F401
 
 
 class App(QApplication):
-    """openinverter CAN Tool application which owns the data model, main
+    """OpenInverter CAN Tool application which owns the data model, main
     window and controller"""
 
     def __init__(self, sys_argv):
