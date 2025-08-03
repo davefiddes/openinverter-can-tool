@@ -8,8 +8,6 @@
             "module": "openinverter_can_tool",
             "justMyCode": true,
             "args": [
-                "-d",
-                "${workspaceFolder}/parameter-databases/stm32-sine.5.24.R-foc.json",
                 "listparams"
             ]
         },
@@ -69,6 +67,14 @@
         },
         {
             "name": "GUI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "openinverter_can_tool.gui",
+            "justMyCode": true,
+            "args": []
+        },
+        {
+            "name": "GUI2",
             "type": "debugpy",
             "request": "launch",
             "module": "openinverter_can_tool.gui.app",

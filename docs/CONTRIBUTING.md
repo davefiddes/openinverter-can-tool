@@ -1,4 +1,4 @@
-# How to contribute to openinverter CAN Tool
+# How to contribute to OpenInverter CAN Tool
 
 ## **Did you find a bug?**
 
@@ -8,7 +8,7 @@
 
 ## **Do you have questions or comments about the tool?**
 
-* If you are not sure how to use the tool or have questions about its suitability for your project(s) then please join in on the [openinverter forum topic](https://openinverter.org/forum/viewtopic.php?t=2907).
+* If you are not sure how to use the tool or have questions about its suitability for your project(s) then please join in on the [OpenInverter forum topic](https://openinverter.org/forum/viewtopic.php?t=2907).
 
 ## **Did you write a patch that fixes a bug?**
 

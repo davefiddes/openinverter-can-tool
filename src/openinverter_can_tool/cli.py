@@ -1,5 +1,5 @@
 """
-openinverter CAN Tools main program
+OpenInverter CAN Tools main program
 """
 
 import csv
@@ -13,7 +13,7 @@ import re
 import time
 from ast import literal_eval
 from pathlib import Path
-from typing import List, Optional, Union, cast
+from typing import List, Optional, cast
 
 import appdirs
 import can
@@ -23,11 +23,13 @@ import click
 
 from . import constants as oi
 from .can_upgrade import CanUpgrader, Failure, State, StateUpdate
-from .fpfloat import fixed_from_float, fixed_to_float
+from .fpfloat import fixed_to_float
 from .map_persistence import export_dbc_map, export_json_map, import_json_map
 from .oi_node import CanMessage, Direction, OpenInverterNode
+from .param_utils import ParamWriter
 from .paramdb import (OIVariable, import_cached_database, import_database,
-                      value_to_str)
+                      param_name_from_id, value_to_str)
+from .scanner import scan_network
 
 
 class CliSettings:
@@ -64,24 +66,45 @@ def db_action(func):
         # Assume that the first argument exists and is a CliSettings
         cli_settings: CliSettings = args[0]
 
-        if cli_settings.database_path:
-            device_db = import_database(Path(cli_settings.database_path))
-        else:
-            # Fire up the CAN network just to grab the node parameter
-            # database from the device
-            with canopen.Network() as network:
-                network.connect(context=cli_settings.context)
-                network.check()
+        # Ensure we always have something to return
+        return_value = None
 
-                device_db = import_cached_database(
-                    network,
-                    cli_settings.node_number,
-                    Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
+        try:
+            if cli_settings.database_path:
+                device_db = import_database(Path(cli_settings.database_path))
+            else:
+                # Fire up the CAN network just to grab the node parameter
+                # database from the device
+                with canopen.Network() as network:
+                    network.connect(context=cli_settings.context)
+                    network.check()
 
-        cli_settings.database = device_db
+                    device_db = import_cached_database(
+                        network,
+                        cli_settings.node_number,
+                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
 
-        # Call the command handler function
-        return func(*args, **kwargs)
+            cli_settings.database = device_db
+
+            # Return the command handler function if we've been successful
+            return_value = func(*args, **kwargs)
+
+        except canopen.SdoAbortedError as err:
+            if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
+                click.echo("Command or parameter not supported")
+            else:
+                click.echo(f"Unexpected SDO Abort: {err}")
+
+        except canopen.SdoCommunicationError as err:
+            click.echo(f"SDO communication error: {err}")
+
+        except can.exceptions.CanOperationError as err:
+            click.echo(f"CAN error: {err}")
+
+        except OSError as err:
+            click.echo(f"OS error: {err}")
+
+        return return_value
 
     return wrapper_db_action
 
@@ -143,7 +166,7 @@ def can_action(func):
 @click.group()
 @click.option("-d", "--database",
               type=click.Path(exists=True, file_okay=True, dir_okay=False),
-              help="Override the openinverter JSON parameter database to use")
+              help="Override the OpenInverter JSON parameter database to use")
 @click.option("-c", "--context",
               default=None,
               show_default=True,
@@ -152,7 +175,7 @@ def can_action(func):
 @click.option("-n", "--node",
               default=1,
               show_default=True,
-              type=click.INT,
+              type=click.IntRange(1, 127),
               envvar="OIC_NODE",
               show_envvar=True,
               help="The CAN SDO node ID to communicate with")
@@ -173,7 +196,7 @@ def cli(ctx: click.Context,
         node: int,
         timeout: float,
         debug: bool) -> None:
-    """openinverter CAN Tool allows querying and setting configuration of
+    """OpenInverter CAN Tool allows querying and setting configuration of
     inverter parameters over a CAN connection"""
 
     if debug:
@@ -368,105 +391,6 @@ def save(cli_settings: CliSettings, out_file: click.File) -> None:
     click.echo(f"Saved {count} parameters")
 
 
-def set_enum_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: str) -> None:
-    """Set a enumeration parameter over SDO by looking up its symbolic value"""
-
-    result = None
-    for key, description in param.value_descriptions.items():
-        if description.lower() == value.lower():
-            result = key
-
-    if result is not None:
-        node.sdo[param.name].raw = fixed_from_float(result)
-    else:
-        click.echo(f"Unable to find value: '{value}' for parameter: "
-                   f"{param.name}. Valid values are "
-                   f"{param.value_descriptions}")
-
-
-def set_bitfield_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: str) -> None:
-    """Set a bitfield parameter over SDO by looking up its symbolic values. The
-      value should be a comma separated list"""
-
-    result = 0
-    for bit_name in value.split(','):
-        bit_name = bit_name.strip()
-        for key, description in param.bit_definitions.items():
-            if description.lower() == bit_name.lower():
-                result |= key
-
-    node.sdo[param.name].raw = fixed_from_float(result)
-
-
-def set_float_value(
-        node: canopen.Node,
-        param: OIVariable,
-        value: float) -> None:
-    """Set a parameter with a floating point value over SDO"""
-
-    # pre-conditions that should always be
-    assert param.isparam
-    assert param.min is not None
-    assert param.max is not None
-
-    fixed_value = fixed_from_float(value)
-
-    if fixed_value < param.min:
-        click.echo(f"Value {value:g} is smaller than the minimum "
-                   f"value {fixed_to_float(param.min):g} allowed "
-                   f"for {param.name}")
-    elif fixed_value > param.max:
-        click.echo(f"Value {value:g} is larger than the maximum value "
-                   f"{fixed_to_float(param.max):g} allowed for "
-                   f"{param.name}")
-    else:
-        node.sdo[param.name].raw = fixed_value
-
-
-def write_impl(
-        cli_settings: CliSettings,
-        param: str,
-        value: Union[float, str]) -> None:
-    """Implementation of the single parameter write command. Separated from
-    the command so the logic can be shared with loading all parameters from
-    json."""
-
-    if param in cli_settings.database.names:
-        param_item = cli_settings.database.names[param]
-
-        # Check if we are a modifiable parameter
-        if param_item.isparam:
-            if isinstance(value, float):
-                set_float_value(cli_settings.node, param_item, value)
-            else:
-                # Assume the value is a float to start with
-                try:
-                    set_float_value(
-                        cli_settings.node,
-                        param_item,
-                        float(value))
-                except ValueError:
-                    if param_item.value_descriptions:
-                        set_enum_value(cli_settings.node, param_item, value)
-                    elif param_item.bit_definitions:
-                        set_bitfield_value(
-                            cli_settings.node, param_item, value)
-                    else:
-                        click.echo(f"Invalid value: '{value}' for parameter: "
-                                   f"{param}")
-        else:
-            click.echo(f"{param} is a spot value parameter. "
-                       "Spot values are read-only.")
-    else:
-        click.echo(f"Unknown parameter: {param}")
-
-
 @cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("param")
 @click.argument("value")
@@ -476,7 +400,10 @@ def write_impl(
 def write(cli_settings: CliSettings, param: str, value: str) -> None:
     """Write the value to the parameter PARAM on the device"""
 
-    write_impl(cli_settings, param, value)
+    assert cli_settings.node
+
+    writer = ParamWriter(cli_settings.node, cli_settings.database, click.echo)
+    writer.write(param, value)
 
 
 @cli.command()
@@ -487,6 +414,8 @@ def write(cli_settings: CliSettings, param: str, value: str) -> None:
 def load(cli_settings: CliSettings, in_file: click.File) -> None:
     """Load all parameters from json IN_FILE"""
 
+    assert cli_settings.node
+    writer = ParamWriter(cli_settings.node, cli_settings.database, click.echo)
     doc = json.load(in_file)
     count = 0
     for param_name in doc:
@@ -497,7 +426,7 @@ def load(cli_settings: CliSettings, in_file: click.File) -> None:
         if isinstance(value, str):
             value = float(value)
 
-        write_impl(cli_settings, param_name, value)
+        writer.write(param_name, value)
         count += 1
 
     click.echo(f"Loaded {count} parameters")
@@ -615,23 +544,6 @@ def can_map(cli_settings: CliSettings) -> None:
     # We have to have cli_settings to allow the command hierarchy to work but
     # it is unused here so just pretend to use it
     _ = cli_settings
-
-
-def param_name_from_id(param_id: int, db: canopen.ObjectDictionary) -> str:
-    """Return the name of a parameter based on the openinverter parameter ID.
-    If it is not in the database the number is returned."""
-
-    # This is not evenly remotely efficient
-    param_name = None
-    for item in db.names.values():
-        if isinstance(item, OIVariable) and item.id == param_id:
-            param_name = item.name
-            break
-
-    if param_name is None:
-        return f"{param_id}"
-    else:
-        return f"{param_name}"
 
 
 def print_can_map(
@@ -952,32 +864,13 @@ def scan(cli_settings: CliSettings) -> None:
 
     assert cli_settings.network is not None
 
-    # Maximum number of devices we are going to scan for
-    limit = 127
-
-    # Canned SDO request we use to scan the bus with to find something
-    # we can talk to
-    sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
-
     click.echo("Scanning for devices. Please wait...\n")
 
-    # Implement our own scanner rather than use
-    # canopen.network.scanner.search() as this lets us rate limit the scan to
-    # avoid exhausting local CAN network queues
-    for node_id in range(1, limit + 1):
-        cli_settings.network.send_message(0x600 + node_id, sdo_req)
-        time.sleep(0.01)
-
-    # Wait for any responses to show up
-    time.sleep(5)
-
-    # filter out weird canopen internal node IDs that show up here and
-    # nowhere else
-    node_list = [id for id in cli_settings.network.scanner.nodes if id < limit]
+    node_list = scan_network(cli_settings.network)
 
     if node_list:
         for node_id in node_list:
-            click.echo(f"Found possible openinverter node: {node_id}")
+            click.echo(f"Found possible OpenInverter node: {node_id}")
     else:
         click.echo("No nodes found")
 

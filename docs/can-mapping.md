@@ -1,6 +1,6 @@
 # Example CAN Message Mapping
 
-Say you wanted to map the heatsink and motor temperatures from an openinverter board to an outgoing CAN message (for a custom instrument display to read for example). You might use a 16-bit length field for each temperature with a scale factor of 10 so you can get sub-degree precision. To put the two parameters in a single CAN message with hex ID 0x100 you would do:
+Say you wanted to map the heatsink and motor temperatures from an OpenInverter board to an outgoing CAN message (for a custom instrument display to read for example). You might use a 16-bit length field for each temperature with a scale factor of 10 so you can get sub-degree precision. To put the two parameters in a single CAN message with hex ID 0x100 you would do:
 
 ```text
     $ oic can add tx 0x100 tmphs 0 16 10

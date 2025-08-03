@@ -11,12 +11,11 @@ import canopen.objectdictionary
 import pytest
 
 from openinverter_can_tool.fpfloat import fixed_from_float
-from openinverter_can_tool.paramdb import (OIVariable,
-                                           import_cached_database,
+from openinverter_can_tool.paramdb import (OIVariable, import_cached_database,
                                            import_database,
                                            import_database_json,
                                            import_remote_database,
-                                           value_to_str)
+                                           param_name_from_id, value_to_str)
 
 from .oi_sim import OISimulatedNode
 
@@ -29,11 +28,11 @@ TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
 class OpeninverterVariable(unittest.TestCase):
     """
     Unit test the OIVariable class used to represent the not quite CANopen
-    variable representation method used by openinverter
+    variable representation method used by OpenInverter
     """
 
     def test_zero_id(self):
-        """ openinverter parameters all start with an index of 0x2100"""
+        """ OpenInverter parameters all start with an index of 0x2100"""
         var = OIVariable("zero_id",  0)
         self.assertEqual(var.index, 0x2100)
         self.assertEqual(var.subindex, 0)
@@ -59,7 +58,7 @@ class OpeninverterVariable(unittest.TestCase):
         self.assertEqual(var.subindex, 0xdf)
 
     def test_return_id(self):
-        """ Check that the openinverter ID is stored as well as the CANopen
+        """ Check that the OpenInverter ID is stored as well as the CANopen
         index and sub-index. """
         var = OIVariable("id",  2015)
         self.assertEqual(var.id, 2015)
@@ -309,7 +308,7 @@ class DatabaseImport(unittest.TestCase):
                 item.data_type, canopen.objectdictionary.INTEGER32)
 
     def test_remote_db_with_zero_bytes(self):
-        """Due to a race condition in openinverter firmware the database can
+        """Due to a race condition in OpenInverter firmware the database can
         contain additional 0x00 bytes interspersed with the expected byte
         stream. Verify that these databases can be loaded correctly from a
         remote node."""
@@ -372,7 +371,7 @@ class DatabaseImport(unittest.TestCase):
                 item.data_type, canopen.objectdictionary.INTEGER32)
 
     def test_remote_unicode_db_with_zero_bytes(self):
-        """Due to a race condition in openinverter firmware the database can
+        """Due to a race condition in OpenInverter firmware the database can
         contain additional NUL or 0x00 bytes. Verify that a databases with
         unicode utf-8 sequences with extra zero bytes can be loaded correctly
         from a remote node."""
@@ -908,6 +907,46 @@ class ValueToString(unittest.TestCase):
         output = value_to_str(param, 15, symbolic=False)
 
         self.assertEqual(output, "15")
+
+
+class TestParamNameFromId(unittest.TestCase):
+    """
+    Unit tests for param_name_from_id function.
+    """
+
+    def setUp(self):
+        # Create a dummy ObjectDictionary and add OIVariables
+        self.db = canopen.ObjectDictionary()
+        self.var1 = OIVariable("param1", 100)
+        self.var2 = OIVariable("param2", 200)
+        self.var3 = OIVariable("param3", 300)
+        self.db.add_object(self.var1)
+        self.db.add_object(self.var2)
+        self.db.add_object(self.var3)
+
+    def test_existing_param_id_returns_name(self):
+        # Should return the correct name for existing param IDs
+        self.assertEqual(param_name_from_id(100, self.db), "param1")
+        self.assertEqual(param_name_from_id(200, self.db), "param2")
+        self.assertEqual(param_name_from_id(300, self.db), "param3")
+
+    def test_nonexistent_param_id_returns_id_as_string(self):
+        # Should return the param_id as string if not found
+        self.assertEqual(param_name_from_id(999, self.db), "999")
+        self.assertEqual(param_name_from_id(-1, self.db), "-1")
+
+    def test_empty_database_returns_id_as_string(self):
+        # Should return the param_id as string if db is empty
+        empty_db = canopen.ObjectDictionary()
+        self.assertEqual(param_name_from_id(100, empty_db), "100")
+
+    def test_database_with_non_oivariable_objects(self):
+        # Should ignore non-OIVariable objects in db.names
+        self.db.add_object(
+            canopen.objectdictionary.ODVariable(
+                "not_an_oi_param", 123, 456))
+        self.assertEqual(param_name_from_id(100, self.db), "param1")
+        self.assertEqual(param_name_from_id(999, self.db), "999")
 
 
 if __name__ == '__main__':

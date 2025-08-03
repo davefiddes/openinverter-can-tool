@@ -21,8 +21,8 @@ long_description = re.sub(r'\[!\[Build status.*\)\n\n', '', long_description)
 
 setup(
     name="openinverter-can-tool",
-    version="0.3.2",
-    description="Tool to configure and operate openinverter systems over CAN",
+    version="0.4.0",
+    description="Tool to configure and operate OpenInverter systems over CAN",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/davefiddes/openinverter-can-tool",
@@ -77,10 +77,8 @@ setup(
     # No data files are expected within the package
     package_data={},
 
-    # Pull in all our example parameter databases and documentation
-    data_files=[("parameter-databases",
-                 glob("parameter-databases/*.json")),
-                ("docs",
+    # Pull in all our documentation
+    data_files=[("docs",
                  glob("docs/*.md") + glob("docs/*.png"))],
 
     # The main command-line tool
@@ -89,8 +87,9 @@ setup(
             "oic=openinverter_can_tool.__main__:cli"
         ],
         "gui_scripts": [
-            "oi-gui=openinverter_can_tool.gui.app:main"
-        ],
+            "oic-gui=openinverter_can_tool.gui:main",
+            "oic-gui2=openinverter_can_tool.gui.app:main"
+        ]
     },
 
     project_urls={

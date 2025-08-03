@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the CAN protocol used by the openinverter CAN tool to upgrade the firmware on openinverter devices.
+This document describes the CAN protocol used by the OpenInverter CAN tool to upgrade the firmware on OpenInverter devices.
 
 ## Addressing
 
@@ -102,7 +102,7 @@ The CRC of the most recently transferred 1KiB firmware data page. The CRC employ
 
 ## Upgrade State Machine
 
-The following state diagram illustrates the expected state transitions implemented by the openinverter can tool upgrade process.
+The following state diagram illustrates the expected state transitions implemented by the OpenInverter CAN Tool upgrade process.
 
 ```mermaid
 stateDiagram-v2

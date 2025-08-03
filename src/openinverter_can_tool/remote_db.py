@@ -1,5 +1,5 @@
 """
-openinverter remote database access
+OpenInverter remote database access
 """
 
 import struct
@@ -24,13 +24,16 @@ class RemoteDatabaseNode:
                                     0x580 + node_id,
                                     canopen.ObjectDictionary())
         self.sdo_client.network = network  # type: ignore
-        network.subscribe(0x580 + node_id, self.sdo_client.on_response)
 
-    def __del__(self) -> None:
-        can_id = 0x580 + self.node_id
+    def __enter__(self):
+        """Context manager entry point"""
+        self.network.subscribe(
+            0x580 + self.node_id,
+            self.sdo_client.on_response)
 
-        if can_id in self.network.subscribers:
-            self.network.unsubscribe(can_id)
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """Context manager exit point"""
+        self.network.unsubscribe(can_id=0x580 + self.node_id)
 
     def param_db_checksum(self) -> int:
         """

@@ -1,5 +1,5 @@
 """
-openinverter CAN Tools main program
+OpenInverter CAN Tools main program
 """
 
 from .cli import cli

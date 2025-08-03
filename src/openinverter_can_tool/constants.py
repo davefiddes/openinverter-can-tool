@@ -1,6 +1,6 @@
 """Useful constants"""
 
-# CANopen SDO indexes used by openinverter systems
+# CANopen SDO indexes used by OpenInverter systems
 
 # Index for unique serial numbers
 SERIALNO_INDEX = 0x5000
