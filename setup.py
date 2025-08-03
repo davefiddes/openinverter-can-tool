@@ -76,10 +76,8 @@ setup(
     # No data files are expected within the package
     package_data={},
 
-    # Pull in all our example parameter databases and documentation
-    data_files=[("parameter-databases",
-                 glob("parameter-databases/*.json")),
-                ("docs",
+    # Pull in all our documentation
+    data_files=[("docs",
                  glob("docs/*.md") + glob("docs/*.png"))],
 
     # The main command-line tool
