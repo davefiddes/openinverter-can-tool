@@ -77,7 +77,7 @@
             "name": "GUI2",
             "type": "debugpy",
             "request": "launch",
-            "module": "openinverter_can_tool.gui.app",
+            "module": "openinverter_can_tool.gui2.app",
             "justMyCode": true,
             "args": []
         }

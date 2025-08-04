@@ -88,7 +88,7 @@ setup(
         ],
         "gui_scripts": [
             "oic-gui=openinverter_can_tool.gui:main",
-            "oic-gui2=openinverter_can_tool.gui.app:main"
+            "oic-gui2=openinverter_can_tool.gui2.app:main"
         ]
     },
 
