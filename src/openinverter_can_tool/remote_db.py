@@ -5,8 +5,7 @@ OpenInverter remote database access
 import struct
 
 import canopen
-import canopen.objectdictionary
-from canopen.sdo import SdoClient
+from canopen.sdo.client import SdoClient
 
 from . import constants as oi
 

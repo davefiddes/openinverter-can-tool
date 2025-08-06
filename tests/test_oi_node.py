@@ -831,7 +831,7 @@ class TestOpenInverterNode(NetworkTestCase):
         # oic can remove tx.0.0
         self.data = [
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00')
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00')
         ]
         assert self.node.remove_can_map_entry(Direction.TX, 0, 0)
 
@@ -840,7 +840,7 @@ class TestOpenInverterNode(NetworkTestCase):
         # oic can remove tx.1.3
         self.data = [
             (TX, b'\x23\x01\x31\x08\x00\x00\x00\x00'),
-            (RX, b'\x23\x01\x31\x08\x00\x00\x00\x00')
+            (RX, b'\x60\x01\x31\x08\x00\x00\x00\x00')
         ]
         assert self.node.remove_can_map_entry(Direction.TX, 1, 3)
 
@@ -882,17 +882,17 @@ class TestOpenInverterNode(NetworkTestCase):
         # until it reports "Unable to find CAN map entry."
         self.data = [
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x00\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
             (RX, b'\x80\x00\x31\x02\x00\x00\x02\x06')
         ]
@@ -904,7 +904,7 @@ class TestOpenInverterNode(NetworkTestCase):
         # until it reports "Unable to find CAN map entry."
         self.data = [
             (TX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
-            (RX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x60\x80\x31\x02\x00\x00\x00\x00'),
             (TX, b'\x23\x80\x31\x02\x00\x00\x00\x00'),
             (RX, b'\x80\x80\x31\x02\x00\x00\x02\x06')
         ]
@@ -944,6 +944,19 @@ class TestOpenInverterNode(NetworkTestCase):
         ]
 
         self.node.add_can_map(Direction.TX, msg_map)
+
+    def test_remove_first_mapped_param_faulty_libopeninv(self):
+        # from a capture of the command:
+        # oic can remove tx.0.0
+        # The response from the node is not compliant with the expected SDO
+        # reply but should still succeed. This will generate an SDO Abort
+        # frame which is ignored by the device.
+        self.data = [
+            (TX, b'\x23\x00\x31\x02\x00\x00\x00\x00'),
+            (RX, b'\x20\x00\x31\x02\x00\x00\x00\x00'),
+            (TX, b'\x80\x00\x00\x00\x01\x00\x04\x05')  # SDO Abort
+        ]
+        assert self.node.remove_can_map_entry(Direction.TX, 0, 0)
 
 
 if __name__ == "__main__":

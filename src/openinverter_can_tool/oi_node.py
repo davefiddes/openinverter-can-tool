@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import canopen
 from canopen.node.base import BaseNode
-from canopen.sdo import SdoClient
+from canopen.sdo.client import SdoClient
 
 from . import constants as oi
 
@@ -454,7 +454,9 @@ class OpenInverterNode(BaseNode):
             self.sdo.download(
                 can_sdo_index, param_sdo_index, UNSIGNED32.pack(0))
         except canopen.SdoCommunicationError as err:
-            if str(err) == "Unexpected response 0x23":
+            err_str = str(err)
+            if (err_str == "Unexpected response 0x20" or
+                    err_str == "Unexpected response 0x23"):
                 return True
             else:
                 raise err
@@ -465,7 +467,7 @@ class OpenInverterNode(BaseNode):
             else:
                 raise err
 
-        return False
+        return True
 
     def clear_map(self, direction: Direction) -> None:
         """
