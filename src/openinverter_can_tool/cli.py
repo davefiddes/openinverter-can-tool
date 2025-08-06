@@ -381,6 +381,7 @@ def save(cli_settings: CliSettings, out_file: click.File) -> None:
     doc = {}
     count = 0
     node = cli_settings.node
+    assert node
     for item in cli_settings.database.names.values():
         if item.isparam:
             doc[item.name] = fixed_to_float(node.sdo[item.name].raw)
@@ -957,6 +958,7 @@ def upgrade(
         elif update.state == State.COMPLETE:
             click.echo("\rUpgrade completed successfully!".ljust(40))
 
+    assert cli_settings.network
     if recover:
         if serial and len(serial) != 8:
             click.echo("Device serial numbers should be 8 hexadecimal digits")

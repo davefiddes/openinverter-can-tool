@@ -39,6 +39,7 @@ class NetworkTestCase(unittest.TestCase):
 
     def setUp(self):
         network = canopen.Network()
+        network.NOTIFIER_SHUTDOWN_TIMEOUT = 0.0
         network.send_message = self._send_message
         node = self._node_type(network, 2)
         if "sdo" in node.__dict__:

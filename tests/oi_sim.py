@@ -19,6 +19,7 @@ class OISimulatedNode:
     def __init__(self, node_id: int = 1) -> None:
         # Start a network connection for the simulated node
         self.server_network = canopen.Network()
+        self.server_network.NOTIFIER_SHUTDOWN_TIMEOUT = 0.0
         self.server_network.connect("test", bustype="virtual")
 
         # Manually create a dictionary for the custom SDO variables that an OI
@@ -41,6 +42,7 @@ class OISimulatedNode:
         # Put together a network that is connected to the server for the code
         # under test to use
         self.network = canopen.Network()
+        self.network.NOTIFIER_SHUTDOWN_TIMEOUT = 0.0
         self.network.connect("test", bustype="virtual")
 
     def __del__(self):

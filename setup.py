@@ -53,7 +53,7 @@ setup(
 
     install_requires=[
         "click",
-        "canopen",
+        "canopen>=2.4.1",
         "appdirs",
         "python-can[serial]",
         "cantools",
