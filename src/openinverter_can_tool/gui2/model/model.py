@@ -3,6 +3,7 @@ from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
 from ...oi_node import OpenInverterNode
+from .param_model import ParameterTableModel
 
 
 class Model(QObject):
@@ -13,6 +14,7 @@ class Model(QObject):
     def __init__(self):
         super().__init__()
         self._node: Optional[OpenInverterNode] = None
+        self.params = ParameterTableModel()
 
     @property
     def node(self) -> Optional[OpenInverterNode]:
