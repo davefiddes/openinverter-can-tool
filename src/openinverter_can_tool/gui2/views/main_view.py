@@ -82,10 +82,6 @@ class MainView(QMainWindow):
         if ok:
             self._main_controller.start_new_session(node_id)
 
-    @Slot()
-    def _on_close_session(self) -> None:
-        self._main_controller.stop_session()
-
     def create_actions(self):
         icon = QIcon(':/icons/window-new.png')
         self._new_act = QAction(
@@ -100,7 +96,7 @@ class MainView(QMainWindow):
             statusTip="Disconnect from the current configuration session",
             shortcut=QKeySequence(QKeySequence.StandardKey.Close)
         )
-        self._close_act.triggered.connect(self._on_close_session)
+        self._close_act.triggered.connect(self._main_controller.stop_session)
 
         icon = QIcon(':/icons/document-open.png')
         self._load_act = QAction(
