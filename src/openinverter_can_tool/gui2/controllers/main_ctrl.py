@@ -86,6 +86,7 @@ class MainController(QObject):
         device_db = node.object_dictionary
         assert device_db
 
+        self._model.params.clear()
         for item in device_db.names.values():
             assert isinstance(item, OIVariable)
             if item.isparam:

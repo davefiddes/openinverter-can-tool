@@ -1,10 +1,11 @@
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
-                               QWidget)
+                               QTabWidget)
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
+from ..views.param_view import ParamTableView
 
 
 class MainView(QMainWindow):
@@ -19,9 +20,9 @@ class MainView(QMainWindow):
 
         # construct the UI
         self.setWindowTitle("OpenInverter CAN Tool")
-        widget = QWidget()
-        self.setCentralWidget(widget)
+        self.resize(800, 600)
 
+        self.create_central_widget()
         self.create_actions()
         self.create_menus()
         self.create_tool_bars()
@@ -185,3 +186,15 @@ class MainView(QMainWindow):
         self.statusBar().showMessage("Ready")
         self._connected_status = QLabel()
         self.statusBar().addPermanentWidget(self._connected_status)
+
+    def create_central_widget(self):
+        """Create the central widget for the main window."""
+        # Create tab widget
+        tab_widget = QTabWidget()
+
+        # Parameters tab
+        param_table_view = ParamTableView()
+        param_table_view.setModel(self._model.params)
+        tab_widget.addTab(param_table_view, "Parameters")
+
+        self.setCentralWidget(tab_widget)

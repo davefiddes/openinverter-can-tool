@@ -60,7 +60,7 @@ class ParameterTableModel(QAbstractTableModel):
         if (role == Qt.ItemDataRole.SizeHintRole and
                 orientation == Qt.Orientation.Horizontal):
             if section == ParameterModelColumns.Name:
-                return QSize(200, 25)
+                return QSize(400, 25)
             if section == ParameterModelColumns.Value:
                 return QSize(130, 25)
 
@@ -132,6 +132,7 @@ class ParameterTableModel(QAbstractTableModel):
 
     def append_param(self, variable: OIVariable, value: float):
         """Append a new parameter to the model."""
+
         assert variable.isparam, "Only parameters can be added to this model"
 
         self.beginInsertRows(
@@ -140,3 +141,10 @@ class ParameterTableModel(QAbstractTableModel):
             len(self._params))
         self._params.append(ParamEntry(variable, value))
         self.endInsertRows()
+
+    def clear(self):
+        """Clear all existing parameter data from the model."""
+
+        self.beginResetModel()
+        self._params.clear()
+        self.endResetModel()
