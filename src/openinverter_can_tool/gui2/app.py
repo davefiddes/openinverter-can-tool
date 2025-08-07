@@ -1,11 +1,14 @@
 import sys
 from PySide6.QtWidgets import QApplication
+import logging
 
 from .controllers.main_ctrl import MainController
 from .model.model import Model
 from .views.main_view import MainView
 
 from .resources import openinverter_can_tool_rc  # noqa: F401
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class App(QApplication):
