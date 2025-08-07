@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
-                               QPushButton, QSpinBox, QVBoxLayout, QWidget)
+                               QWidget)
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
@@ -15,8 +15,10 @@ class MainView(QMainWindow):
 
         self._model = model
         self._main_controller = main_controller
+        self._main_controller.can_error.connect(self._on_can_error)
 
         # construct the UI
+        self.setWindowTitle("OpenInverter CAN Tool")
         widget = QWidget()
         self.setCentralWidget(widget)
 
@@ -25,63 +27,34 @@ class MainView(QMainWindow):
         self.create_tool_bars()
         self.create_status_bar()
 
-        layout = QVBoxLayout(widget)
-
-        self._spinBox_amount = QSpinBox()
-        layout.addWidget(self._spinBox_amount)
-
-        self._label_even_odd = QLabel()
-        layout.addWidget(self._label_even_odd)
-
-        self._pushButton_reset = QPushButton("reset")
-        layout.addWidget(self._pushButton_reset)
-
-        # connect widgets to controller
-        self._spinBox_amount.valueChanged.connect(
-            self._main_controller.change_amount)
-        self._pushButton_reset.clicked.connect(
-            lambda: self._main_controller.change_amount(0))
-
         # listen for model event signals
-        self._model.amount_changed.connect(self.on_amount_changed)
-        self._model.even_odd_changed.connect(self.on_even_odd_changed)
-        self._model.enable_reset_changed.connect(self.on_enable_reset_changed)
-        self._model.node_id_changed.connect(self.on_node_id_changed)
+        self._model.connected_changed.connect(self.on_connected_changed)
 
         # set a default value
-        self._main_controller.change_amount(42)
-        self.on_node_id_changed(0)
+        self.on_connected_changed(False)
 
     def closeEvent(self, event):
         """
         Handle the close event to ensure any ongoing CAN session is properly
         cleaned up.
         """
+        self._main_controller.can_error.disconnect()
         self._main_controller.stop_session()
-
-    @Slot(int)
-    def on_amount_changed(self, value: int):
-        self._spinBox_amount.setValue(value)
-
-    @Slot(str)
-    def on_even_odd_changed(self, value: str):
-        self._label_even_odd.setText(value)
+        event.accept()
 
     @Slot(bool)
-    def on_enable_reset_changed(self, value: bool):
-        self._pushButton_reset.setEnabled(value)
-
-    @Slot(int)
-    def on_node_id_changed(self, value: int):
-        if value > 0:
-            self.setWindowTitle(f"OpenInverter CAN Tool - Node ID: {value}")
+    def on_connected_changed(self, connected: bool):
+        if connected:
+            assert self._model.node is not None
+            self._connected_status.setText(f"Node ID: {self._model.node.id}")
         else:
-            self.setWindowTitle("OpenInverter CAN Tool")
+            self._connected_status.setText("Disconnected")
 
-        self._load_act.setEnabled(value > 0)
-        self._save_act.setEnabled(value > 0)
-        self._upgrade_act.setEnabled(value > 0)
-        self._refresh_act.setEnabled(value > 0)
+        self._close_act.setEnabled(connected)
+        self._load_act.setEnabled(connected)
+        self._save_act.setEnabled(connected)
+        self._upgrade_act.setEnabled(connected)
+        self._refresh_act.setEnabled(connected)
 
     @Slot()
     def _on_about(self) -> None:
@@ -97,20 +70,21 @@ class MainView(QMainWindow):
                              "This function has not been implemented yet")
 
     @Slot()
+    def _on_can_error(self, message: str) -> None:
+        QMessageBox.critical(self, "CAN Error", message)
+
+    @Slot()
     def _on_new_session(self) -> None:
         node_id, ok = QInputDialog.getInt(
             self, "New Session", "Enter the node ID for the new session:",
             value=1, minValue=1, maxValue=127)
 
         if ok:
-            try:
-                self._main_controller.start_new_session(node_id)
-            except Exception as err:
-                self._main_controller.stop_session()
-                QMessageBox.critical(
-                    self,
-                    "Session Error",
-                    f"{type(err).__name__}: {err}")
+            self._main_controller.start_new_session(node_id)
+
+    @Slot()
+    def _on_close_session(self) -> None:
+        self._main_controller.stop_session()
 
     def create_actions(self):
         icon = QIcon(':/icons/window-new.png')
@@ -120,6 +94,13 @@ class MainView(QMainWindow):
             shortcut=QKeySequence(QKeySequence.StandardKey.New)
         )
         self._new_act.triggered.connect(self._on_new_session)
+
+        self._close_act = QAction(
+            "Disconnect", self,
+            statusTip="Disconnect from the current configuration session",
+            shortcut=QKeySequence(QKeySequence.StandardKey.Close)
+        )
+        self._close_act.triggered.connect(self._on_close_session)
 
         icon = QIcon(':/icons/document-open.png')
         self._load_act = QAction(
@@ -177,6 +158,7 @@ class MainView(QMainWindow):
     def create_menus(self):
         self._file_menu = self.menuBar().addMenu("&File")
         self._file_menu.addAction(self._new_act)
+        self._file_menu.addAction(self._close_act)
         self._file_menu.addSeparator()
         self._file_menu.addAction(self._load_act)
         self._file_menu.addAction(self._save_act)
@@ -205,3 +187,5 @@ class MainView(QMainWindow):
 
     def create_status_bar(self):
         self.statusBar().showMessage("Ready")
+        self._connected_status = QLabel()
+        self.statusBar().addPermanentWidget(self._connected_status)
