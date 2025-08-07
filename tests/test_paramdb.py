@@ -25,7 +25,7 @@ TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
 # pylint: disable=missing-function-docstring
 
 
-class OpeninverterVariable(unittest.TestCase):
+class OpenInverterVariable(unittest.TestCase):
     """
     Unit test the OIVariable class used to represent the not quite CANopen
     variable representation method used by OpenInverter
@@ -74,6 +74,11 @@ class OpeninverterVariable(unittest.TestCase):
         self.assertEqual(var.id, 0xff)
         self.assertEqual(var.index, 0x2100)
         self.assertEqual(var.subindex, 0xff)
+
+    def test_repr(self):
+        """ Check that the repr() method returns a useful string """
+        var = OIVariable("id",  2015)
+        self.assertEqual(repr(var), "<OIVariable 'id' at 2015>")
 
 
 class DatabaseImport(unittest.TestCase):

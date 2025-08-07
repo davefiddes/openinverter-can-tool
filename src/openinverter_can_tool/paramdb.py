@@ -84,6 +84,9 @@ class OIVariable(canopen.objectdictionary.Variable):
         self.index = 0x2100 | (value >> 8)
         self.subindex = value & 0xFF
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__qualname__} {self.name!r} at {self.id!r}>"
+
 
 def import_database_json(
         paramdb_json: dict) -> canopen.ObjectDictionary:
