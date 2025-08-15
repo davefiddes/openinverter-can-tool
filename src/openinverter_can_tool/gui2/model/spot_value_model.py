@@ -1,10 +1,11 @@
 """Model representing the spot values (i.e. read-only parameters)"""
+from typing import Dict
+
 import canopen
-from PySide6.QtCore import QObject, Qt
+from PySide6.QtCore import QObject, Qt, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
-
 
 SPOT_VALUE_HEADERS = ["Name", "Value", "Units"]
 
@@ -17,11 +18,13 @@ class SpotValueModel(QStandardItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(SPOT_VALUE_HEADERS)
+        self._values: Dict[str, QStandardItem] = {}
 
     def populate_from_database(self, device_db: canopen.ObjectDictionary):
         """Populate the model with spot values from the device database."""
 
         self.clear()
+        self._values.clear()
 
         self.setHorizontalHeaderLabels(SPOT_VALUE_HEADERS)
 
@@ -45,5 +48,11 @@ class SpotValueModel(QStandardItemModel):
             units_item.setFlags(SPOT_VALUE_FLAGS)
 
             self.appendRow([name_item, value_item, units_item])
+            self._values[param_name] = value_item
 
         self.endResetModel()
+
+    @Slot()
+    def parameter_changed(self, param_name: str, value: float) -> None:
+        if param_name in self._values:
+            self._values[param_name].setText(str(value))

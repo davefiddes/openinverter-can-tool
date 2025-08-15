@@ -7,6 +7,7 @@ from canopen import SdoAbortedError, SdoCommunicationError
 from PySide6.QtCore import QObject, Signal, Slot
 
 from ... import constants as oi
+from ...fpfloat import fixed_to_float
 from ...oi_node import OpenInverterNode
 from ...paramdb import import_cached_database
 from ..model.model import Model
@@ -60,6 +61,9 @@ class MainController(QObject):
 
             self._model.param_model.populate_from_database(device_db)
             self._model.spot_value_model.populate_from_database(device_db)
+            self._model.param_values.clear()
+
+            self.refresh_values()
 
         except CAN_EXCEPTIONS as e:
             try:
@@ -79,3 +83,21 @@ class MainController(QObject):
             self._model.node = None
         except CAN_EXCEPTIONS as e:
             self.can_error.emit(f"Error stopping session: {e}")
+
+    @Slot()
+    def refresh_values(self) -> None:
+        """Fill the model with values from the node."""
+        node = self._model.node
+        assert node
+        device_db = node.object_dictionary
+        assert device_db
+
+        self._model.param_values.clear()
+        for param_name in device_db.names:
+            try:
+                value = fixed_to_float(int(node.sdo[param_name].raw))
+            except SdoAbortedError as e:
+                self.can_error.emit(
+                    f"Failed to read parameter {param_name}: {e}")
+                value = 0.0
+            self._model.update_value(param_name, value)

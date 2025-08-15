@@ -1,7 +1,9 @@
 """Model representing the parameters and their current value suitable for
 displaying in a QTreeView"""
 
-from PySide6.QtCore import QObject, Qt
+from typing import Dict
+
+from PySide6.QtCore import QObject, Qt, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
@@ -15,11 +17,13 @@ class ParameterModel(QStandardItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(PARAMETER_HEADERS)
+        self._values: Dict[str, QStandardItem] = {}
 
     def populate_from_database(self, device_db):
         """Populate the model with parameters from the device database."""
 
         self.clear()
+        self._values.clear()
 
         self.setHorizontalHeaderLabels(PARAMETER_HEADERS)
 
@@ -63,5 +67,11 @@ class ParameterModel(QStandardItemModel):
             units_item.setFlags(PARAMETER_FLAGS)
 
             category_row[0].appendRow([name_item, value_item, units_item])
+            self._values[param_name] = value_item
 
         self.endResetModel()
+
+    @Slot()
+    def parameter_changed(self, param_name: str, value: float) -> None:
+        if param_name in self._values:
+            self._values[param_name].setText(str(value))
