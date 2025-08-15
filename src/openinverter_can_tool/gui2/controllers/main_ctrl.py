@@ -8,8 +8,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from ... import constants as oi
 from ...oi_node import OpenInverterNode
-from ...paramdb import import_cached_database, OIVariable
-from ...fpfloat import fixed_to_float
+from ...paramdb import import_cached_database
 from ..model.model import Model
 
 # Define a constant for connection exceptions which we want to handle
@@ -59,7 +58,9 @@ class MainController(QObject):
             )
             self._model.node.sdo.RESPONSE_TIMEOUT = 1.0
 
-            self._fill_model_from_node()
+            self._model.param_model.populate_from_database(device_db)
+            self._model.spot_value_model.populate_from_database(device_db)
+
         except CAN_EXCEPTIONS as e:
             try:
                 self._network.disconnect()
@@ -78,22 +79,3 @@ class MainController(QObject):
             self._model.node = None
         except CAN_EXCEPTIONS as e:
             self.can_error.emit(f"Error stopping session: {e}")
-
-    def _fill_model_from_node(self):
-        """Fill the model with values from the node."""
-        node = self._model.node
-        assert node
-        device_db = node.object_dictionary
-        assert device_db
-
-        self._model.params.clear()
-        for item in device_db.names.values():
-            assert isinstance(item, OIVariable)
-            if item.isparam:
-                try:
-                    value = fixed_to_float(int(node.sdo[item.name].raw))
-                except SdoAbortedError as e:
-                    self.can_error.emit(
-                        f"Failed to read parameter {item.name}: {e}")
-                    value = 0.0
-                self._model.params.append_param(item, value)

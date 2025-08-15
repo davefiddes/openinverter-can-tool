@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
-from ..views.param_view import ParamTableView
+from .param_view import ParamView
+from .spot_value_view import SpotValueView
 
 
 class MainView(QMainWindow):
@@ -193,8 +194,13 @@ class MainView(QMainWindow):
         tab_widget = QTabWidget()
 
         # Parameters tab
-        param_table_view = ParamTableView()
-        param_table_view.setModel(self._model.params)
-        tab_widget.addTab(param_table_view, "Parameters")
+        param_view = ParamView()
+        param_view.setModel(self._model.param_model)
+        tab_widget.addTab(param_view, "Parameters")
+
+        # Spot values tab
+        spot_value_view = SpotValueView()
+        spot_value_view.setModel(self._model.spot_value_model)
+        tab_widget.addTab(spot_value_view, "Spot Values")
 
         self.setCentralWidget(tab_widget)
