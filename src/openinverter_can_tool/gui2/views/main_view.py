@@ -138,7 +138,8 @@ class MainView(QMainWindow):
             statusTip="Refresh the parameters downloaded from the device",
             shortcut=QKeySequence(QKeySequence.StandardKey.Refresh)
         )
-        self._refresh_act.triggered.connect(self._on_not_implemented)
+        self._refresh_act.triggered.connect(
+            self._main_controller.refresh_values)
 
         self._auto_refresh_act = QAction(
             "&Auto Refresh", self, checkable=True, checked=False,
