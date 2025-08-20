@@ -958,7 +958,7 @@ def upgrade(
         elif update.state == State.COMPLETE:
             click.echo("\rUpgrade completed successfully!".ljust(40))
 
-    assert cli_settings.network
+    assert cli_settings.network is not None
     if recover:
         if serial and len(serial) != 8:
             click.echo("Device serial numbers should be 8 hexadecimal digits")

@@ -71,7 +71,7 @@ class OIVariable(canopen.objectdictionary.Variable):
         self.category: Optional[str] = None
 
         # This replaces the parent's bit_definitions member
-        self.bit_definitions: Dict[int, str] = {}
+        self.bit_definitions: Dict[int, str] = {}  # type: ignore
 
     @property
     def id(self) -> int:
