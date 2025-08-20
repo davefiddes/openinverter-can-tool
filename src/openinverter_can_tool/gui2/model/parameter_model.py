@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Qt, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
+from .parameter_value_item import ParameterValueItem
 
 PARAMETER_HEADERS = ["Name", "Value", "Units"]
 
@@ -17,7 +18,7 @@ class ParameterModel(QStandardItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(PARAMETER_HEADERS)
-        self._values: Dict[str, QStandardItem] = {}
+        self._values: Dict[str, ParameterValueItem] = {}
 
     def populate_from_database(self, device_db):
         """Populate the model with parameters from the device database."""
@@ -57,7 +58,7 @@ class ParameterModel(QStandardItemModel):
             name_item = QStandardItem(param_name)
             name_item.setFlags(PARAMETER_FLAGS)
 
-            value_item = QStandardItem("")
+            value_item = ParameterValueItem(param, 0.0)
             value_item.setFlags(PARAMETER_FLAGS | Qt.ItemFlag.ItemIsEditable)
 
             if param.bit_definitions or param.value_descriptions:
@@ -74,4 +75,4 @@ class ParameterModel(QStandardItemModel):
     @Slot()
     def parameter_changed(self, param_name: str, value: float) -> None:
         if param_name in self._values:
-            self._values[param_name].setText(str(value))
+            self._values[param_name].value = value

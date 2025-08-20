@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Qt, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
+from .parameter_value_item import ParameterValueItem
 
 SPOT_VALUE_HEADERS = ["Name", "Value", "Units"]
 
@@ -18,7 +19,7 @@ class SpotValueModel(QStandardItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(SPOT_VALUE_HEADERS)
-        self._values: Dict[str, QStandardItem] = {}
+        self._values: Dict[str, ParameterValueItem] = {}
 
     def populate_from_database(self, device_db: canopen.ObjectDictionary):
         """Populate the model with spot values from the device database."""
@@ -38,7 +39,7 @@ class SpotValueModel(QStandardItemModel):
             name_item = QStandardItem(param_name)
             name_item.setFlags(SPOT_VALUE_FLAGS)
 
-            value_item = QStandardItem("")
+            value_item = ParameterValueItem(param, 0.0)
             value_item.setFlags(SPOT_VALUE_FLAGS)
 
             if param.bit_definitions or param.value_descriptions:
@@ -55,4 +56,4 @@ class SpotValueModel(QStandardItemModel):
     @Slot()
     def parameter_changed(self, param_name: str, value: float) -> None:
         if param_name in self._values:
-            self._values[param_name].setText(str(value))
+            self._values[param_name].value = value
