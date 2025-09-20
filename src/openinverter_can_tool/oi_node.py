@@ -3,14 +3,16 @@ OpenInverter specific CANopen API
 """
 
 import struct
+from datetime import timedelta
 from enum import IntEnum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import canopen
 from canopen.node.base import BaseNode
 from canopen.sdo.client import SdoClient
 
 from . import constants as oi
+from .paramdb import OIVariable
 
 # Common data type
 UNSIGNED32 = struct.Struct("<L")
@@ -128,8 +130,7 @@ class OpenInverterNode(BaseNode):
     def __init__(self,
                  network: canopen.Network,
                  node_id: int,
-                 object_dictionary: canopen.ObjectDictionary =
-                 canopen.ObjectDictionary()
+                 object_dictionary: canopen.ObjectDictionary
                  ) -> None:
         """Create temporary SDO client and attach to the network """
 
@@ -481,3 +482,51 @@ class OpenInverterNode(BaseNode):
         # into that position.
         while self.remove_can_map_entry(direction, 0, 0):
             _ = 1
+
+    def list_errors(self) -> List[Tuple[timedelta, str]]:
+        """
+        List all of the errors on the remote device.
+
+        :return: A list of errors and the time since device power on at which
+          they occurred.
+        """
+        # We assume that a lasterr dictionary item is available to map our
+        # error numbers to strings
+        lasterr: Optional[OIVariable] = None
+        if "lasterr" in self.object_dictionary:
+            variable = self.object_dictionary["lasterr"]
+            if isinstance(variable, OIVariable):
+                lasterr = variable
+
+        # Default to a 10ms tick duration if we can't determine it from the
+        # "uptime" variable
+        tick_duration = timedelta(milliseconds=10)
+
+        # Infer the time base for error timestamps from the "uptime" spot
+        # variable definition
+        if "uptime" in self.object_dictionary:
+            variable = self.object_dictionary["uptime"]
+            if isinstance(variable, OIVariable):
+                uptime = variable
+                if uptime.unit == "sec":
+                    tick_duration = timedelta(seconds=1)
+
+        errors = []
+        for index in range(0, 255):
+            error_time, = UNSIGNED32.unpack(
+                self.sdo.upload(oi.ERROR_TIME_INDEX, index))
+
+            if error_time == 0:
+                break
+            error_time = error_time * tick_duration
+
+            error_num, = UNSIGNED32.unpack(
+                self.sdo.upload(oi.ERROR_NUM_INDEX, index))
+
+            if lasterr is not None and error_num in lasterr.value_descriptions:
+                errors.append(
+                    (error_time, lasterr.value_descriptions[error_num]))
+            else:
+                errors.append((error_time, f"Unknown error {error_num}"))
+
+        return errors

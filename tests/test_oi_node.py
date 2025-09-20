@@ -1,6 +1,7 @@
 """OpenInverter custom SDO protocol unit tests"""
 
 import unittest
+from datetime import timedelta
 
 import canopen
 
@@ -15,7 +16,7 @@ TX = 1
 RX = 2
 
 # Reduce test verbosity
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring, too-many-lines
 
 
 class TestOpenInverterNode(NetworkTestCase):
@@ -957,6 +958,147 @@ class TestOpenInverterNode(NetworkTestCase):
             (TX, b'\x80\x00\x00\x00\x01\x00\x04\x05')  # SDO Abort
         ]
         assert self.node.remove_can_map_entry(Direction.TX, 0, 0)
+
+    def test_list_errors_on_device_that_does_not_know_how_to(self):
+        self.data = [
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x80\x00\x00\x00\x00\x00\x06\x02')  # SDO Abort
+        ]
+
+        with self.assertRaises(canopen.SdoAbortedError) as cm:
+            _ = self.node.list_errors()
+            assert cm.exception.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE
+
+    def test_list_errors_on_happy_device(self):
+        self.data = [
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x00\x00\x00\x00')
+        ]
+        errors = self.node.list_errors()
+        assert len(errors) == 0
+
+    def test_list_a_single_unknown_device_error(self):
+        self.data = [
+            # Error at 100 ticks (or 1 second with 10ms tick)
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x64\x00\x00\x00'),
+
+            # Error number "42"
+            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x00\x2a\x00\x00\x00'),
+
+            # No more errors
+            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+        ]
+
+        errors = self.node.list_errors()
+
+        assert errors == [(timedelta(seconds=1), "Unknown error 42")]
+
+    def test_list_a_single_error(self):
+        self.data = [
+            # Error at 0x12345678 ticks
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x78\x56\x34\x12'),
+
+            # Error number "66"
+            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x00\x42\x00\x00\x00'),
+
+            # No more errors
+            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+        ]
+        lasterr = OIVariable("lasterr", 2038)
+        lasterr.value_descriptions = {66: "Ninety_nine_are_you_in_trouble"}
+        self.node.object_dictionary.add_object(lasterr)
+
+        errors = self.node.list_errors()
+
+        assert errors == [
+            (timedelta(days=35,
+                       hours=8,
+                       minutes=23,
+                       seconds=18,
+                       milliseconds=960),
+             "Ninety_nine_are_you_in_trouble")
+        ]
+
+    def test_list_several_errors(self):
+        self.data = [
+            # Error at 1 ticks
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x01\x00\x00\x00'),
+
+            # Error number 11
+            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x00\x0B\x00\x00\x00'),
+
+            # Error at 2 ticks
+            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x01\x02\x00\x00\x00'),
+
+            # Error number 22
+            (TX, b'\x40\x02\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x01\x16\x00\x00\x00'),
+
+            # Error at 3 ticks
+            (TX, b'\x40\x03\x50\x02\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x02\x03\x00\x00\x00'),
+
+            # Error number 33
+            (TX, b'\x40\x02\x50\x02\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x02\x21\x00\x00\x00'),
+
+            # No more errors
+            (TX, b'\x40\x03\x50\x03\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x03\x00\x00\x00\x00'),
+        ]
+        lasterr = OIVariable("lasterr", 2038)
+        lasterr.value_descriptions = {
+            11: "Eleven",
+            22: "TwentyTwo",
+            33: "ThirtyThree"
+        }
+        self.node.object_dictionary.add_object(lasterr)
+
+        errors = self.node.list_errors()
+
+        assert errors == [
+            (timedelta(milliseconds=10), "Eleven"),
+            (timedelta(milliseconds=20), "TwentyTwo"),
+            (timedelta(milliseconds=30), "ThirtyThree"),
+        ]
+
+    def test_list_a_single_error_on_a_system_with_1_sec_ticks(self):
+        self.data = [
+            # Error at 3600 ticks (1 hour with 1 second tick)
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x10\x0E\x00\x00'),
+
+            # Error number "66"
+            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x02\x50\x00\x42\x00\x00\x00'),
+
+            # No more errors
+            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+        ]
+        lasterr = OIVariable("lasterr", 2038)
+        lasterr.value_descriptions = {66: "Ninety_nine_are_you_in_trouble"}
+        self.node.object_dictionary.add_object(lasterr)
+
+        uptime = OIVariable("uptime", 2054)
+        uptime.unit = "sec"
+        self.node.object_dictionary.add_object(uptime)
+
+        errors = self.node.list_errors()
+
+        assert errors == [
+            (timedelta(hours=1),
+             "Ninety_nine_are_you_in_trouble")
+        ]
 
 
 if __name__ == "__main__":

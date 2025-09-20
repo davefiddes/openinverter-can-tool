@@ -45,6 +45,10 @@ START_MODE_BUCK = 4
 START_MODE_SINE = 5
 START_MODE_ACHEAT = 6
 
+# Index for error times and numbers
+ERROR_NUM_INDEX = 0x5002
+ERROR_TIME_INDEX = 0x5003
+
 # SDO abort error codes - Not defined by canopen for some reason
 SDO_ABORT_OBJECT_NOT_AVAILABLE = 0x06020000
 SDO_ABORT_GENERAL_FAILURE = 0x08000000

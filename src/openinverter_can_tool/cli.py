@@ -857,6 +857,26 @@ def cmd_can_import(cli_settings: CliSettings,
     click.echo("Receive CAN message map configured")
 
 
+@cli.command("errors")
+@pass_cli_settings
+@db_action
+@can_action
+def list_errors(cli_settings: CliSettings) -> None:
+    """List all of the errors on a device"""
+
+    assert cli_settings.node
+    node = cli_settings.node
+
+    errors = node.list_errors()
+
+    if len(errors) > 0:
+        for error in errors:
+            error_time, error_string = error
+            click.echo(f"{str(error_time):20}: {error_string}")
+    else:
+        click.echo("No errors")
+
+
 @cli.command()
 @pass_cli_settings
 @can_action
