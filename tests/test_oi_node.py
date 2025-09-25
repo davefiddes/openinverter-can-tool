@@ -961,7 +961,7 @@ class TestOpenInverterNode(NetworkTestCase):
 
     def test_list_errors_on_device_that_does_not_know_how_to(self):
         self.data = [
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
             (RX, b'\x80\x00\x00\x00\x00\x00\x06\x02')  # SDO Abort
         ]
 
@@ -971,8 +971,8 @@ class TestOpenInverterNode(NetworkTestCase):
 
     def test_list_errors_on_happy_device(self):
         self.data = [
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x00\x00\x00\x00\x00')
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x00\x00\x00\x00\x00')
         ]
         errors = self.node.list_errors()
         assert len(errors) == 0
@@ -980,16 +980,16 @@ class TestOpenInverterNode(NetworkTestCase):
     def test_list_a_single_unknown_device_error(self):
         self.data = [
             # Error at 100 ticks (or 1 second with 10ms tick)
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x00\x64\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x00\x64\x00\x00\x00'),
 
             # Error number "42"
-            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x00\x2a\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x2a\x00\x00\x00'),
 
             # No more errors
-            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x01\x00\x00\x00\x00'),
         ]
 
         errors = self.node.list_errors()
@@ -999,16 +999,16 @@ class TestOpenInverterNode(NetworkTestCase):
     def test_list_a_single_error(self):
         self.data = [
             # Error at 0x12345678 ticks
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x00\x78\x56\x34\x12'),
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x00\x78\x56\x34\x12'),
 
             # Error number "66"
-            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x00\x42\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x42\x00\x00\x00'),
 
             # No more errors
-            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x01\x00\x00\x00\x00'),
         ]
         lasterr = OIVariable("lasterr", 2038)
         lasterr.value_descriptions = {66: "Ninety_nine_are_you_in_trouble"}
@@ -1028,32 +1028,32 @@ class TestOpenInverterNode(NetworkTestCase):
     def test_list_several_errors(self):
         self.data = [
             # Error at 1 ticks
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x00\x01\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x00\x01\x00\x00\x00'),
 
             # Error number 11
-            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x00\x0B\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x0B\x00\x00\x00'),
 
             # Error at 2 ticks
-            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x01\x02\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x01\x02\x00\x00\x00'),
 
             # Error number 22
-            (TX, b'\x40\x02\x50\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x01\x16\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x01\x16\x00\x00\x00'),
 
             # Error at 3 ticks
-            (TX, b'\x40\x03\x50\x02\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x02\x03\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x02\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x02\x03\x00\x00\x00'),
 
             # Error number 33
-            (TX, b'\x40\x02\x50\x02\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x02\x21\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x02\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x02\x21\x00\x00\x00'),
 
             # No more errors
-            (TX, b'\x40\x03\x50\x03\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x03\x00\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x03\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x03\x00\x00\x00\x00'),
         ]
         lasterr = OIVariable("lasterr", 2038)
         lasterr.value_descriptions = {
@@ -1074,16 +1074,16 @@ class TestOpenInverterNode(NetworkTestCase):
     def test_list_a_single_error_on_a_system_with_1_sec_ticks(self):
         self.data = [
             # Error at 3600 ticks (1 hour with 1 second tick)
-            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x00\x10\x0E\x00\x00'),
+            (TX, b'\x40\x04\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x00\x10\x0E\x00\x00'),
 
             # Error number "66"
-            (TX, b'\x40\x02\x50\x00\x00\x00\x00\x00'),
-            (RX, b'\x43\x02\x50\x00\x42\x00\x00\x00'),
+            (TX, b'\x40\x03\x50\x00\x00\x00\x00\x00'),
+            (RX, b'\x43\x03\x50\x00\x42\x00\x00\x00'),
 
             # No more errors
-            (TX, b'\x40\x03\x50\x01\x00\x00\x00\x00'),
-            (RX, b'\x43\x03\x50\x01\x00\x00\x00\x00'),
+            (TX, b'\x40\x04\x50\x01\x00\x00\x00\x00'),
+            (RX, b'\x43\x04\x50\x01\x00\x00\x00\x00'),
         ]
         lasterr = OIVariable("lasterr", 2038)
         lasterr.value_descriptions = {66: "Ninety_nine_are_you_in_trouble"}
