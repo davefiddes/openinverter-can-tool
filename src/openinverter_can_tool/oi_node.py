@@ -317,8 +317,7 @@ class OpenInverterNode(BaseNode):
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
                 return None
-            else:
-                raise err
+            raise err
 
         return can_id
 
@@ -361,8 +360,7 @@ class OpenInverterNode(BaseNode):
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
                 return None
-            else:
-                raise err
+            raise err
 
         return param
 
@@ -456,17 +454,15 @@ class OpenInverterNode(BaseNode):
                 can_sdo_index, param_sdo_index, UNSIGNED32.pack(0))
         except canopen.SdoCommunicationError as err:
             err_str = str(err)
-            if (err_str == "Unexpected response 0x20" or
-                    err_str == "Unexpected response 0x23"):
+            if err_str in ("Unexpected response 0x20",
+                           "Unexpected response 0x23"):
                 return True
-            else:
-                raise err
+            raise err
 
         except canopen.SdoAbortedError as err:
             if err.code == oi.SDO_ABORT_OBJECT_NOT_AVAILABLE:
                 return False
-            else:
-                raise err
+            raise err
 
         return True
 

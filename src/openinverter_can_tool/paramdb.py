@@ -34,8 +34,8 @@ def is_bitfield(values: Dict[int, str]) -> bool:
     # bitfield
     if len(values) <= 3:
         return False
-    else:
-        return True
+
+    return True
 
 
 def filter_zero_bytes(database_bytes: bytes) -> str:

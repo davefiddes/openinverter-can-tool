@@ -275,8 +275,8 @@ class StateMachine:
 
         if len(self._pages) > 0:
             return (self._confirmed_page * 100.0) / len(self._pages)
-        else:
-            return 100.0
+
+        return 100.0
 
     def reply(self, data: bytes) -> None:
         """Send a reply to the device."""
