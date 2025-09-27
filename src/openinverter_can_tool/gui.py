@@ -386,7 +386,8 @@ class OICGui:
                 self.device_db = import_cached_database(
                     self.network,
                     node_id,
-                    Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR))
+                    Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)),
+                    timeout
                 )
 
             self.node = OpenInverterNode(self.network, node_id, self.device_db)

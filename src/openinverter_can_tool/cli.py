@@ -82,7 +82,8 @@ def db_action(func):
                     device_db = import_cached_database(
                         network,
                         cli_settings.node_number,
-                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
+                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)),
+                        cli_settings.timeout)
 
             cli_settings.database = device_db
 
