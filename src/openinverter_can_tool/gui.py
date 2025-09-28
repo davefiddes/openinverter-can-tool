@@ -75,6 +75,7 @@ class OICGui:
         self.control_frame = ttk.Frame(self.notebook)
         self.can_mapping_frame = ttk.Frame(self.notebook)
         self.upgrade_frame = ttk.Frame(self.notebook)
+        self.error_frame = ttk.Frame(self.notebook)
 
         # Add tabs to notebook
         self.notebook.add(self.connection_frame, text="Connection")
@@ -82,6 +83,7 @@ class OICGui:
         self.notebook.add(self.control_frame, text="Device Control")
         self.notebook.add(self.can_mapping_frame, text="CAN Mapping")
         self.notebook.add(self.upgrade_frame, text="Firmware Upgrade")
+        self.notebook.add(self.error_frame, text="Error Log")
 
         # Initialize each tab
         self.init_connection_tab()
@@ -89,6 +91,7 @@ class OICGui:
         self.init_control_tab()
         self.init_can_mapping_tab()
         self.init_upgrade_tab()
+        self.init_error_tab()
 
         # Status bar
         self.status_var = tk.StringVar()
@@ -343,6 +346,38 @@ class OICGui:
         self.progress_bar = ttk.Progressbar(upgrade_frame, mode='determinate')
         self.progress_bar.pack(fill='x', pady=5)
 
+    def init_error_tab(self):
+        # Device error log display
+        error_frame = ttk.LabelFrame(
+            self.error_frame, text="Error Log", padding=10)
+        error_frame.pack(fill='both', expand=True, padx=10, pady=5)
+
+        # Treeview for error log
+        self.error_tree = ttk.Treeview(
+            error_frame, columns=('time', 'error'), show='headings')
+        self.error_tree.heading('time', text='Time')
+        self.error_tree.column('time', width=200, minwidth=200, stretch=False)
+        self.error_tree.heading('error', text='Error Message')
+
+        scrollbar = ttk.Scrollbar(
+            error_frame, orient='vertical', command=self.error_tree.yview)
+        self.error_tree.configure(yscrollcommand=scrollbar.set)
+
+        self.error_tree.pack(side='left', fill='both', expand=True)
+        scrollbar.pack(side='right', fill='y')
+
+        # Error control frame
+        control_frame = ttk.LabelFrame(
+            self.error_frame, text="Error Control", padding=10)
+        control_frame.pack(fill='x', padx=10, pady=5)
+
+        # Refresh button
+        button_frame = ttk.Frame(control_frame)
+        button_frame.grid(row=2, column=0, columnspan=3, pady=10)
+
+        ttk.Button(button_frame, text="Refresh",
+                   command=self.refresh_error_log).pack(side='left', padx=5)
+
     def log_output(self, message: str):
         self.output_text.insert(tk.END, message + "\n")
         self.output_text.see(tk.END)
@@ -399,6 +434,7 @@ class OICGui:
 
             self.log_output(f"Connected to node {node_id}")
             self.refresh_parameters()
+            self.refresh_error_log()
 
         except CONNECTION_EXCEPTIONS as e:
             messagebox.showerror("Connection Error", str(e))
@@ -419,6 +455,7 @@ class OICGui:
             self.disconnect_btn.config(state='disabled')
 
             self.param_tree.delete(*self.param_tree.get_children())
+            self.error_tree.delete(*self.error_tree.get_children())
             self.log_output("Disconnected")
 
         except CONNECTION_EXCEPTIONS as e:
@@ -469,37 +506,58 @@ class OICGui:
 
     @require_connection
     def refresh_parameters(self):
+        try:
+            self.param_tree.delete(*self.param_tree.get_children())
 
-        def refresh_thread():
-            try:
-                self.param_tree.delete(*self.param_tree.get_children())
+            for item in self.device_db.names.values():
+                try:
+                    value_str = value_to_str(
+                        item, fixed_to_float(self.node.sdo[item.name].raw))
 
-                for item in self.device_db.names.values():
-                    try:
-                        value_str = value_to_str(
-                            item, fixed_to_float(self.node.sdo[item.name].raw))
+                    range_str = ""
+                    if (item.isparam and item.min is not None and
+                            item.max is not None):
+                        range_str = f"{fixed_to_float(item.min):g} - " + \
+                            f"{fixed_to_float(item.max):g}"
 
-                        range_str = ""
-                        if (item.isparam and item.min is not None and
-                                item.max is not None):
-                            range_str = f"{fixed_to_float(item.min):g} - " + \
-                                f"{fixed_to_float(item.max):g}"
+                    self.param_tree.insert(
+                        '', 'end', text=item.name,
+                        values=(value_str, item.unit, range_str))
 
-                        self.param_tree.insert(
-                            '', 'end', text=item.name,
-                            values=(value_str, item.unit, range_str))
+                except CONNECTION_EXCEPTIONS as e:
+                    self.param_tree.insert(
+                        '', 'end', text=item.name,
+                        values=(f"Error: {e}", item.unit, ""))
 
-                    except CONNECTION_EXCEPTIONS as e:
-                        self.param_tree.insert(
-                            '', 'end', text=item.name,
-                            values=(f"Error: {e}", item.unit, ""))
+            self.log_output("Parameters refreshed")
 
-                self.log_output("Parameters refreshed")
+        except CONNECTION_EXCEPTIONS as e:
+            self.log_output(f"Failed to refresh parameters: {e}")
 
-            except CONNECTION_EXCEPTIONS as e:
-                self.log_output(f"Failed to refresh parameters: {e}")
+    @require_connection
+    def refresh_error_log(self):
+        try:
+            self.error_tree.delete(*self.error_tree.get_children())
 
-        threading.Thread(target=refresh_thread, daemon=True).start()
+            assert self.node
+            errors = self.node.list_errors()
+
+            if not errors:
+                self.error_tree.insert('', tk.END,
+                                       values=("", "(no errors)"))
+            else:
+                for error in errors:
+                    self.error_tree.insert('', tk.END, values=error)
+
+            self.log_output("Error log refreshed")
+
+        except CONNECTION_EXCEPTIONS as e:
+            if isinstance(e, SdoAbortedError) and e.code == 0x06020000:
+                self.log_output("Error log not supported by device")
+                self.error_tree.insert('', tk.END,
+                                       values=("", "(not supported)"))
+            else:
+                self.log_output(f"Failed to refresh error log: {e}")
 
     @require_connection
     def read_parameter(self):
