@@ -980,43 +980,52 @@ def upgrade(
             click.echo("\rUpgrade completed successfully!".ljust(40))
 
     assert cli_settings.network is not None
-    if recover:
-        if serial and len(serial) != 8:
-            click.echo("Device serial numbers should be 8 hexadecimal digits")
-            return
+    try:
+        if recover:
+            if serial and len(serial) != 8:
+                click.echo(
+                    "Device serial numbers should be 8 hexadecimal digits")
+                return
 
-        if serial:
-            recovery_serialno = bytes.fromhex(serial)
+            if serial:
+                recovery_serialno = bytes.fromhex(serial)
+            else:
+                recovery_serialno = None
+
+            upgrader = CanUpgrader(cli_settings.network, recovery_serialno,
+                                   firmware_file, _print_progress)
+
         else:
-            recovery_serialno = None
+            if serial:
+                click.echo(
+                    "Serial numbers do not need to be provided for normal "
+                    "upgrades")
+                return
 
-        upgrader = CanUpgrader(cli_settings.network, recovery_serialno,
-                               firmware_file, _print_progress)
+            assert cli_settings.node
+            node_serialno = cli_settings.node.serial_no()
 
-    else:
-        if serial:
-            click.echo("Serial numbers do not need to be provided for normal "
-                       "upgrades")
-            return
+            upgrader = CanUpgrader(cli_settings.network, node_serialno[:4],
+                                   firmware_file, _print_progress)
 
-        assert cli_settings.node
-        node_serialno = cli_settings.node.serial_no()
+            try:
+                if not cli_settings.debug:
+                    # suppress logging errors from the canopen library if the
+                    # device doesn't respond when asked to reset
+                    logging.disable(logging.ERROR)
 
-        upgrader = CanUpgrader(cli_settings.network, node_serialno[:4],
-                               firmware_file, _print_progress)
+                cli_settings.node.reset()
+            except canopen.SdoCommunicationError:
+                pass
 
-        try:
-            if not cli_settings.debug:
-                # suppress logging errors from the canopen library if the
-                # device doesn't respond when asked to reset
-                logging.disable(logging.ERROR)
+        if not upgrader.run(wait):
+            click.echo("\r\nUpgrade timed out")
 
-            cli_settings.node.reset()
-        except canopen.SdoCommunicationError:
-            pass
+    except FileNotFoundError:
+        click.echo(f"Firmware file {firmware_file} not found")
 
-    if not upgrader.run(wait):
-        click.echo("\r\nUpgrade timed out")
+    except ValueError as err:
+        click.echo(f"Firmware file error: {err}")
 
 
 @cli.group()

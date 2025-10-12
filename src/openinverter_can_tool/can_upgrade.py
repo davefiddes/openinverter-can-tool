@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import array
 import queue
+import re
 import struct
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import List, Optional, Callable
+from typing import Callable, List, Optional
 
 import canopen
 
@@ -110,8 +111,21 @@ class CanUpgrader:
         self._pages: List[Page] = []
 
         with open(firmware, "rb") as firmware_file:
+            first_page = True
             while True:
                 data = firmware_file.read(PAGE_SIZE)
+
+                if first_page and data:
+                    first_page = False
+                    if data[0:4] == b'\x7fELF':
+                        raise ValueError(
+                            "ELF firmware images are not supported. "
+                            "Select the binary image instead")
+
+                    if re.compile(rb'^:([0-9A-Fa-f]{2}){4,}').match(data):
+                        raise ValueError(
+                            "Intel HEX firmware images are not supported. "
+                            "Select the binary image instead")
 
                 if data:
                     self.pages.append(Page(data))

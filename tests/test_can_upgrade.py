@@ -21,6 +21,8 @@ EMPTY_FIRMWARE = UPGRADE_DATA_DIR / "empty-firmware.bin"
 MINIMAL_FIRMWARE = UPGRADE_DATA_DIR / "minimal-firmware.bin"
 ONE_PAGE_FIRMWARE = UPGRADE_DATA_DIR / "one-page-firmware.bin"
 TWO_PAGE_FIRMWARE = UPGRADE_DATA_DIR / "two-page-firmware.bin"
+ELF_FIRMWARE = UPGRADE_DATA_DIR / "one-page-firmware.elf"
+INTEL_HEX_FIRMWARE = UPGRADE_DATA_DIR / "one-page-firmware.hex"
 
 # Reduce test verbosity
 # pylint: disable=missing-function-docstring
@@ -110,6 +112,18 @@ class TestFirmwareLoading:
         # a real device
         assert upgrader.pages[0].crc == 0x41B309C3
         assert upgrader.pages[1].crc == 0x1AB9F829
+
+    def test_elf_firmware_fails_to_load(self):
+        with pytest.raises(
+                ValueError, match="ELF firmware images are not supported. "
+                "Select the binary image instead"):
+            CanUpgrader(canopen.Network(), None, ELF_FIRMWARE)
+
+    def test_intel_hex_firmware_fails_to_load(self):
+        with pytest.raises(
+                ValueError, match="Intel HEX firmware images are not"
+                " supported. Select the binary image instead"):
+            CanUpgrader(canopen.Network(), None, INTEL_HEX_FIRMWARE)
 
 
 QUICK_TIMEOUT = 0.01
