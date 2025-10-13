@@ -45,6 +45,11 @@ The GUI provides access to all major functionality of the CLI tool through a tab
 - Monitor upgrade progress with progress bar
 - Specify serial numbers for recovery mode
 
+### Error Log Tab
+
+- List the device's error log
+- Refresh the error log display
+
 ## Usage Tips
 
 1. **Connection**: Start by configuring your CAN interface in the Connection tab. If you don't specify a context, the tool will use the default python-can configuration.
