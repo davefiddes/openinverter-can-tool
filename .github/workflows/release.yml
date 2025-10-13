@@ -83,7 +83,6 @@ jobs:
         '${{ github.ref_name }}'
         --repo '${{ github.repository }}'
         --draft
-        --notes-from-tag
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
