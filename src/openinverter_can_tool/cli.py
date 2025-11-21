@@ -285,8 +285,9 @@ def read(cli_settings: CliSettings, param: str) -> None:
 @click.option("-s", "--step",
               default=1,
               show_default=True,
-              type=click.IntRange(1, 3600),
-              help="Time to wait before querying for new data in seconds")
+              type=click.FloatRange(0.1, 3600),
+              help="Time to wait before querying for new data in seconds. "
+              "Fractions of a second are allowed")
 @click.option("--timestamp/--no-timestamp",
               show_default=True,
               default=True,
@@ -302,7 +303,7 @@ def read(cli_settings: CliSettings, param: str) -> None:
 def log(cli_settings: CliSettings,
         params: tuple,
         out_file: click.File,
-        step: int,
+        step: float,
         timestamp: bool,
         symbolic: bool) -> None:
     """
