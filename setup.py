@@ -21,7 +21,7 @@ long_description = re.sub(r'\[!\[Build status.*\)\n\n', '', long_description)
 
 setup(
     name="openinverter-can-tool",
-    version="0.5.0",
+    version="0.5.1",
     description="Tool to configure and operate OpenInverter systems over CAN",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -42,6 +42,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: 3 :: Only",
     ],
 
