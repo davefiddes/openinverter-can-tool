@@ -82,7 +82,8 @@ def db_action(func):
                     device_db = import_cached_database(
                         network,
                         cli_settings.node_number,
-                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)))
+                        Path(appdirs.user_cache_dir(oi.APPNAME, oi.APPAUTHOR)),
+                        cli_settings.timeout)
 
             cli_settings.database = device_db
 
@@ -284,8 +285,9 @@ def read(cli_settings: CliSettings, param: str) -> None:
 @click.option("-s", "--step",
               default=1,
               show_default=True,
-              type=click.IntRange(1, 3600),
-              help="Time to wait before querying for new data in seconds")
+              type=click.FloatRange(0.1, 3600),
+              help="Time to wait before querying for new data in seconds. "
+              "Fractions of a second are allowed")
 @click.option("--timestamp/--no-timestamp",
               show_default=True,
               default=True,
@@ -301,7 +303,7 @@ def read(cli_settings: CliSettings, param: str) -> None:
 def log(cli_settings: CliSettings,
         params: tuple,
         out_file: click.File,
-        step: int,
+        step: float,
         timestamp: bool,
         symbolic: bool) -> None:
     """
@@ -857,6 +859,26 @@ def cmd_can_import(cli_settings: CliSettings,
     click.echo("Receive CAN message map configured")
 
 
+@cli.command("errors")
+@pass_cli_settings
+@db_action
+@can_action
+def list_errors(cli_settings: CliSettings) -> None:
+    """List all of the errors on a device"""
+
+    assert cli_settings.node
+    node = cli_settings.node
+
+    errors = node.list_errors()
+
+    if len(errors) > 0:
+        for error in errors:
+            error_time, error_string = error
+            click.echo(f"{str(error_time):20}: {error_string}")
+    else:
+        click.echo("No errors")
+
+
 @cli.command()
 @pass_cli_settings
 @can_action
@@ -959,43 +981,52 @@ def upgrade(
             click.echo("\rUpgrade completed successfully!".ljust(40))
 
     assert cli_settings.network is not None
-    if recover:
-        if serial and len(serial) != 8:
-            click.echo("Device serial numbers should be 8 hexadecimal digits")
-            return
+    try:
+        if recover:
+            if serial and len(serial) != 8:
+                click.echo(
+                    "Device serial numbers should be 8 hexadecimal digits")
+                return
 
-        if serial:
-            recovery_serialno = bytes.fromhex(serial)
+            if serial:
+                recovery_serialno = bytes.fromhex(serial)
+            else:
+                recovery_serialno = None
+
+            upgrader = CanUpgrader(cli_settings.network, recovery_serialno,
+                                   firmware_file, _print_progress)
+
         else:
-            recovery_serialno = None
+            if serial:
+                click.echo(
+                    "Serial numbers do not need to be provided for normal "
+                    "upgrades")
+                return
 
-        upgrader = CanUpgrader(cli_settings.network, recovery_serialno,
-                               firmware_file, _print_progress)
+            assert cli_settings.node
+            node_serialno = cli_settings.node.serial_no()
 
-    else:
-        if serial:
-            click.echo("Serial numbers do not need to be provided for normal "
-                       "upgrades")
-            return
+            upgrader = CanUpgrader(cli_settings.network, node_serialno[:4],
+                                   firmware_file, _print_progress)
 
-        assert cli_settings.node
-        node_serialno = cli_settings.node.serial_no()
+            try:
+                if not cli_settings.debug:
+                    # suppress logging errors from the canopen library if the
+                    # device doesn't respond when asked to reset
+                    logging.disable(logging.ERROR)
 
-        upgrader = CanUpgrader(cli_settings.network, node_serialno[:4],
-                               firmware_file, _print_progress)
+                cli_settings.node.reset()
+            except canopen.SdoCommunicationError:
+                pass
 
-        try:
-            if not cli_settings.debug:
-                # suppress logging errors from the canopen library if the
-                # device doesn't respond when asked to reset
-                logging.disable(logging.ERROR)
+        if not upgrader.run(wait):
+            click.echo("\r\nUpgrade timed out")
 
-            cli_settings.node.reset()
-        except canopen.SdoCommunicationError:
-            pass
+    except FileNotFoundError:
+        click.echo(f"Firmware file {firmware_file} not found")
 
-    if not upgrader.run(wait):
-        click.echo("\r\nUpgrade timed out")
+    except ValueError as err:
+        click.echo(f"Firmware file error: {err}")
 
 
 @cli.group()

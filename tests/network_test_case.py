@@ -2,6 +2,7 @@
 
 import unittest
 from typing import List, Tuple, Type
+import inspect
 
 import canopen
 
@@ -41,7 +42,12 @@ class NetworkTestCase(unittest.TestCase):
         network = canopen.Network()
         network.NOTIFIER_SHUTDOWN_TIMEOUT = 0.0
         network.send_message = self._send_message
-        node = self._node_type(network, 2)
+
+        arg_spec = inspect.getfullargspec(self._node_type.__init__)
+        if len(arg_spec.args) > 3:
+            node = self._node_type(network, 2, canopen.ObjectDictionary())
+        else:
+            node = self._node_type(network, 2)
         if "sdo" in node.__dict__:
             node.sdo.RESPONSE_TIMEOUT = 0.01
         self.node = node

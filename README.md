@@ -29,13 +29,14 @@ electric vehicles over a CAN connection.
   * Save parameters to flash
   * Revert parameters to their default values
   * Reset
+* Display a device's error log
 * Scan a CAN bus for possible nodes
 * Runs on Linux, Windows and MacOS with python 3.9+
 * Support [shell completion](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/shell-completion.md) for commands and options for bash, zsh and fish shells
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
 * Automatic parameter database download and caching (requires stm32-sine 5.27.R or later)
-* Works with [Foccci/Clara](https://github.com/uhi22/ccs32clara) CCS controller and [Stm32-vcu](https://github.com/damienmaguire/Stm32-vcu) (a.k.a. Zombieverter VCU)
+* Works with [Foccci/Clara](https://github.com/uhi22/ccs32clara) CCS controller, [Stm32-vcu](https://github.com/damienmaguire/Stm32-vcu) (a.k.a. Zombieverter VCU) and [Flying ADC BMS](https://github.com/jsphuebner/FlyingAdcBms)
 
 ## Installation
 
@@ -70,11 +71,7 @@ channel = can0
 bitrate = 500000
 ```
 
-Note: Before the tool can on Linux run the SocketCAN network interface needs to be started:
-
-```text
-    sudo ip link set can0 up type can bitrate 500000
-```
+Note: Before the tool can on Linux run the SocketCAN network interface needs to be started. Read the [guide](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/socketcan-config.md) on how to do this.
 
 An example configuration file for a [SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html) adapter such as [GVRET](https://github.com/collin80/GVRET) on Windows would look like:
 
@@ -87,10 +84,11 @@ bitrate = 500000
 
 ### Tested interfaces
 
-* [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) CAN interface in Linux using `socketcan`
-* [GVRET](https://github.com/collin80/GVRET) CAN interface using `slcan` in Linux
-* [MKS CANable V2.0 Pro](https://github.com/makerbase-mks/CANable-MKS) using `slcan` in Windows and Linux
-* [FYSETC UCAN](https://www.ebay.co.uk/itm/267167770235) using `slcan` in MacOS
+* [Innomaker USB2CAN](https://www.inno-maker.com/product/usb2can-cable/) in Linux using `socketcan`
+* [GVRET](https://github.com/collin80/GVRET) in Linux using `slcan`
+* [MKS CANable V2.0 Pro](https://github.com/makerbase-mks/CANable-MKS) in Windows and Linux using `slcan`
+* [FYSETC UCAN](https://www.ebay.co.uk/itm/267167770235) in MacOS using `slcan`
+* [Peak PCAN-USB](https://www.peak-system.com/PCAN-USB.199.0.html?L=1) in Linux using `socketcan`
 
 Let me know if you have used a particular CAN interface successfully and I can expand this list.
 
@@ -128,6 +126,7 @@ To get the usage information for the tool run the `oic` command with no paramete
     can         Manage parameter to CAN message mappings on a device
     cmd         Execute a command on a device
     dumpall     Dump the values of all available parameters and values
+    errors      List all of the errors on a device
     listparam   List the definition of PARAM
     listparams  List all available parameters and values
     load        Load all parameters from json IN_FILE

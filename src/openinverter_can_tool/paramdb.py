@@ -34,8 +34,8 @@ def is_bitfield(values: Dict[int, str]) -> bool:
     # bitfield
     if len(values) <= 3:
         return False
-    else:
-        return True
+
+    return True
 
 
 def filter_zero_bytes(database_bytes: bytes) -> str:
@@ -199,7 +199,8 @@ def import_remote_database(
 def import_cached_database(
         network: canopen.Network,
         node_id: int,
-        cache_location: Path
+        cache_location: Path,
+        timeout: float = 0.3
 ) -> canopen.ObjectDictionary:
     """Import an OpenInverter parameter database from a remote node and cache
     it for quicker access in future.
@@ -214,6 +215,9 @@ def import_cached_database(
     :param cache_location:
         A directory containing the parameter database cache.
 
+    :param timeout:
+        Time to wait for a response from the node in seconds.
+
     :returns:
         The Object Dictionary.
 
@@ -226,6 +230,7 @@ def import_cached_database(
     node = RemoteDatabaseNode(network, node_id)
 
     with node:
+        node.sdo_client.RESPONSE_TIMEOUT = timeout
         checksum = node.param_db_checksum()
 
         cache_file = cache_location / f"{node_id}-{checksum}.json"
