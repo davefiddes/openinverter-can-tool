@@ -9,7 +9,7 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from ...paramdb import OIVariable
 from .parameter_value_item import ParameterValueItem
 
-PARAMETER_HEADERS = ["Name", "Value", "Units"]
+PARAMETER_HEADERS = ["Name", "Value"]
 
 PARAMETER_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
@@ -46,12 +46,7 @@ class ParameterModel(QStandardItemModel):
                 dummy_value_item = QStandardItem()
                 dummy_value_item.setFlags(PARAMETER_FLAGS)
 
-                dummy_units_item = QStandardItem()
-                dummy_units_item.setFlags(PARAMETER_FLAGS)
-
-                category_row = [category_item,
-                                dummy_value_item,
-                                dummy_units_item]
+                category_row = [category_item, dummy_value_item]
 
                 self.appendRow(category_row)
 
@@ -61,13 +56,7 @@ class ParameterModel(QStandardItemModel):
             value_item = ParameterValueItem(param, 0.0)
             value_item.setFlags(PARAMETER_FLAGS | Qt.ItemFlag.ItemIsEditable)
 
-            if param.bit_definitions or param.value_descriptions:
-                units_item = QStandardItem()
-            else:
-                units_item = QStandardItem(param.unit)
-            units_item.setFlags(PARAMETER_FLAGS)
-
-            category_row[0].appendRow([name_item, value_item, units_item])
+            category_row[0].appendRow([name_item, value_item])
             self._values[param_name] = value_item
 
         self.endResetModel()

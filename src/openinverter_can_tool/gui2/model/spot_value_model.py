@@ -6,9 +6,9 @@ from PySide6.QtCore import QObject, Qt, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
-from .parameter_value_item import ParameterValueItem
+from .spot_value_item import SpotValueItem
 
-SPOT_VALUE_HEADERS = ["Name", "Value", "Units"]
+SPOT_VALUE_HEADERS = ["Name", "Value"]
 
 SPOT_VALUE_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
@@ -19,7 +19,7 @@ class SpotValueModel(QStandardItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(SPOT_VALUE_HEADERS)
-        self._values: Dict[str, ParameterValueItem] = {}
+        self._values: Dict[str, SpotValueItem] = {}
 
     def populate_from_database(self, device_db: canopen.ObjectDictionary):
         """Populate the model with spot values from the device database."""
@@ -39,16 +39,10 @@ class SpotValueModel(QStandardItemModel):
             name_item = QStandardItem(param_name)
             name_item.setFlags(SPOT_VALUE_FLAGS)
 
-            value_item = ParameterValueItem(param, 0.0)
+            value_item = SpotValueItem(param, 0.0)
             value_item.setFlags(SPOT_VALUE_FLAGS)
 
-            if param.bit_definitions or param.value_descriptions:
-                units_item = QStandardItem()
-            else:
-                units_item = QStandardItem(param.unit)
-            units_item.setFlags(SPOT_VALUE_FLAGS)
-
-            self.appendRow([name_item, value_item, units_item])
+            self.appendRow([name_item, value_item])
             self._values[param_name] = value_item
 
         self.endResetModel()

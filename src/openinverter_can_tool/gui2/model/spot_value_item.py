@@ -1,4 +1,4 @@
-"""Custom item for parameter value display with units as suffix"""
+"""Custom item for spot value display with units as suffix"""
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItem
@@ -6,9 +6,10 @@ from PySide6.QtGui import QStandardItem
 from ...paramdb import OIVariable, value_to_str
 
 
-class ParameterValueItem(QStandardItem):
+class SpotValueItem(QStandardItem):
     """
-    Custom item for parameter values. Combines value and units display.
+    Custom item for spot values. Combines value and units display
+    like QDoubleSpinBox suffix.
     """
 
     def __init__(self, param: OIVariable, value: float):
@@ -19,7 +20,7 @@ class ParameterValueItem(QStandardItem):
         self._update_display()
 
     def type(self) -> int:
-        return self.ItemType.UserType + 1  # type: ignore
+        return self.ItemType.UserType + 2  # type: ignore
 
     @property
     def value(self) -> float:
