@@ -3,6 +3,8 @@
 from PySide6.QtCore import QAbstractItemModel
 from PySide6.QtWidgets import QHeaderView, QTreeView
 
+from ..model.parameter_delegate import ParameterDelegate
+
 
 class ParamView(QTreeView):
     """A tree view representing all of the configurable parameters allowing
@@ -18,6 +20,9 @@ class ParamView(QTreeView):
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
         self.setStyleSheet("QTreeView::item { padding: 5px }")
+
+        # Set up the delegate for editing parameters
+        self.setItemDelegate(ParameterDelegate(self))
 
     def setModel(self, model: QAbstractItemModel | None) -> None:
         super().setModel(model)
