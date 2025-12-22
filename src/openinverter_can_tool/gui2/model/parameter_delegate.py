@@ -239,3 +239,12 @@ class ParameterDelegate(QStyledItemDelegate):
             item.value = editor.currentData()
         else:
             super().setModelData(editor, model, index)
+
+    def updateEditorGeometry(
+        self,
+        editor: QWidget,
+        option,
+        index: Union[QModelIndex, QPersistentModelIndex],
+    ) -> None:
+        """Update editor geometry to fill the entire space available."""
+        editor.setGeometry(option.rect)
