@@ -548,6 +548,7 @@ class DatabaseImport(unittest.TestCase):
 
         assert len(database) == 1
         item = database["Inverter"]
+        assert isinstance(item, OIVariable)
         self.assertEqual(len(item.value_descriptions), len(expected_enums))
         for value, description in expected_enums.items():
             self.assertEqual(
@@ -579,6 +580,7 @@ class DatabaseImport(unittest.TestCase):
 
         assert len(database) == 1
         item = database["CAN3Speed"]
+        assert isinstance(item, OIVariable)
 
         self.assertEqual(len(item.value_descriptions), len(expected_enums))
         for value, description in expected_enums.items():
@@ -611,6 +613,7 @@ class DatabaseImport(unittest.TestCase):
 
         assert len(database) == 1
         item = database["Out1Func"]
+        assert isinstance(item, OIVariable)
         assert item.value_descriptions[11] == "HVRequest"
         assert item.value_descriptions[12] == "DCFCRequest"
         assert item.value_descriptions[13] == "BrakeVacPump"
@@ -637,6 +640,7 @@ class DatabaseImport(unittest.TestCase):
 
         assert len(database) == 1
         item = database["Option"]
+        assert isinstance(item, OIVariable)
         assert item.unit == ("0=starts-ok, 1, 2=ends-well [DB FORMAT ERROR]")
         assert len(item.value_descriptions) == 0
 
