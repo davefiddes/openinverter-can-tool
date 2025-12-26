@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox,
                                QDoubleSpinBox, QFrame, QPushButton,
                                QStyledItemDelegate, QVBoxLayout, QWidget)
 
+from ...fpfloat import fixed_to_float
 from ...paramdb import OIVariable
 from .parameter_value_item import ParameterValueItem
 
@@ -140,7 +141,8 @@ class ParameterDelegate(QStyledItemDelegate):
         if not isinstance(item, ParameterValueItem):
             return super().createEditor(parent, option, index)
 
-        param: OIVariable = item.param
+        assert isinstance(item.param, OIVariable)
+        param = item.param
 
         # Handle bit definitions - checkboxes for each bit
         if param.bit_definitions:
@@ -161,9 +163,9 @@ class ParameterDelegate(QStyledItemDelegate):
 
         # Set some defaults for the spin box based on parameter metadata
         assert param.min is not None and param.max is not None
-        editor.setRange(param.min, param.max)
-        editor.setSingleStep(1.0)
-        editor.setDecimals(2)
+        editor.setRange(fixed_to_float(param.min), fixed_to_float(param.max))
+        editor.setSingleStep(param.step)
+        editor.setDecimals(param.decimals)
 
         # Set unit as suffix if available
         if param.unit:

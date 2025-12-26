@@ -2,8 +2,8 @@
 OpenInverter parameter database functions
 """
 
-
 import json
+import math
 import re
 from pathlib import Path
 from typing import Dict, Optional
@@ -72,6 +72,10 @@ class OIVariable(canopen.objectdictionary.Variable):
 
         # This replaces the parent's bit_definitions member
         self.bit_definitions: Dict[int, str] = {}  # type: ignore
+
+        # Add some properties to help with editing values
+        self.step: int = 1
+        self.decimals: int = 2
 
     @property
     def id(self) -> int:
@@ -150,6 +154,28 @@ def import_database_json(
             var.min = fixed_from_float(float(param["minimum"]))
             var.max = fixed_from_float(float(param["maximum"]))
             var.default = fixed_from_float(float(param["default"]))
+
+            # Determine step size based on the range of the parameter.
+            # For parameters that span zero, use the maximum absolute value
+            # to ensure they have the same step size as single-sided ranges.
+            min_val = float(param["minimum"])
+            max_val = float(param["maximum"])
+            if min_val < 0 and max_val > 0:
+                # Range spans zero, use the maximum absolute value
+                range_size = max(abs(min_val), abs(max_val))
+            else:
+                # Range doesn't span zero, use actual range
+                range_size = max_val - min_val
+            step_order = math.floor(math.log10(range_size))
+            var.step = 10**(step_order - 2)
+
+            # Detect integer parameters and remove decimal places
+            if var.unit and var.unit.startswith("dig"):
+                var.decimals = 0
+                if var.step < 1:
+                    var.step = 1
+            else:
+                var.decimals = 2
 
         dictionary.add_object(var)
 

@@ -640,6 +640,234 @@ class DatabaseImport(unittest.TestCase):
         assert item.unit == ("0=starts-ok, 1, 2=ends-well [DB FORMAT ERROR]")
         assert len(item.value_descriptions) == 0
 
+    def test_small_digit_parameters_have_single_step_and_no_decimals(self):
+        """Verify that small digit parameters with have a single step
+        size of 1 and no decimal places"""
+
+        raw_json = {
+            "idcflt": {
+                "unit": "dig",
+                "id": 132,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 11.00,
+                "default": 9.00,
+                "category": "Derating",
+                "i": 59
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["idcflt"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 0)
+        self.assertEqual(item.step, 1)
+
+    def test_large_digit_parameters_have_single_step_and_no_decimals(self):
+        """Verify that larger digit parameters have a step size in tens and no
+        decimal places"""
+
+        raw_json = {
+            "potmax": {
+                "unit": "dig",
+                "id": 18,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 3500.00,
+                "default": 3500.00,
+                "category": "Throttle",
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["potmax"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 0)
+        self.assertEqual(item.step, 10)
+
+    def test_parameter_that_start_dig_are_treated_as_digits(self):
+        """Verify that parameters with units that start with 'dig' are treated
+        as digit parameters even if they have extra text after 'dig'"""
+
+        raw_json = {
+            "il1gain": {"unit": "dig/A",
+                        "id": 27,
+                        "isparam": True,
+                        "minimum": -100.00,
+                        "maximum": 100.00,
+                        "default": 4.68,
+                        "category": "Inverter"
+                        }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["il1gain"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 0)
+        self.assertEqual(item.step, 1)
+
+    def test_percentage_parameters_step_in_single_percent(self):
+        """Verify that percentage parameters have a step size of 1%"""
+
+        raw_json = {
+            "max_charge_percent": {
+                "unit": "%",
+                "minimum": "0",
+                "maximum": "100",
+                "default": "80",
+                "isparam": True,
+                "category": "Charging",
+                "id": "55"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["max_charge_percent"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 1)
+
+    def test_voltage_parameters_step_in_volts(self):
+        """Verify that voltage parameters have a step size of 1V"""
+
+        raw_json = {
+            "udclim": {
+                "unit": "V",
+                "id": 48,
+                "value": 540.00,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 1000.00,
+                "default": 540.00,
+                "category": "Inverter"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["udclim"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 10)
+
+    def test_large_current_parameters_step_in_tens_of_amps(self):
+        """Verify that large current parameters have a step size in tens of
+        amps"""
+
+        raw_json = {
+            "idcmax": {
+                "unit": "A",
+                "id": 96,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 5000.00,
+                "default": 5000.00,
+                "category": "Derating"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["idcmax"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 10)
+
+    def test_params_with_negative_range_has_same_step_as_positive(self):
+        """The steps size should match the previous test with a positive
+        range."""
+
+        raw_json = {
+            "bidirectional_param": {
+                "unit": "A",
+                "id": 2001,
+                "isparam": True,
+                "minimum": -5000.00,
+                "maximum": 0.00,
+                "default": 0.00,
+                "category": "Test"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["bidirectional_param"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 10)
+
+    def test_params_with_positive_and_negative_range(self):
+        """A parameters with a positive and negative range will
+        have a step size that matches the positive or negative only ranges."""
+
+        raw_json = {
+            "bidirectional_param": {
+                "unit": "A",
+                "id": 2001,
+                "isparam": True,
+                "minimum": -5000.00,
+                "maximum": 5000.00,
+                "default": 0.00,
+                "category": "Test"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["bidirectional_param"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 10)
+
+    def test_params_with_range_biased_away_from_zero(self):
+        """A parameters with a range biased away from zero should
+        have a step size that matches a range of the same size around zero"""
+
+        raw_json = {
+            "bidirectional_param": {
+                "unit": "A",
+                "id": 2001,
+                "isparam": True,
+                "minimum": 5000.00,
+                "maximum": 10000.00,
+                "default": 0.00,
+                "category": "Test"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["bidirectional_param"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 10)
+
+    def test_huge_dimensionless_params_have_large_step(self):
+        """Verify that huge dimensionless parameters have a large step size"""
+
+        raw_json = {
+            "huge_param": {
+                "unit": "",
+                "id": 2000,
+                "isparam": True,
+                "minimum": 0.00,
+                "maximum": 100000.00,
+                "default": 50000.00,
+                "category": "Test"
+            }}
+
+        database = import_database_json(raw_json)
+
+        assert len(database) == 1
+        item = database["huge_param"]
+        assert isinstance(item, OIVariable)
+        self.assertEqual(item.decimals, 2)
+        self.assertEqual(item.step, 1000)
+
 
 class TestCachedDatabases:
     """
