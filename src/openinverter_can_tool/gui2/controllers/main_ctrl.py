@@ -92,12 +92,10 @@ class MainController(QObject):
         device_db = node.object_dictionary
         assert device_db
 
-        self._model.param_values.clear()
-        for param_name in device_db.names:
-            try:
+        try:
+            for param_name in device_db.names:
                 value = fixed_to_float(int(node.sdo[param_name].raw))
-            except SdoAbortedError as e:
-                self.can_error.emit(
-                    f"Failed to read parameter {param_name}: {e}")
-                value = 0.0
-            self._model.update_value(param_name, value)
+                self._model.update_value(param_name, value)
+        except CAN_EXCEPTIONS as e:
+            self.can_error.emit(
+                f"Failed to refresh parameter values: {e}")
