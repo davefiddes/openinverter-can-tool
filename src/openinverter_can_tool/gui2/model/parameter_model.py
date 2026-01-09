@@ -3,7 +3,7 @@ displaying in a QTreeView"""
 
 from typing import Dict
 
-from PySide6.QtCore import QObject, Qt, Slot
+from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
@@ -15,10 +15,13 @@ PARAMETER_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
 
 class ParameterModel(QStandardItemModel):
+    parameter_changed = Signal(str, float)
+
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(PARAMETER_HEADERS)
         self._values: Dict[str, ParameterValueItem] = {}
+        self.itemChanged.connect(self._on_item_changed)
 
     def populate_from_database(self, device_db):
         """Populate the model with parameters from the device database."""
@@ -61,7 +64,15 @@ class ParameterModel(QStandardItemModel):
 
         self.endResetModel()
 
-    @Slot()
-    def parameter_changed(self, param_name: str, value: float) -> None:
+    @Slot(QStandardItem)
+    def _on_item_changed(self, item: QStandardItem) -> None:
+        """Handle item changes and emit parameter_changed signal."""
+        for param_name, value_item in self._values.items():
+            if value_item is item:
+                self.parameter_changed.emit(param_name, value_item.value)
+                return
+
+    def set_value(self, param_name: str, value: float) -> None:
+        """Set a parameter value but do not emit the changed signal."""
         if param_name in self._values:
             self._values[param_name].value = value

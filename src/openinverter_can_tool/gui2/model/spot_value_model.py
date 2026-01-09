@@ -2,7 +2,7 @@
 from typing import Dict
 
 import canopen
-from PySide6.QtCore import QObject, Qt, Slot
+from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 from ...paramdb import OIVariable
@@ -47,7 +47,7 @@ class SpotValueModel(QStandardItemModel):
 
         self.endResetModel()
 
-    @Slot()
-    def parameter_changed(self, param_name: str, value: float) -> None:
+    def set_value(self, param_name: str, value: float) -> None:
+        """Update the spot value with a new value"""
         if param_name in self._values:
             self._values[param_name].value = value

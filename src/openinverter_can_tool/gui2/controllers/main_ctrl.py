@@ -7,9 +7,9 @@ from canopen import SdoAbortedError, SdoCommunicationError
 from PySide6.QtCore import QObject, Signal, Slot
 
 from ... import constants as oi
-from ...fpfloat import fixed_to_float
+from ...fpfloat import fixed_from_float, fixed_to_float
 from ...oi_node import OpenInverterNode
-from ...paramdb import import_cached_database
+from ...paramdb import import_cached_database, OIVariable
 from ..model.model import Model
 
 # Define a constant for connection exceptions which we want to handle
@@ -31,6 +31,9 @@ class MainController(QObject):
 
         self._model = model
         self._network = canopen.Network()
+
+        self._model.param_model.parameter_changed.connect(
+            self._on_parameter_changed)
 
     @Slot(int)
     def start_new_session(self, node_id: int):
@@ -61,7 +64,6 @@ class MainController(QObject):
 
             self._model.param_model.populate_from_database(device_db)
             self._model.spot_value_model.populate_from_database(device_db)
-            self._model.param_values.clear()
 
             self.refresh_values()
 
@@ -93,9 +95,37 @@ class MainController(QObject):
         assert device_db
 
         try:
+            # Disconnect parameter_changed while we refresh
+            self._model.param_model.parameter_changed.disconnect(
+                self._on_parameter_changed)
+
             for param_name in device_db.names:
                 value = fixed_to_float(int(node.sdo[param_name].raw))
-                self._model.update_value(param_name, value)
+
+                param_item = device_db.names[param_name]
+                if isinstance(param_item, OIVariable):
+                    if param_item.isparam:
+                        self._model.param_model.set_value(param_name, value)
+                    else:
+                        self._model.spot_value_model.set_value(
+                            param_name, value)
         except CAN_EXCEPTIONS as e:
             self.can_error.emit(
                 f"Failed to refresh parameter values: {e}")
+        finally:
+            self._model.param_model.parameter_changed.connect(
+                self._on_parameter_changed)
+
+    @Slot(str, float)
+    def _on_parameter_changed(self, param_name: str, value: float) -> None:
+        """Handle parameter changes and write them to the node."""
+
+        if not self._model.connected or self._model.node is None:
+            return
+
+        try:
+            node = self._model.node
+            node.sdo[param_name].raw = fixed_from_float(value)
+        except CAN_EXCEPTIONS as e:
+            self.can_error.emit(
+                f"Failed to write parameter {param_name}: {e}")
