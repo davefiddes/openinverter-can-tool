@@ -3,6 +3,7 @@ from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
 from ...oi_node import OpenInverterNode
+from .error_model import ErrorModel
 from .parameter_model import ParameterModel
 from .spot_value_model import SpotValueModel
 
@@ -18,6 +19,7 @@ class Model(QObject):
 
         self.spot_value_model = SpotValueModel()
         self.param_model = ParameterModel()
+        self.error_model = ErrorModel()
 
     @property
     def node(self) -> Optional[OpenInverterNode]:

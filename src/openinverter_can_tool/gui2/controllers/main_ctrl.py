@@ -109,6 +109,17 @@ class MainController(QObject):
                     else:
                         self._model.spot_value_model.set_value(
                             param_name, value)
+
+            try:
+                errors = node.list_errors()
+                self._model.error_model.populate(errors)
+            except SdoAbortedError as err:
+                if err.code == 0x06020000:
+                    # Error listing not supported
+                    self._model.error_model.set_not_supported()
+                else:
+                    raise err
+
         except CAN_EXCEPTIONS as e:
             self.can_error.emit(
                 f"Failed to refresh parameter values: {e}")

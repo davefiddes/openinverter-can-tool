@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
+from .error_view import ErrorView
 from .param_view import ParamView
 from .spot_value_view import SpotValueView
 
@@ -203,5 +204,10 @@ class MainView(QMainWindow):
         spot_value_view = SpotValueView()
         spot_value_view.setModel(self._model.spot_value_model)
         tab_widget.addTab(spot_value_view, "Spot Values")
+
+        # Errors tab
+        error_view = ErrorView()
+        error_view.setModel(self._model.error_model)
+        tab_widget.addTab(error_view, "Errors")
 
         self.setCentralWidget(tab_widget)
