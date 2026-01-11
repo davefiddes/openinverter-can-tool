@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import appdirs
 import canopen
@@ -126,6 +127,14 @@ class MainController(QObject):
         finally:
             self._model.param_model.parameter_changed.connect(
                 self._on_parameter_changed)
+
+    @Slot()
+    def save_parameters(self, path: Path) -> None:
+        """Save current parameters to a file."""
+
+        with open(path, 'w', encoding='utf-8') as out_file:
+            json.dump(
+                self._model.param_model.to_json(), out_file, indent=4)
 
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float) -> None:

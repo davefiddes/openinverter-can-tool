@@ -76,3 +76,10 @@ class ParameterModel(QStandardItemModel):
         """Set a parameter value but do not emit the changed signal."""
         if param_name in self._values:
             self._values[param_name].value = value
+
+    def to_json(self) -> dict:
+        """Create a JSON document based on the current model"""
+        doc = {}
+        for param_name, value_item in self._values.items():
+            doc[param_name] = value_item.value
+        return doc

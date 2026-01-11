@@ -1,7 +1,9 @@
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QIcon, QKeySequence
-from PySide6.QtWidgets import (QInputDialog, QLabel, QMainWindow, QMessageBox,
-                               QTabWidget)
+from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
+                               QMessageBox, QTabWidget)
 
 from ..controllers.main_ctrl import MainController
 from ..model.model import Model
@@ -85,6 +87,25 @@ class MainView(QMainWindow):
         if ok:
             self._main_controller.start_new_session(node_id)
 
+    @Slot()
+    def _on_save_parameters(self) -> None:
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Parameters",
+            "",
+            "JSON Files (*.json);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                self._main_controller.save_parameters(Path(file_path))
+                self.statusBar().showMessage("Parameters saved")
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Save Parameter Error",
+                    f"Failed to save parameters: {e}")
+
     def create_actions(self):
         icon = QIcon(':/icons/window-new.png')
         self._new_act = QAction(
@@ -115,7 +136,7 @@ class MainView(QMainWindow):
             statusTip="Save the current parameters to disk",
             shortcut=QKeySequence(QKeySequence.StandardKey.Save)
         )
-        self._save_act.triggered.connect(self._on_not_implemented)
+        self._save_act.triggered.connect(self._on_save_parameters)
 
         icon = QIcon(':/icons/go-up.png')
         self._upgrade_act = QAction(
