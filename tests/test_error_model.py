@@ -26,7 +26,7 @@ class TestErrorModelInitialization(unittest.TestCase):
 
         self.assertEqual(model.rowCount(), 1)
         self.assertEqual(model.item(0, 0).text(), "No errors")
-        self.assertEqual(model.item(0, 1), None)
+        self.assertIsNone(model.item(0, 1))
 
 
 class TestErrorModelPopulateEmpty(unittest.TestCase):
@@ -38,6 +38,7 @@ class TestErrorModelPopulateEmpty(unittest.TestCase):
 
         self.assertEqual(model.rowCount(), 1)
         self.assertEqual(model.item(0, 0).text(), "No errors")
+        self.assertIsNone(model.item(0, 1))
 
     def test_clears_existing_errors_when_populated_empty(self):
         model = ErrorModel()
@@ -50,6 +51,7 @@ class TestErrorModelPopulateEmpty(unittest.TestCase):
 
         self.assertEqual(model.rowCount(), 1)
         self.assertEqual(model.item(0, 0).text(), "No errors")
+        self.assertIsNone(model.item(0, 1))
 
 
 class TestErrorModelPopulateSingleError(unittest.TestCase):
@@ -83,10 +85,12 @@ class TestErrorModelPopulateSingleError(unittest.TestCase):
     def test_removes_no_error_banner_when_populated_with_error(self):
         model = ErrorModel()
         self.assertEqual(model.item(0, 0).text(), "No errors")
+        self.assertIsNone(model.item(0, 1))
 
         model.populate([(timedelta(seconds=1), "Error")])
 
         self.assertNotEqual(model.item(0, 0).text(), "No errors")
+        self.assertIsNotNone(model.item(0, 1))
 
 
 class TestErrorModelPopulateMultipleErrors(unittest.TestCase):
@@ -176,6 +180,7 @@ class TestErrorModelRepopulation(unittest.TestCase):
 
         self.assertEqual(model.rowCount(), 1)
         self.assertEqual(model.item(0, 0).text(), "No errors")
+        self.assertIsNone(model.item(0, 1))
 
 
 class TestErrorModelNotSupported(unittest.TestCase):
@@ -190,6 +195,7 @@ class TestErrorModelNotSupported(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNone(model.item(0, 1))
 
     def test_clears_errors_when_set_not_supported(self):
         model = ErrorModel()
@@ -198,10 +204,8 @@ class TestErrorModelNotSupported(unittest.TestCase):
         model.set_not_supported()
 
         self.assertEqual(model.rowCount(), 1)
-        self.assertNotEqual(
-            model.item(0, 0).text(),
-            "Error"
-        )
+        self.assertNotEqual(model.item(0, 0).text(), "Error")
+        self.assertIsNone(model.item(0, 1))
 
     def test_replaces_no_error_with_not_supported(self):
         model = ErrorModel()
@@ -212,6 +216,7 @@ class TestErrorModelNotSupported(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNone(model.item(0, 1))
 
 
 class TestErrorModelEdgeCases(unittest.TestCase):
@@ -264,6 +269,7 @@ class TestErrorModelEdgeCases(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNone(model.item(0, 1))
 
     def test_alternating_populate_and_not_supported(self):
         model = ErrorModel()
@@ -274,6 +280,7 @@ class TestErrorModelEdgeCases(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNotNone(model.item(0, 1))
 
         model.set_not_supported()
         self.assertEqual(model.rowCount(), 1)
@@ -281,6 +288,7 @@ class TestErrorModelEdgeCases(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNone(model.item(0, 1))
 
         model.populate([(timedelta(seconds=2), "New error")])
         self.assertEqual(model.rowCount(), 1)
@@ -288,6 +296,7 @@ class TestErrorModelEdgeCases(unittest.TestCase):
             model.item(0, 0).text(),
             "Error listing not supported by device"
         )
+        self.assertIsNotNone(model.item(0, 1))
 
 
 if __name__ == "__main__":
