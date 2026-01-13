@@ -1,7 +1,7 @@
 """Model representing the parameters and their current value suitable for
 displaying in a QTreeView"""
 
-from typing import Dict
+from typing import Dict, Optional
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel
@@ -17,7 +17,7 @@ PARAMETER_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 class ParameterModel(QStandardItemModel):
     parameter_changed = Signal(str, float)
 
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(PARAMETER_HEADERS)
         self._values: Dict[str, ParameterValueItem] = {}

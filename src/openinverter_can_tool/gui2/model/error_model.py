@@ -1,6 +1,6 @@
 """Model representing error log entries"""
 from datetime import timedelta
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
@@ -13,7 +13,7 @@ ERROR_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 class ErrorModel(QStandardItemModel):
     """Model for displaying device errors in a table."""
 
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(ERROR_HEADERS)
         self._add_no_error_banner()

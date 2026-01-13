@@ -3,20 +3,20 @@ Unit tests for the MVC ParameterModel used to manage device parameters.
 """
 
 import unittest
+from typing import Optional
 from unittest.mock import MagicMock
 
 from PySide6.QtGui import QStandardItem
 
 from src.openinverter_can_tool.gui2.model.parameter_model import ParameterModel
-from src.openinverter_can_tool.gui2.model.parameter_value_item import (
-    ParameterValueItem,
-)
+from src.openinverter_can_tool.gui2.model.parameter_value_item import \
+    ParameterValueItem
 from src.openinverter_can_tool.paramdb import OIVariable
 
 
 def find_parameter_name_item(
     model: ParameterModel, param_name: str
-) -> QStandardItem | None:
+) -> Optional[QStandardItem]:
     """Helper function to find a parameter item by name."""
     for category_row in range(model.rowCount()):
         category_item = model.item(category_row, 0)
@@ -29,7 +29,7 @@ def find_parameter_name_item(
 
 def find_parameter_value_item(
         model: ParameterModel, param_name: str
-) -> ParameterValueItem | None:
+) -> Optional[ParameterValueItem]:
     """Helper function to find a ParameterValueItem by parameter name."""
     for category_row in range(model.rowCount()):
         category_item = model.item(category_row, 0)
