@@ -3,10 +3,11 @@
 from typing import Union, cast
 
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtGui import QStandardItemModel
+from PySide6.QtGui import QColor, QPainter, QStandardItemModel
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox,
                                QDoubleSpinBox, QFrame, QPushButton,
-                               QStyledItemDelegate, QVBoxLayout, QWidget)
+                               QStyledItemDelegate, QToolTip, QVBoxLayout,
+                               QWidget)
 
 from ...fpfloat import fixed_to_float
 from ...paramdb import OIVariable
@@ -124,6 +125,46 @@ class ParameterDelegate(QStyledItemDelegate):
     """
     Custom delegate for editing parameters with type-specific editors.
     """
+
+    def paint(
+        self,
+        painter: QPainter,
+        option,
+        index: Union[QModelIndex, QPersistentModelIndex],
+    ) -> None:
+        """Paint the item with error highlighting if applicable."""
+        # Get the model to access the ParameterValueItem
+        view = cast(QAbstractItemView, self.parent())
+        model = cast(QStandardItemModel, view.model())
+        item = model.itemFromIndex(index)
+
+        # Check if this is a ParameterValueItem with an error
+        if isinstance(item, ParameterValueItem) and item.error:
+            # Create a copy of the option to modify the foreground color
+            option.palette.setColor(
+                option.palette.ColorRole.Text, QColor(Qt.GlobalColor.red)
+            )
+
+        # Call parent paint with potentially modified option
+        super().paint(painter, option, index)
+
+    def helpEvent(
+        self,
+        event,
+        view: QAbstractItemView,
+        option,
+        index: Union[QModelIndex, QPersistentModelIndex],
+    ) -> bool:
+        """Display error message as tooltip."""
+        if event.type() == event.Type.ToolTip:
+            model = cast(QStandardItemModel, view.model())
+            item = model.itemFromIndex(index)
+
+            if isinstance(item, ParameterValueItem) and item.error:
+                QToolTip.showText(event.globalPos(), item.error, view)
+                return True
+
+        return super().helpEvent(event, view, option, index)
 
     def createEditor(
         self,

@@ -20,6 +20,7 @@ class ParamView(QTreeView):
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
         self.setStyleSheet("QTreeView::item { padding: 5px }")
+        self.setMouseTracking(True)
 
         # Set up the delegate for editing parameters
         self.setItemDelegate(ParameterDelegate(self))

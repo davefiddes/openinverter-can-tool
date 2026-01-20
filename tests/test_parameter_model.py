@@ -8,10 +8,11 @@ from unittest.mock import MagicMock
 
 from PySide6.QtGui import QStandardItem
 
-from src.openinverter_can_tool.gui2.model.parameter_model import ParameterModel
-from src.openinverter_can_tool.gui2.model.parameter_value_item import \
+from openinverter_can_tool.fpfloat import fixed_from_float
+from openinverter_can_tool.gui2.model.parameter_model import ParameterModel
+from openinverter_can_tool.gui2.model.parameter_value_item import \
     ParameterValueItem
-from src.openinverter_can_tool.paramdb import OIVariable
+from openinverter_can_tool.paramdb import OIVariable
 
 
 def find_parameter_name_item(
@@ -223,6 +224,8 @@ class TestParameterModelSetValue(unittest.TestCase):
         param = OIVariable("testparam", 1)
         param.isparam = True
         param.category = "Test"
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
 
         self.device_db.names = {"testparam": param}
         self.model.populate_from_database(self.device_db)
@@ -253,7 +256,7 @@ class TestParameterModelSetValue(unittest.TestCase):
 
 
 class TestParameterModelSerialization(unittest.TestCase):
-    """Tests for JSON serialization and deserialization."""
+    """Tests for JSON serialization"""
 
     def setUp(self):
         self.model = ParameterModel()
@@ -262,10 +265,14 @@ class TestParameterModelSerialization(unittest.TestCase):
         param1 = OIVariable("param1", 1)
         param1.isparam = True
         param1.category = "Test"
+        param1.min = fixed_from_float(0.0)
+        param1.max = fixed_from_float(100.0)
 
         param2 = OIVariable("param2", 2)
         param2.isparam = True
         param2.category = "Test"
+        param2.min = fixed_from_float(0.0)
+        param2.max = fixed_from_float(100.0)
 
         self.device_db.names = {"param1": param1, "param2": param2}
         self.model.populate_from_database(self.device_db)
@@ -299,6 +306,198 @@ class TestParameterModelSerialization(unittest.TestCase):
         result = empty_model.to_json()
 
         self.assertEqual(result, {})
+
+
+class TestParameterValueItemRangeCheckFloat(unittest.TestCase):
+    """Tests for ParameterValueItem range checking with float parameters."""
+
+    def test_initialise_valid_float_value_has_no_error(self):
+        param = OIVariable("test_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 60.0)
+
+        self.assertEqual(item.error, "")
+
+    def test_set_valid_float_value_has_no_error(self):
+        param = OIVariable("test_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 0.0)
+        item.value = 75.5
+
+        self.assertEqual(item.error, "")
+
+    def test_initialise_float_value_too_large_sets_error(self):
+        param = OIVariable("test_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 155.5)
+
+        expected_error = (
+            "Value 155.5 is larger than the maximum value "
+            "100 allowed for test_param"
+        )
+        self.assertEqual(item.error, expected_error)
+        self.assertEqual(item.value, 155.5)
+
+    def test_set_float_value_too_large_sets_error(self):
+        param = OIVariable("test_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 50)
+        item.value = 155.5
+
+        expected_error = (
+            "Value 155.5 is larger than the maximum value "
+            "100 allowed for test_param"
+        )
+        self.assertEqual(item.error, expected_error)
+        self.assertEqual(item.value, 155.5)
+
+    def test_set_float_value_too_small_sets_error(self):
+        param = OIVariable("test_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, -10.0)
+
+        expected_error = (
+            "Value -10 is smaller than the minimum value "
+            "0 allowed for test_param"
+        )
+        self.assertEqual(item.error, expected_error)
+        self.assertEqual(item.value, -10.0)
+
+    def test_float_out_of_range_error_with_different_param_name(self):
+        param = OIVariable("my_param", 1)
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 155.5)
+
+        expected_error = (
+            "Value 155.5 is larger than the maximum value "
+            "100 allowed for my_param"
+        )
+        self.assertEqual(item.error, expected_error)
+
+
+class TestParameterValueItemRangeCheckEnum(unittest.TestCase):
+    """Tests for ParameterValueItem range checking with enum parameters."""
+
+    def test_set_valid_enum_value_has_no_error(self):
+        param = OIVariable("test_param", 1)
+        param.value_descriptions = {1: "OptionA", 2: "OptionB"}
+
+        item = ParameterValueItem(param, 1.0)
+
+        self.assertEqual(item.error, "")
+
+    def test_set_enum_value_that_doesnt_exist_sets_error(self):
+        param = OIVariable("test_param", 1)
+        param.value_descriptions = {1: "OptionA", 2: "OptionB"}
+
+        item = ParameterValueItem(param, 3)
+
+        expected_error = (
+            "Unable to find value: '3' for parameter: test_param. "
+            "Valid values are {1: 'OptionA', 2: 'OptionB'}"
+        )
+        self.assertEqual(item.error, expected_error)
+        self.assertEqual(item.value, 3.0)
+
+
+class TestParameterValueItemRangeCheckBitfield(unittest.TestCase):
+    """Tests for ParameterValueItem range checking with bitfield parameters."""
+
+    def test_set_valid_bitfield_value_has_no_error(self):
+        param = OIVariable("test_param", 1)
+        param.bit_definitions = {1: "BitA", 2: "BitB"}
+
+        item = ParameterValueItem(param, 0x01 | 0x02)
+
+        self.assertEqual(item.error, "")
+        self.assertEqual(item.value, 3.0)
+
+    def test_set_bitfield_value_that_doesnt_exist_sets_error(self):
+        param = OIVariable("test_param", 1)
+        param.bit_definitions = {1: "BitA", 2: "BitB"}
+
+        item = ParameterValueItem(param, 4)
+
+        expected_error = (
+            "Unable to find bit: '4' for parameter: test_param. "
+            "Valid bits are {1: 'BitA', 2: 'BitB'}"
+        )
+        self.assertEqual(item.error, expected_error)
+        self.assertEqual(item.value, 4.0)
+
+    def test_bitfield_zero_value_has_no_error(self):
+        param = OIVariable("test_param", 1)
+        param.bit_definitions = {1: "BitA", 2: "BitB"}
+
+        item = ParameterValueItem(param, 0.0)
+
+        self.assertEqual(item.error, "")
+
+
+class TestParameterValueItemDisplay(unittest.TestCase):
+    """Tests for ParameterValueItem display formatting."""
+
+    def test_display_shows_value_and_unit(self):
+        param = OIVariable("test_param", 1)
+        param.unit = "km/h"
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 42.5)
+
+        self.assertEqual(item.text(), "42.5 km/h")
+
+    def test_display_without_unit(self):
+        param = OIVariable("test_param", 1)
+        param.unit = ""
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 42.5)
+
+        self.assertEqual(item.text(), "42.5")
+
+    def test_display_without_unit_for_enum(self):
+        param = OIVariable("test_param", 1)
+        param.unit = "km/h"
+        param.value_descriptions = {1: "OptionA", 2: "OptionB"}
+
+        item = ParameterValueItem(param, 1.0)
+
+        self.assertEqual(item.text(), "OptionA")
+
+    def test_display_without_unit_for_bitfield(self):
+        param = OIVariable("test_param", 1)
+        param.unit = "flags"
+        param.bit_definitions = {1: "BitA", 2: "BitB"}
+
+        item = ParameterValueItem(param, 3.0)
+
+        self.assertEqual(item.text(), "BitA, BitB")
+
+    def test_display_updates_when_value_changes(self):
+        param = OIVariable("test_param", 1)
+        param.unit = "V"
+        param.min = fixed_from_float(0.0)
+        param.max = fixed_from_float(100.0)
+
+        item = ParameterValueItem(param, 10.0)
+        self.assertEqual(item.text(), "10 V")
+
+        item.value = 20.0
+        self.assertEqual(item.text(), "20 V")
 
 
 if __name__ == "__main__":
