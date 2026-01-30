@@ -24,6 +24,7 @@ def test_network():
 
     # Cleanup: disconnect the network
     network.disconnect()
+    del network
 
 
 @pytest.fixture
@@ -37,3 +38,4 @@ def simulator():
     yield simulator
 
     simulator.shutdown()
+    del simulator
