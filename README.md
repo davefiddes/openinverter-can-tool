@@ -1,6 +1,6 @@
 # OpenInverter CAN tool
 
-[![Build status](../../actions/workflows/test.yml/badge.svg)](../../actions/workflows/test.yml)
+[![Build status](https://github.com/davefiddes/openinverter-can-tool/actions/workflows/test.yml/badge.svg)](https://github.com/davefiddes/openinverter-can-tool/actions/workflows/test.yml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/openinverter-can-tool)
 ![PyPI - License](https://img.shields.io/pypi/l/openinverter-can-tool)
 
