@@ -3,7 +3,6 @@ Unit test parameter database functions
 """
 import filecmp
 import json
-import unittest
 from pathlib import Path
 from typing import cast
 
@@ -25,7 +24,7 @@ TEST_DATA_DIR = Path(__file__).parent / "test_data" / "paramdb"
 # pylint: disable=missing-function-docstring
 
 
-class OpenInverterVariable(unittest.TestCase):
+class TestOpenInverterVariable:
     """
     Unit test the OIVariable class used to represent the not quite CANopen
     variable representation method used by OpenInverter
@@ -34,36 +33,36 @@ class OpenInverterVariable(unittest.TestCase):
     def test_zero_id(self):
         """ OpenInverter parameters all start with an index of 0x2100"""
         var = OIVariable("zero_id",  0)
-        self.assertEqual(var.index, 0x2100)
-        self.assertEqual(var.subindex, 0)
+        assert var.index == 0x2100
+        assert var.subindex == 0
 
     def test_small_id(self):
         """ Check that ids < 0xff only affect the subindex byte"""
         var = OIVariable("id",  1)
-        self.assertEqual(var.index, 0x2100)
-        self.assertEqual(var.subindex, 1)
+        assert var.index == 0x2100
+        assert var.subindex == 1
 
         var = OIVariable("id",  42)
-        self.assertEqual(var.index, 0x2100)
-        self.assertEqual(var.subindex, 42)
+        assert var.index == 0x2100
+        assert var.subindex == 42
 
         var = OIVariable("id",  0xff)
-        self.assertEqual(var.index, 0x2100)
-        self.assertEqual(var.subindex, 0xff)
+        assert var.index == 0x2100
+        assert var.subindex == 0xff
 
     def test_large_id(self):
         """ Check that larger IDs are split into the correct index/subindex"""
         var = OIVariable("large_id", 2015)
-        self.assertEqual(var.index, 0x2107)
-        self.assertEqual(var.subindex, 0xdf)
+        assert var.index == 0x2107
+        assert var.subindex == 0xdf
 
     def test_return_id(self):
         """ Check that the OpenInverter ID is stored as well as the CANopen
         index and sub-index. """
         var = OIVariable("id",  2015)
-        self.assertEqual(var.id, 2015)
-        self.assertEqual(var.index, 0x2107)
-        self.assertEqual(var.subindex, 0xdf)
+        assert var.id == 2015
+        assert var.index == 0x2107
+        assert var.subindex == 0xdf
 
     def test_modify_index(self):
         """ Check that it is possible to modify the sub-index and have this
@@ -71,17 +70,17 @@ class OpenInverterVariable(unittest.TestCase):
         var = OIVariable("id",  2015)
         var.index = 0x2100
         var.subindex = 0xff
-        self.assertEqual(var.id, 0xff)
-        self.assertEqual(var.index, 0x2100)
-        self.assertEqual(var.subindex, 0xff)
+        assert var.id == 0xff
+        assert var.index == 0x2100
+        assert var.subindex == 0xff
 
     def test_repr(self):
         """ Check that the repr() method returns a useful string """
         var = OIVariable("id",  2015)
-        self.assertEqual(repr(var), "<OIVariable 'id' at 2015>")
+        assert repr(var) == "<OIVariable 'id' at 2015>"
 
 
-class DatabaseImport(unittest.TestCase):
+class TestDatabaseImport:
     """
     Unit test the JSON parameter database import functionality
     """
@@ -98,8 +97,9 @@ class DatabaseImport(unittest.TestCase):
 
     def test_empty_db_file(self):
         """Verify that an empty file loads but contains no entries"""
-        self.assertCountEqual(import_database(
-            TEST_DATA_DIR / "empty-but-valid.json"), [])
+        result = list(import_database(
+            TEST_DATA_DIR / "empty-but-valid.json"))
+        assert result == []
 
     def test_single_param(self):
         """Verify that a simple database with a single parameter
@@ -107,16 +107,16 @@ class DatabaseImport(unittest.TestCase):
         database = import_database(TEST_DATA_DIR / "single-param.json")
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
-        self.assertEqual(item.index, 0x2100)
-        self.assertEqual(item.subindex, 1)
-        self.assertEqual(item.unit, "km / h")
-        self.assertEqual(item.min, fixed_from_float(0))
-        self.assertEqual(item.max, fixed_from_float(100))
-        self.assertEqual(item.default, fixed_from_float(5))
-        self.assertEqual(item.factor, 32)
-        self.assertEqual(item.data_type, canopen.objectdictionary.INTEGER32)
-        self.assertTrue(item.isparam)
-        self.assertEqual(item.category, "Category")
+        assert item.index == 0x2100
+        assert item.subindex == 1
+        assert item.unit == "km / h"
+        assert item.min == fixed_from_float(0)
+        assert item.max == fixed_from_float(100)
+        assert item.default == fixed_from_float(5)
+        assert item.factor == 32
+        assert item.data_type == canopen.objectdictionary.INTEGER32
+        assert item.isparam
+        assert item.category == "Category"
 
     def test_complex_params(self):
         """Verify that a more complex database with a variety of parameters
@@ -147,32 +147,30 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the exepected params exist
         for param in expected_params:
             item = cast(OIVariable, database[param["name"]])
-            self.assertEqual(item.index, param["index"])
-            self.assertEqual(item.subindex, param["subindex"])
-            self.assertEqual(item.unit, param["unit"])
-            self.assertEqual(item.isparam, param["isparam"])
+            assert item.index == param["index"]
+            assert item.subindex == param["subindex"]
+            assert item.unit == param["unit"]
+            assert item.isparam == param["isparam"]
 
             # optional fields only present for params not values
             if item.isparam:
-                self.assertEqual(item.min, fixed_from_float(param["min"]))
-                self.assertEqual(item.max, fixed_from_float(param["max"]))
-                self.assertEqual(
-                    item.default, fixed_from_float(param["default"]))
-                self.assertEqual(item.category, param["category"])
+                assert item.min == fixed_from_float(param["min"])
+                assert item.max == fixed_from_float(param["max"])
+                assert item.default == fixed_from_float(param["default"])
+                assert item.category == param["category"]
             else:
-                self.assertEqual(item.min, None)
-                self.assertEqual(item.max, None)
-                self.assertEqual(item.default, None)
-                self.assertEqual(item.category, None)
+                assert item.min is None
+                assert item.max is None
+                assert item.default is None
+                assert item.category is None
 
-            self.assertEqual(item.factor, 32)
-            self.assertEqual(
-                item.data_type, canopen.objectdictionary.INTEGER32)
+            assert item.factor == 32
+            assert item.data_type == canopen.objectdictionary.INTEGER32
 
     def test_unicode_param(self):
         """Verify that databases with Unicode work. We need this for degree
@@ -180,16 +178,16 @@ class DatabaseImport(unittest.TestCase):
         database = import_database(TEST_DATA_DIR / "unicode.json")
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
-        self.assertEqual(item.index, 0x2100)
-        self.assertEqual(item.subindex, 1)
-        self.assertEqual(item.unit, "°")
-        self.assertEqual(item.min, fixed_from_float(0))
-        self.assertEqual(item.max, fixed_from_float(100))
-        self.assertEqual(item.default, fixed_from_float(5))
-        self.assertEqual(item.factor, 32)
-        self.assertEqual(item.data_type, canopen.objectdictionary.INTEGER32)
-        self.assertTrue(item.isparam)
-        self.assertEqual(item.category, "😬")
+        assert item.index == 0x2100
+        assert item.subindex == 1
+        assert item.unit == "°"
+        assert item.min == fixed_from_float(0)
+        assert item.max == fixed_from_float(100)
+        assert item.default == fixed_from_float(5)
+        assert item.factor == 32
+        assert item.data_type == canopen.objectdictionary.INTEGER32
+        assert item.isparam
+        assert item.category == "😬"
 
     def test_raw_json_dict(self):
         """Verify that it is possible to parse a raw JSON dictionary without
@@ -225,41 +223,40 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the expected params exist
         for param in expected_params:
             item = cast(OIVariable, database[param["name"]])
-            self.assertEqual(item.index, param["index"])
-            self.assertEqual(item.subindex, param["subindex"])
-            self.assertEqual(item.unit, param["unit"])
-            self.assertEqual(item.isparam, param["isparam"])
+            assert item.index == param["index"]
+            assert item.subindex == param["subindex"]
+            assert item.unit == param["unit"]
+            assert item.isparam == param["isparam"]
 
             # optional fields only present for params not values
             if item.isparam:
-                self.assertEqual(item.min, fixed_from_float(param["min"]))
-                self.assertEqual(item.max, fixed_from_float(param["max"]))
-                self.assertEqual(
-                    item.default, fixed_from_float(param["default"]))
-                self.assertEqual(item.category, param["category"])
+                assert item.min == fixed_from_float(param["min"])
+                assert item.max == fixed_from_float(param["max"])
+                assert item.default == fixed_from_float(param["default"])
+                assert item.category == param["category"]
             else:
-                self.assertEqual(item.min, None)
-                self.assertEqual(item.max, None)
-                self.assertEqual(item.default, None)
-                self.assertEqual(item.category, None)
+                assert item.min is None
+                assert item.max is None
+                assert item.default is None
+                assert item.category is None
 
-            self.assertEqual(item.factor, 32)
-            self.assertEqual(item.data_type,
-                             canopen.objectdictionary.INTEGER32)
+            assert item.factor == 32
+            assert item.data_type == canopen.objectdictionary.INTEGER32
 
-    def test_remote_db(self):
+    def test_remote_db(self,
+                       test_network: canopen.Network,
+                       simulator: OISimulatedNode):
         """Verify that it is possible to load a database located on a remote
         CAN bus node."""
 
-        simulator = OISimulatedNode(13)
         simulator.LoadDatabase(TEST_DATA_DIR / "complex.json")
 
-        database = import_remote_database(simulator.network, 13)
+        database = import_remote_database(test_network, 42)
 
         expected_params = [
             {"name": "curkp", "isparam": True, "unit": "",
@@ -285,44 +282,43 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the expected params exist
         for param in expected_params:
             item = cast(OIVariable, database[param["name"]])
-            self.assertEqual(item.index, param["index"])
-            self.assertEqual(item.subindex, param["subindex"])
-            self.assertEqual(item.unit, param["unit"])
-            self.assertEqual(item.isparam, param["isparam"])
+            assert item.index == param["index"]
+            assert item.subindex == param["subindex"]
+            assert item.unit == param["unit"]
+            assert item.isparam == param["isparam"]
 
             # optional fields only present for params not values
             if item.isparam:
-                self.assertEqual(item.min, fixed_from_float(param["min"]))
-                self.assertEqual(item.max, fixed_from_float(param["max"]))
-                self.assertEqual(
-                    item.default, fixed_from_float(param["default"]))
-                self.assertEqual(item.category, param["category"])
+                assert item.min == fixed_from_float(param["min"])
+                assert item.max == fixed_from_float(param["max"])
+                assert item.default == fixed_from_float(param["default"])
+                assert item.category == param["category"]
             else:
-                self.assertEqual(item.min, None)
-                self.assertEqual(item.max, None)
-                self.assertEqual(item.default, None)
-                self.assertEqual(item.category, None)
+                assert item.min is None
+                assert item.max is None
+                assert item.default is None
+                assert item.category is None
 
-            self.assertEqual(item.factor, 32)
-            self.assertEqual(
-                item.data_type, canopen.objectdictionary.INTEGER32)
+            assert item.factor == 32
+            assert item.data_type == canopen.objectdictionary.INTEGER32
 
-    def test_remote_db_with_zero_bytes(self):
+    def test_remote_db_with_zero_bytes(self,
+                                       test_network: canopen.Network,
+                                       simulator: OISimulatedNode):
         """Due to a race condition in OpenInverter firmware the database can
         contain additional 0x00 bytes interspersed with the expected byte
         stream. Verify that these databases can be loaded correctly from a
         remote node."""
 
-        simulator = OISimulatedNode(13)
         simulator.LoadDatabase(
             TEST_DATA_DIR / "complex-with-added-zero-bytes.json")
 
-        database = import_remote_database(simulator.network, 13)
+        database = import_remote_database(test_network, 42)
 
         expected_params = [
             {"name": "curkp", "isparam": True, "unit": "",
@@ -348,57 +344,56 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the expected params exist
         for param in expected_params:
             item = cast(OIVariable, database[param["name"]])
-            self.assertEqual(item.index, param["index"])
-            self.assertEqual(item.subindex, param["subindex"])
-            self.assertEqual(item.unit, param["unit"])
-            self.assertEqual(item.isparam, param["isparam"])
+            assert item.index == param["index"]
+            assert item.subindex == param["subindex"]
+            assert item.unit == param["unit"]
+            assert item.isparam == param["isparam"]
 
             # optional fields only present for params not values
             if item.isparam:
-                self.assertEqual(item.min, fixed_from_float(param["min"]))
-                self.assertEqual(item.max, fixed_from_float(param["max"]))
-                self.assertEqual(
-                    item.default, fixed_from_float(param["default"]))
-                self.assertEqual(item.category, param["category"])
+                assert item.min == fixed_from_float(param["min"])
+                assert item.max == fixed_from_float(param["max"])
+                assert item.default == fixed_from_float(param["default"])
+                assert item.category == param["category"]
             else:
-                self.assertEqual(item.min, None)
-                self.assertEqual(item.max, None)
-                self.assertEqual(item.default, None)
-                self.assertEqual(item.category, None)
+                assert item.min is None
+                assert item.max is None
+                assert item.default is None
+                assert item.category is None
 
-            self.assertEqual(item.factor, 32)
-            self.assertEqual(
-                item.data_type, canopen.objectdictionary.INTEGER32)
+            assert item.factor == 32
+            assert item.data_type == canopen.objectdictionary.INTEGER32
 
-    def test_remote_unicode_db_with_zero_bytes(self):
+    def test_remote_unicode_db_with_zero_bytes(self,
+                                               test_network: canopen.Network,
+                                               simulator: OISimulatedNode):
         """Due to a race condition in OpenInverter firmware the database can
         contain additional NUL or 0x00 bytes. Verify that a databases with
         unicode utf-8 sequences with extra zero bytes can be loaded correctly
         from a remote node."""
 
-        simulator = OISimulatedNode(13)
         simulator.LoadDatabase(
             TEST_DATA_DIR / "unicode-with-added-zero-bytes.json")
 
-        database = import_remote_database(simulator.network, 13)
+        database = import_remote_database(test_network, 42)
 
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
-        self.assertEqual(item.index, 0x2100)
-        self.assertEqual(item.subindex, 1)
-        self.assertEqual(item.unit, "°")
-        self.assertEqual(item.min, fixed_from_float(0))
-        self.assertEqual(item.max, fixed_from_float(100))
-        self.assertEqual(item.default, fixed_from_float(5))
-        self.assertEqual(item.factor, 32)
-        self.assertEqual(item.data_type, canopen.objectdictionary.INTEGER32)
-        self.assertTrue(item.isparam)
-        self.assertEqual(item.category, "😬")
+        assert item.index == 0x2100
+        assert item.subindex == 1
+        assert item.unit == "°"
+        assert item.min == fixed_from_float(0)
+        assert item.max == fixed_from_float(100)
+        assert item.default == fixed_from_float(5)
+        assert item.factor == 32
+        assert item.data_type == canopen.objectdictionary.INTEGER32
+        assert item.isparam
+        assert item.category == "😬"
 
     def test_enum_dict(self):
         """Provide a dictionary with a variety of enumeration parameters.
@@ -459,20 +454,19 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
             assert isinstance(item, OIVariable)
-            self.assertFalse(item.bit_definitions)
+            assert not item.bit_definitions
 
             expected_enums = param["enums"]
 
-            self.assertEqual(len(item.value_descriptions), len(expected_enums))
+            assert len(item.value_descriptions) == len(expected_enums)
             for value, description in expected_enums.items():
-                self.assertEqual(
-                    item.value_descriptions[value], description)
+                assert item.value_descriptions[value] == description
 
     def test_bitfield_dict(self):
         """Provide a dictionary with a variety of bitfield parameters.
@@ -503,21 +497,19 @@ class DatabaseImport(unittest.TestCase):
         ]
 
         # Basic size check
-        self.assertEqual(len(database.names), len(expected_params))
+        assert len(database.names) == len(expected_params)
 
         # verify each of the expected params exist
         for param in expected_params:
             item = database[param["name"]]
             assert isinstance(item, OIVariable)
-            self.assertFalse(item.value_descriptions)
+            assert not item.value_descriptions
 
             expected_bitfield = param["bitfield"]
 
-            self.assertEqual(len(item.bit_definitions),
-                             len(expected_bitfield))
+            assert len(item.bit_definitions) == len(expected_bitfield)
             for value, description in expected_bitfield.items():
-                self.assertEqual(
-                    item.bit_definitions[value], description)
+                assert item.bit_definitions[value] == description
 
     def test_badly_punctuated_enum_missing_comma(self):
         """Extracted from issue #4 a badly punctuated enum should try
@@ -549,10 +541,9 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["Inverter"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(len(item.value_descriptions), len(expected_enums))
+        assert len(item.value_descriptions) == len(expected_enums)
         for value, description in expected_enums.items():
-            self.assertEqual(
-                item.value_descriptions[value], description)
+            assert item.value_descriptions[value] == description
 
     def test_badly_punctuated_enum_full_stop_rather_than_comma(self):
         """Extracted from issue #4 a badly punctuated enum should try
@@ -582,10 +573,9 @@ class DatabaseImport(unittest.TestCase):
         item = database["CAN3Speed"]
         assert isinstance(item, OIVariable)
 
-        self.assertEqual(len(item.value_descriptions), len(expected_enums))
+        assert len(item.value_descriptions) == len(expected_enums)
         for value, description in expected_enums.items():
-            self.assertEqual(
-                item.value_descriptions[value], description)
+            assert item.value_descriptions[value] == description
 
     def test_badly_punctuated_enum_with_no_spaces(self):
         """Extracted from issue #4 a badly punctuated enum without any spaces
@@ -665,8 +655,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["idcflt"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 0)
-        self.assertEqual(item.step, 1)
+        assert item.decimals == 0
+        assert item.step == 1
 
     def test_large_digit_parameters_have_single_step_and_no_decimals(self):
         """Verify that larger digit parameters have a step size in tens and no
@@ -688,8 +678,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["potmax"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 0)
-        self.assertEqual(item.step, 10)
+        assert item.decimals == 0
+        assert item.step == 10
 
     def test_parameter_that_start_dig_are_treated_as_digits(self):
         """Verify that parameters with units that start with 'dig' are treated
@@ -710,8 +700,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["il1gain"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 0)
-        self.assertEqual(item.step, 1)
+        assert item.decimals == 0
+        assert item.step == 1
 
     def test_percentage_parameters_step_in_single_percent(self):
         """Verify that percentage parameters have a step size of 1%"""
@@ -732,8 +722,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["max_charge_percent"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 1)
+        assert item.decimals == 2
+        assert item.step == 1
 
     def test_voltage_parameters_step_in_volts(self):
         """Verify that voltage parameters have a step size of 1V"""
@@ -755,8 +745,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["udclim"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 10)
+        assert item.decimals == 2
+        assert item.step == 10
 
     def test_large_current_parameters_step_in_tens_of_amps(self):
         """Verify that large current parameters have a step size in tens of
@@ -778,8 +768,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["idcmax"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 10)
+        assert item.decimals == 2
+        assert item.step == 10
 
     def test_params_with_negative_range_has_same_step_as_positive(self):
         """The steps size should match the previous test with a positive
@@ -801,10 +791,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["bidirectional_param"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 10)
-
-    def test_params_with_positive_and_negative_range(self):
+        assert item.decimals == 2
+        assert item.step == 10
         """A parameters with a positive and negative range will
         have a step size that matches the positive or negative only ranges."""
 
@@ -824,10 +812,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["bidirectional_param"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 10)
-
-    def test_params_with_range_biased_away_from_zero(self):
+        assert item.decimals == 2
+        assert item.step == 10
         """A parameters with a range biased away from zero should
         have a step size that matches a range of the same size around zero"""
 
@@ -847,10 +833,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["bidirectional_param"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 10)
-
-    def test_huge_dimensionless_params_have_large_step(self):
+        assert item.decimals == 2
+        assert item.step == 10
         """Verify that huge dimensionless parameters have a large step size"""
 
         raw_json = {
@@ -869,8 +853,8 @@ class DatabaseImport(unittest.TestCase):
         assert len(database) == 1
         item = database["huge_param"]
         assert isinstance(item, OIVariable)
-        self.assertEqual(item.decimals, 2)
-        self.assertEqual(item.step, 1000)
+        assert item.decimals == 2
+        assert item.step == 1000
 
 
 class TestCachedDatabases:
@@ -878,15 +862,19 @@ class TestCachedDatabases:
     Unit test caching of JSON parameter databases
     """
 
-    def test_new_empty_cache_location(self, tmp_path: Path):
-        simulator = OISimulatedNode(42)
+    def test_new_empty_cache_location(
+            self,
+            tmp_path: Path,
+            test_network: canopen.Network,
+            simulator: OISimulatedNode):
+
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         cache = tmp_path / "empty-but-non-existent"
         assert not cache.is_dir()
 
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert cache.is_dir()
 
@@ -897,22 +885,24 @@ class TestCachedDatabases:
         assert cached_file.is_file()
         assert cached_file.stat().st_size > 0
 
-    def test_long_new_cache_path(self, tmp_path: Path):
-        simulator = OISimulatedNode(42)
+    def test_long_new_cache_path(self, tmp_path: Path,
+                                 test_network: canopen.Network,
+                                 simulator: OISimulatedNode):
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         cache = tmp_path / "a" / "deep" / "new" / "path"
         assert not cache.is_dir()
 
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert cache.is_dir()
 
         assert database["param1"]
 
-    def test_empty_but_present_cache_location(self, tmp_path: Path):
-        simulator = OISimulatedNode(42)
+    def test_empty_but_present_cache_location(self, tmp_path: Path,
+                                              test_network: canopen.Network,
+                                              simulator: OISimulatedNode):
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
@@ -921,7 +911,7 @@ class TestCachedDatabases:
 
         assert len(list(cache.iterdir())) == 0
 
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert database["param1"]
         item = cast(OIVariable, database["param1"])
@@ -941,15 +931,16 @@ class TestCachedDatabases:
         assert cached_file.is_file()
         assert cached_file.stat().st_size > 0
 
-    def test_database_is_cached(self, tmp_path: Path):
-        simulator = OISimulatedNode(42)
+    def test_database_is_cached(self, tmp_path: Path,
+                                test_network: canopen.Network,
+                                simulator: OISimulatedNode):
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         cache = tmp_path
 
         # prime the cache
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert database["param1"]
 
@@ -957,7 +948,7 @@ class TestCachedDatabases:
         simulator.LoadDatabase(TEST_DATA_DIR / "complex.json")
 
         # Load the database again which should load from the cache
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         # verify we still have the single parameter
         assert database["param1"]
@@ -987,15 +978,16 @@ class TestCachedDatabases:
         assert "potmax" not in database
         assert "cpuload" not in database
 
-    def test_cached_database_is_updated(self, tmp_path: Path):
-        simulator = OISimulatedNode(42)
+    def test_cached_database_is_updated(self, tmp_path: Path,
+                                        test_network: canopen.Network,
+                                        simulator: OISimulatedNode):
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         cache = tmp_path
 
         # prime the cache
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert database["param1"]
 
@@ -1005,7 +997,7 @@ class TestCachedDatabases:
         simulator.checksum = 4567890
 
         # Load the database again which should update from the remote node
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         # verify we have parameters from the new database
         assert database["curkp"]
@@ -1022,16 +1014,17 @@ class TestCachedDatabases:
 
     def test_multiple_nodes_generate_multiple_cached_databases(
             self,
-            tmp_path: Path):
+            tmp_path: Path,
+            test_network: canopen.Network,
+            simulator: OISimulatedNode):
         cache = tmp_path
 
         # Set up up the first node
-        simulator = OISimulatedNode(42)
         simulator.checksum = 12345678
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         # Load the database from the first node
-        database = import_cached_database(simulator.network, 42, cache)
+        database = import_cached_database(test_network, 42, cache)
 
         assert database["param1"]
 
@@ -1041,7 +1034,7 @@ class TestCachedDatabases:
         simulator.LoadDatabase(TEST_DATA_DIR / "single-param.json")
 
         # Load the database from the second node
-        database = import_cached_database(simulator.network, 99, cache)
+        database = import_cached_database(test_network, 99, cache)
 
         assert database["param1"]
 
@@ -1052,7 +1045,7 @@ class TestCachedDatabases:
         assert filecmp.cmp(cache_files[0], cache_files[1], shallow=False)
 
 
-class ValueToString(unittest.TestCase):
+class TestValueToString:
     """
     Unit test the conversion of numeric values to user-facing strings using a
     OIVariable instance.
@@ -1063,14 +1056,14 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 123.45, symbolic=False)
 
-        self.assertEqual(output, "123.45")
+        assert output == "123.45"
 
     def test_symbolic_doesnt_affect_numeric_value(self):
         param = OIVariable("numeric",  0)
 
         output = value_to_str(param, 123.45)
 
-        self.assertEqual(output, "123.45")
+        assert output == "123.45"
 
     def test_simple_enum_value(self):
         param = OIVariable("enum",  0)
@@ -1078,7 +1071,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 1)
 
-        self.assertEqual(output, "On")
+        assert output == "On"
 
     def test_enum_value_without_symbolic_display_returns_a_number(self):
         param = OIVariable("enum",  0)
@@ -1086,7 +1079,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 1, symbolic=False)
 
-        self.assertEqual(output, "1")
+        assert output == "1"
 
     def test_enum_with_unknown_value_is_returned_with_annotation(self):
         param = OIVariable("enum",  0)
@@ -1094,7 +1087,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 2)
 
-        self.assertEqual(output, "2 (Unknown value)")
+        assert output == "2 (Unknown value)"
 
     def test_bitfield_with_single_bit_set(self):
         param = OIVariable("canio",  2022)
@@ -1103,7 +1096,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 4)
 
-        self.assertEqual(output, "Brake")
+        assert output == "Brake"
 
     def test_bitfield_with_multiple_bits_set(self):
         param = OIVariable("canio",  2022)
@@ -1112,7 +1105,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 21)
 
-        self.assertEqual(output, "Cruise, Brake, Rev")
+        assert output == "Cruise, Brake, Rev"
 
     def test_bitfield_with_zero_value_but_param_doesnt_define(self):
         param = OIVariable("canio",  2022)
@@ -1121,7 +1114,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 0)
 
-        self.assertEqual(output, "0")
+        assert output == "0"
 
     def test_bitfield_with_zero_value_where_param_defines_symbol(self):
         param = OIVariable("status",  2044)
@@ -1132,7 +1125,7 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 0)
 
-        self.assertEqual(output, "None")
+        assert output == "None"
 
     def test_bitfield_value_without_symbolic_display_returns_a_number(self):
         param = OIVariable("status",  2044)
@@ -1143,48 +1136,48 @@ class ValueToString(unittest.TestCase):
 
         output = value_to_str(param, 15, symbolic=False)
 
-        self.assertEqual(output, "15")
+        assert output == "15"
 
 
-class TestParamNameFromId(unittest.TestCase):
+@pytest.fixture
+def param_name_from_id_db():
+    """Create a dummy ObjectDictionary and add OIVariables"""
+    db = canopen.ObjectDictionary()
+    var1 = OIVariable("param1", 100)
+    var2 = OIVariable("param2", 200)
+    var3 = OIVariable("param3", 300)
+    db.add_object(var1)
+    db.add_object(var2)
+    db.add_object(var3)
+    return db
+
+
+class TestParamNameFromId:
     """
     Unit tests for param_name_from_id function.
     """
 
-    def setUp(self):
-        # Create a dummy ObjectDictionary and add OIVariables
-        self.db = canopen.ObjectDictionary()
-        self.var1 = OIVariable("param1", 100)
-        self.var2 = OIVariable("param2", 200)
-        self.var3 = OIVariable("param3", 300)
-        self.db.add_object(self.var1)
-        self.db.add_object(self.var2)
-        self.db.add_object(self.var3)
-
-    def test_existing_param_id_returns_name(self):
+    def test_existing_param_id_returns_name(self, param_name_from_id_db):
         # Should return the correct name for existing param IDs
-        self.assertEqual(param_name_from_id(100, self.db), "param1")
-        self.assertEqual(param_name_from_id(200, self.db), "param2")
-        self.assertEqual(param_name_from_id(300, self.db), "param3")
+        assert param_name_from_id(100, param_name_from_id_db) == "param1"
+        assert param_name_from_id(200, param_name_from_id_db) == "param2"
+        assert param_name_from_id(300, param_name_from_id_db) == "param3"
 
-    def test_nonexistent_param_id_returns_id_as_string(self):
+    def test_nonexistent_param_id_returns_id_as_string(
+            self, param_name_from_id_db):
         # Should return the param_id as string if not found
-        self.assertEqual(param_name_from_id(999, self.db), "999")
-        self.assertEqual(param_name_from_id(-1, self.db), "-1")
+        assert param_name_from_id(999, param_name_from_id_db) == "999"
+        assert param_name_from_id(-1, param_name_from_id_db) == "-1"
 
     def test_empty_database_returns_id_as_string(self):
         # Should return the param_id as string if db is empty
         empty_db = canopen.ObjectDictionary()
-        self.assertEqual(param_name_from_id(100, empty_db), "100")
+        assert param_name_from_id(100, empty_db) == "100"
 
-    def test_database_with_non_oivariable_objects(self):
+    def test_database_with_non_oivariable_objects(self, param_name_from_id_db):
         # Should ignore non-OIVariable objects in db.names
-        self.db.add_object(
+        param_name_from_id_db.add_object(
             canopen.objectdictionary.ODVariable(
                 "not_an_oi_param", 123, 456))
-        self.assertEqual(param_name_from_id(100, self.db), "param1")
-        self.assertEqual(param_name_from_id(999, self.db), "999")
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert param_name_from_id(100, param_name_from_id_db) == "param1"
+        assert param_name_from_id(999, param_name_from_id_db) == "999"

@@ -39,17 +39,10 @@ class OISimulatedNode:
         self.server_node = canopen.LocalNode(node_id, dictionary)
         self.server_network.add_node(self.server_node)
 
-        # Put together a network that is connected to the server for the code
-        # under test to use
-        self.network = canopen.Network()
-        self.network.NOTIFIER_SHUTDOWN_TIMEOUT = 0.0
-        self.network.connect("test", bustype="virtual")
-
-    def __del__(self):
-        """Always ensure we disconnect from the two networks. Failing to do
+    def shutdown(self):
+        """Always ensure we disconnect from the server network. Failing to do
         this results in communications failures when multiple instances of the
         class are used in succession."""
-        self.network.disconnect()
         self.server_network.disconnect()
 
     def LoadDatabase(self, db: Path) -> None:

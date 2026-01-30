@@ -4,7 +4,7 @@ import canopen
 import pytest
 
 from openinverter_can_tool.scanner import scan_network
-from tests.oi_sim import OISimulatedNode
+from .oi_sim import OISimulatedNode
 
 # Reduce test verbosity
 # pylint: disable=missing-function-docstring
@@ -13,27 +13,18 @@ from tests.oi_sim import OISimulatedNode
 # pylint: disable=redefined-outer-name
 
 
-@pytest.fixture
-def sim_node():
-    node = OISimulatedNode(node_id=5)
-    yield node
-    del node
+def test_scan_network_finds_sim_node(test_network: canopen.Network,
+                                     simulator: OISimulatedNode):
+    # The simulated node is node_id=42
+    _ = simulator
+    # Send a scan and check if 42 is found
+    found = scan_network(test_network, wait_time=0)
+    assert 42 in found
 
 
-def test_scan_network_finds_sim_node(sim_node):
-    # The simulated node is node_id=5
-    # Send a scan and check if 5 is found
-    found = scan_network(sim_node.network, wait_time=0)
-    assert 5 in found
-
-
-def test_scan_network_empty():
-    # Create a network with no nodes
-    network = canopen.Network()
-    network.connect("test", bustype="virtual")
-    found = scan_network(network, wait_time=0)
+def test_scan_network_empty(test_network: canopen.Network):
+    found = scan_network(test_network, wait_time=0)
     assert found == []
-    network.disconnect()
 
 
 def test_scan_network_asserts_on_no_network():
