@@ -25,7 +25,7 @@ def test_scan_network_finds_sim_node(test_network: canopen.Network,
 def test_scan_network_empty():
     # Create a network with no nodes
     network = canopen.Network()
-    network.connect("test", bustype="virtual")
+    network.connect("empty", bustype="virtual")
     found = scan_network(network, wait_time=0)
     assert found == []
     network.disconnect()
