@@ -22,9 +22,13 @@ def test_scan_network_finds_sim_node(test_network: canopen.Network,
     assert 42 in found
 
 
-def test_scan_network_empty(test_network: canopen.Network):
-    found = scan_network(test_network, wait_time=0)
+def test_scan_network_empty():
+    # Create a network with no nodes
+    network = canopen.Network()
+    network.connect("test", bustype="virtual")
+    found = scan_network(network, wait_time=0)
     assert found == []
+    network.disconnect()
 
 
 def test_scan_network_asserts_on_no_network():
