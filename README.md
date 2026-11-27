@@ -31,7 +31,7 @@ electric vehicles over a CAN connection.
   * Reset
 * Display a device's error log
 * Scan a CAN bus for possible nodes
-* Runs on Linux, Windows and MacOS with python 3.9+
+* Runs on Linux, Windows and MacOS with python 3.10+
 * Support [shell completion](https://github.com/davefiddes/openinverter-can-tool/blob/main/docs/shell-completion.md) for commands and options for bash, zsh and fish shells
 * Works with any CAN adapter supported by [python-can](https://pypi.org/project/python-can/)
 * Supports [stm32-sine](https://github.com/jsphuebner/stm32-sine) 5.24.R or later
