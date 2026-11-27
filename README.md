@@ -89,6 +89,7 @@ bitrate = 500000
 * [MKS CANable V2.0 Pro](https://github.com/makerbase-mks/CANable-MKS) in Windows and Linux using `slcan`
 * [FYSETC UCAN](https://www.ebay.co.uk/itm/267167770235) in MacOS using `slcan`
 * [Peak PCAN-USB](https://www.peak-system.com/PCAN-USB.199.0.html?L=1) in Linux using `socketcan`
+* [CSS Electronics CANsub](https://www.csselectronics.com/products/can-fd-usb-interface-ethernet-cansub-2) in Windows using `cansub` (`pip install python-can-cansub`)
 
 Let me know if you have used a particular CAN interface successfully and I can expand this list.
 
